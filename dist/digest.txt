@@ -1,6 +1,8 @@
-getdown.txt = 2b943f83a4d0c95291c6102296a7c017
-tmm.jar = 10f172ae993c56df8d76258bc7a5a504
-tmm.properties = 203f377c09fd9d4db5d0ff2535233872
+getdown.txt = b12292929af35f0a6ebb7cfda7798cd4
+tmm.jar = 8b7fc75811d9d53771b2fc86fce6f3e4
+tmm.properties = 394ffa6a01375e84d976f8909022b579
+tmm.png = e76078a528cbabf7a92dfaa83f1c7faa
+splashscreen.png = 637d4a8f2c354608ec8395b62ce99778
 lib/commons-lang3-3.1.jar = d5c4695ae6cc3b15b2401888ca8479b8
 lib/log4j-1.2.16.jar = ee4184458c455e2957af04dba25d3445
 lib/themoviedbapi-3.2-SNAPSHOT-r169.jar = 5b8559bc4429d1f929d3378fae3481d4
@@ -21,4 +23,4 @@ lib/httpclient-4.2.1.jar = 39305aaf131c5eb6d8a1d6e520d7b390
 lib/httpclient-cache-4.2.1.jar = 4c09be23a6c9074f2c362f6c9e2886f6
 lib/httpcore-4.2.1.jar = bbd68f28522ca317863c548adb62144f
 lib/httpmime-4.2.1.jar = f2eec872062662d4af35edc38106bfb9
-digest.txt = 3492948f8f6e257088803624a8d7dd9e
+digest.txt = bf6d0f33862d9a895859fbfd561dc88d
