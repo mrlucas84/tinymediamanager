@@ -1,6 +1,6 @@
-getdown.txt = b66e627ed1a659d8987a760e8896d96e
+getdown.txt = c699cedc23a736223b86e44e024052b9
 tmm.jar = 393e540078730562f7067d6546a144dd
-version = 4d101dc85b9f7b2c5baf654ef94c3770
+version = a9cf1c222a1c13404557f92100688210
 splashscreen.png = 2b7306a6055fc29c3ad2b17eb87aa1cd
 lib/commons-lang3.jar = d5c4695ae6cc3b15b2401888ca8479b8
 lib/log4j.jar = ee4184458c455e2957af04dba25d3445
@@ -22,4 +22,4 @@ lib/httpclient-cache.jar = 4c09be23a6c9074f2c362f6c9e2886f6
 lib/httpcore.jar = bbd68f28522ca317863c548adb62144f
 lib/httpmime.jar = f2eec872062662d4af35edc38106bfb9
 lib/JTattoo.jar = 9026b2cbb214cd8fcd2a3c9ea77b436c
-digest.txt = 05c60b4e42ae8447360c9771048ee8b3
+digest.txt = 507603d4d18ddfaba69bc8670002336d
