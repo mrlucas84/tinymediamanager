@@ -1,8 +1,8 @@
 getdown.txt = 3965eb1b87a0e0392c62e5e0afd31eb2
-tmm.jar = d59240b52f4f2ba094be3d5762abe2c3
-version = b685b5dff2d5df7568b394d7e3b1a771
+tmm.jar = 64e2e7188e35ceed7953e6232c0c4931
+version = b31e69b43bf1b736b11f4cd21e8ff052
 splashscreen.png = 2b7306a6055fc29c3ad2b17eb87aa1cd
-objectdb.conf = 9d94b2012a17017428f35d88e936c624
+objectdb.conf = 47f3debf80814672c0280504ca093b5b
 lib/commons-lang3.jar = d5c4695ae6cc3b15b2401888ca8479b8
 lib/log4j.jar = ee4184458c455e2957af04dba25d3445
 lib/themoviedbapi.jar = 5b8559bc4429d1f929d3378fae3481d4
@@ -24,4 +24,4 @@ lib/httpcore.jar = bbd68f28522ca317863c548adb62144f
 lib/httpmime.jar = f2eec872062662d4af35edc38106bfb9
 lib/JTattoo.jar = 9026b2cbb214cd8fcd2a3c9ea77b436c
 lib/jsoup.jar = bb198982d8da9f1f6081f0b2f66947a4
-digest.txt = 578f63691eb6d6cb7a1647d7742ebd5a
+digest.txt = 5140a7f00319cbb8fd691eda4065a0bb
