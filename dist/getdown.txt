@@ -14,6 +14,7 @@ ui.status_text = FFFFFF
 code = tmm.jar
 code = version
 code = splashscreen.png
+code = objectdb.conf
 code = lib/commons-lang3.jar
 code = lib/log4j.jar
 code = lib/themoviedbapi.jar
@@ -34,6 +35,7 @@ code = lib/httpclient-cache.jar
 code = lib/httpcore.jar
 code = lib/httpmime.jar
 code = lib/JTattoo.jar
+code = lib/jsoup.jar
 
 # The main entry point for the application
 class = org.tinymediamanager.TinyMediaManager
