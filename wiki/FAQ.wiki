@@ -41,3 +41,20 @@ the following file extensions will be recognized as movie files:
  * divx
  * h264
  * mov
+
+if you want to add more file extenstions, simply add them in the config.xml as follows:
+
+{{{
+<videoFileTypes>
+  <filetype>.mpg</filetype>
+  <filetype>.avi</filetype>
+  <filetype>.mp4</filetype>
+  <filetype>.mkv</filetype>
+  <filetype>.wmv</filetype>
+  <filetype>.ts</filetype>
+  <filetype>.mpeg</filetype>
+  <filetype>.divx</filetype>
+  <filetype>.h264</filetype>
+  <filetype>.mov</filetype>
+</videoFileTypes>
+}}}
