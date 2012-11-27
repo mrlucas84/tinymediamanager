@@ -8,3 +8,36 @@ First delete tmm.odb (database where all data is stored). If that didn't work al
 == tinyMediaManager crashes as soon as I click on a moviename ==
 If you are using Java 7 with a release lower than u10, then tinyMediaManager will crash because of a bug in java. Its fixed in Java 7u10.
 Just wait until that patch is available or switch to Java6
+
+== not all movies are found when updating a datasource == 
+Be sure that your file and directory structure meets the requirement of tinyMediaManager. Only one movie per directory is allowed (the directory name containing the movie file will be taken as the initial movie name):
+
+ * Datasource
+  * Movie A
+   * A.avi
+  * Movie B
+   * B.mkv
+
+also nesting of directories is allowed:
+
+ * Datasource
+  * Folder A
+   * Movie A1
+    * A1.avi
+   * Movie A2
+    * A2.mkv
+  * Folder B
+   * Movie B1
+    * B1.mpg
+
+the following file extensions will be recognized as movie files:
+ * avi
+ * mkv
+ * mp4
+ * mpg
+ * wmv
+ * ts
+ * mpeg
+ * divx
+ * h264
+ * mov
