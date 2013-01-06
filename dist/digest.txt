@@ -1,6 +1,6 @@
 getdown.txt = f292dc6ba64bae5772af33744b743efd
 tmm.jar = 05d5717a2e7a6c90a889ef08afbcec94
-version = 9cc7f58bfde490e6123172c509be40aa
+version = 0da5bff767f5c6ee74cf68903bb373aa
 splashscreen.png = b47a1c8853d315f38f936c6f21b2aace
 objectdb.conf = 01fc79849359778b00ac1c01d1161766
 lib/commons-lang3.jar = d5c4695ae6cc3b15b2401888ca8479b8
@@ -32,4 +32,4 @@ lib/jackson-annotations.jar = cd59d65b47e1420467923b0e41da8448
 lib/jna.jar = e4672706cdccac9fcac4b9f3c5544fa5
 lib/platform.jar = 5b57bf498d5d7164b81cacc29396f6ab
 lib/vlcj.jar = a2849e90b819a83648b02e3ab460ca92
-digest.txt = 1e6f3ceb856ac9d952226a6c3d4d24da
+digest.txt = 4f3f169e378a5965dad273f7e10b680c
