@@ -33,3 +33,8 @@ Option two is to manually assign movies to a movieset. This can be done in the m
 
 As described before, you can choose the empty movieset in the movie edit window to unassign a movie from a movieset.
 Alternatively you also can use the "remove" button in the movieset view when a movie is selected. This will also unassign the movie from a movieset.
+In the movieset edit window, you also have the chance to unassign a movie from a movieset.
+
+== Editing a movieset ==
+
+With the "edit" button, you can also manually edit a movieset (change title, add a overview, reorder movies or unassign movies)
