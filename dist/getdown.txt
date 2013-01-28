@@ -1,7 +1,7 @@
 # The URL from which the client is downloaded
 appbase = http://tinymediamanager.googlecode.com/svn/dist
 
-#version = 232
+#version = 241
 
 # UI Configuration
 ui.name = tinyMediaManager updater
@@ -45,8 +45,8 @@ code = lib/themoviedbapi.jar
 code = lib/thetvdbapi.jar
 code = lib/vlcj.jar
 
-#resource = [windows] tinyMediaManager.exe
-resource = [!windows] getdown.jar
+resource = getdown.jar
+#resource = [windows] tinyMediaManager.exe #not yet - need more testing
 resource = [!windows] tinyMediaManager.sh
 resource = version
 resource = splashscreen.png
