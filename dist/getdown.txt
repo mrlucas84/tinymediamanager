@@ -1,7 +1,7 @@
 # The URL from which the client is downloaded
 appbase = http://tinymediamanager.googlecode.com/svn/dist
 
-#version = 279
+#version = 306
 
 # UI Configuration
 ui.name = tinyMediaManager updater
@@ -76,5 +76,6 @@ allow_offline = true
 # jvm args
 jvmarg = -Xms64m 
 jvmarg = -Xmx512m
+jvmarg = -Xss512k
 jvmarg = -splash:splashscreen.png
 jvmarg = [mac os x] -Dapple.awt.graphics.UseQuartz=true
