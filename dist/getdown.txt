@@ -1,7 +1,7 @@
 # The URL from which the client is downloaded
 appbase = http://tinymediamanager.googlecode.com/svn/dist
 
-#version = 306
+#version = 314
 
 # UI Configuration
 ui.name = tinyMediaManager updater
