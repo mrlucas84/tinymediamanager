@@ -28,7 +28,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.tinymediamanager.Globals;
 import org.tinymediamanager.core.WindowConfig;
-import org.tinymediamanager.ui.movies.MoviePanel;
 
 /**
  * The Class TmmWindowSaver.
@@ -131,15 +130,15 @@ public class TmmWindowSaver implements AWTEventListener {
         }
       }
 
-      // sliders
-      MainWindow mainWindow = (MainWindow) frame;
-      MoviePanel moviePanel = mainWindow.getMoviePanel();
-      if (config.getInteger("movieWindowSlider1") > 0) {
-        moviePanel.getSplitPaneVertical().setDividerLocation(config.getInteger("movieWindowSlider1"));
-      }
-      if (config.getInteger("movieWindowSlider2") > 0) {
-        moviePanel.getSplitPaneHorizontal().setDividerLocation(config.getInteger("movieWindowSlider2"));
-      }
+      // // sliders
+      // MainWindow mainWindow = (MainWindow) frame;
+      // MoviePanel moviePanel = mainWindow.getMoviePanel();
+      // if (config.getInteger("movieWindowSlider1") > 0) {
+      // moviePanel.getSplitPaneVertical().setDividerLocation(config.getInteger("movieWindowSlider1"));
+      // }
+      // if (config.getInteger("movieWindowSlider2") > 0) {
+      // moviePanel.getSplitPaneHorizontal().setDividerLocation(config.getInteger("movieWindowSlider2"));
+      // }
     }
   }
 
@@ -172,11 +171,11 @@ public class TmmWindowSaver implements AWTEventListener {
       config.addParam("mainWindowMaximized", (frame.getExtendedState() & JFrame.MAXIMIZED_BOTH) == JFrame.MAXIMIZED_BOTH);
       config.storeWindowBounds("mainWindow", frame.getX(), frame.getY(), frame.getWidth(), frame.getHeight());
 
-      // sliders
-      MainWindow mainWindow = (MainWindow) frame;
-      MoviePanel moviePanel = mainWindow.getMoviePanel();
-      config.addParam("movieWindowSlider1", moviePanel.getSplitPaneVertical().getDividerLocation());
-      config.addParam("movieWindowSlider2", moviePanel.getSplitPaneHorizontal().getDividerLocation());
+      // // sliders
+      // MainWindow mainWindow = (MainWindow) frame;
+      // MoviePanel moviePanel = mainWindow.getMoviePanel();
+      // config.addParam("movieWindowSlider1", moviePanel.getSplitPaneVertical().getDividerLocation());
+      // config.addParam("movieWindowSlider2", moviePanel.getSplitPaneHorizontal().getDividerLocation());
     }
   }
 

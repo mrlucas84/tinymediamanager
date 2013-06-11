@@ -16,6 +16,7 @@
 package org.tinymediamanager.ui;
 
 import java.awt.BorderLayout;
+import java.awt.CardLayout;
 import java.awt.Cursor;
 import java.awt.Desktop;
 import java.awt.Dialog;
@@ -46,9 +47,9 @@ import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
+import javax.swing.JSplitPane;
 import javax.swing.JTabbedPane;
 import javax.swing.SwingWorker;
-import javax.swing.UIManager;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringEscapeUtils;
@@ -64,14 +65,11 @@ import org.tinymediamanager.core.tvshow.TvShow;
 import org.tinymediamanager.core.tvshow.TvShowList;
 import org.tinymediamanager.scraper.util.CachedUrl;
 import org.tinymediamanager.ui.components.ToolbarPanel;
-import org.tinymediamanager.ui.components.VerticalTextIcon;
 import org.tinymediamanager.ui.dialogs.AboutDialog;
 import org.tinymediamanager.ui.dialogs.BugReportDialog;
 import org.tinymediamanager.ui.dialogs.FeedbackDialog;
 import org.tinymediamanager.ui.movies.MoviePanel;
-import org.tinymediamanager.ui.moviesets.MovieSetPanel;
-import org.tinymediamanager.ui.settings.SettingsPanel;
-import org.tinymediamanager.ui.tvshows.TvShowPanel;
+import org.tinymediamanager.ui.movies.MovieUIModule;
 
 import com.jgoodies.forms.factories.FormFactory;
 import com.jgoodies.forms.layout.ColumnSpec;
@@ -102,6 +100,9 @@ public class MainWindow extends JFrame {
   private JLabel                      lblProgressAction;
   private JProgressBar                progressBar;
   private JButton                     btnCancelTask;
+  private JPanel                      rootPanel;
+  private JTabbedPane                 tabbedPane;
+  private JPanel                      detailPanel;
 
   private TmmSwingWorker              activeTask;
   private StatusbarThread             statusTask       = new StatusbarThread();
@@ -296,7 +297,7 @@ public class MainWindow extends JFrame {
     JPanel toolbarPanel = new ToolbarPanel();
     getContentPane().add(toolbarPanel, BorderLayout.NORTH);
 
-    JPanel rootPanel = new JPanel();
+    rootPanel = new JPanel();
     rootPanel.putClientProperty("class", "rootPanel");
     getContentPane().add(rootPanel);
 
@@ -304,11 +305,43 @@ public class MainWindow extends JFrame {
         FormFactory.RELATED_GAP_ROWSPEC, RowSpec.decode("fill:max(500px;default):grow"), FormFactory.NARROW_LINE_GAP_ROWSPEC,
         FormFactory.DEFAULT_ROWSPEC, }));
 
-    JTabbedPane tabbedPane = VerticalTextIcon.createTabbedPane(JTabbedPane.LEFT);
-    UIManager.put("TabbedPane.contentOpaque", false);
-    tabbedPane.setTabPlacement(JTabbedPane.LEFT);
-    rootPanel.add(tabbedPane, "1, 2, fill, fill");
+    JSplitPane splitPane = new JSplitPane();
+    rootPanel.add(splitPane, "1, 2, fill, fill");
 
+    tabbedPane = new JTabbedPane();
+    splitPane.setLeftComponent(tabbedPane);
+
+    detailPanel = new JPanel();
+    detailPanel.setLayout(new CardLayout(0, 0));
+    splitPane.setRightComponent(detailPanel);
+
+    // JTabbedPane tabbedPane = VerticalTextIcon.createTabbedPane(JTabbedPane.LEFT);
+    // UIManager.put("TabbedPane.contentOpaque", false);
+    // tabbedPane.setTabPlacement(JTabbedPane.LEFT);
+    // rootPanel.add(tabbedPane, "1, 2, fill, fill");
+    //
+    buildStatusbar();
+    //
+    // panelMovies = new MoviePanel();
+    //    VerticalTextIcon.addTab(tabbedPane, BUNDLE.getString("tmm.movies"), panelMovies); //$NON-NLS-1$
+    //
+    // JPanel panelMovieSets = new MovieSetPanel();
+    //    VerticalTextIcon.addTab(tabbedPane, BUNDLE.getString("tmm.moviesets"), panelMovieSets); //$NON-NLS-1$
+    //
+    // JPanel panelTvShows = new TvShowPanel();
+    //    VerticalTextIcon.addTab(tabbedPane, BUNDLE.getString("tmm.tvshows"), panelTvShows); //$NON-NLS-1$
+    //
+    // JPanel panelSettings = new SettingsPanel();
+    //    VerticalTextIcon.addTab(tabbedPane, BUNDLE.getString("tmm.settings"), panelSettings); //$NON-NLS-1$
+
+    // shutdown listener - to clean database connections safely
+    createShutdownListener();
+
+    addModule(MovieUIModule.getInstance());
+
+  }
+
+  private void buildStatusbar() {
     panelStatusBar = new JPanel();
     rootPanel.add(panelStatusBar, "1, 4");
     panelStatusBar.setLayout(new FormLayout(
@@ -343,20 +376,9 @@ public class MainWindow extends JFrame {
 
     lblLoadingImg = new JLabel("");
     panelStatusBar.add(lblLoadingImg, "9, 1");
+  }
 
-    panelMovies = new MoviePanel();
-    VerticalTextIcon.addTab(tabbedPane, BUNDLE.getString("tmm.movies"), panelMovies); //$NON-NLS-1$
-
-    JPanel panelMovieSets = new MovieSetPanel();
-    VerticalTextIcon.addTab(tabbedPane, BUNDLE.getString("tmm.moviesets"), panelMovieSets); //$NON-NLS-1$
-
-    JPanel panelTvShows = new TvShowPanel();
-    VerticalTextIcon.addTab(tabbedPane, BUNDLE.getString("tmm.tvshows"), panelTvShows); //$NON-NLS-1$
-
-    JPanel panelSettings = new SettingsPanel();
-    VerticalTextIcon.addTab(tabbedPane, BUNDLE.getString("tmm.settings"), panelSettings); //$NON-NLS-1$
-
-    // shutdown listener - to clean database connections safely
+  private void createShutdownListener() {
     addWindowListener(new WindowAdapter() {
       @Override
       public void windowClosing(WindowEvent e) {
@@ -402,6 +424,11 @@ public class MainWindow extends JFrame {
         }
       }
     });
+  }
+
+  private void addModule(ITmmUIModule module) {
+    tabbedPane.addTab(module.getTabTitle(), module.getTabPanel());
+    detailPanel.add(module.getDetailPanel(), module.getModuleId());
   }
 
   /**

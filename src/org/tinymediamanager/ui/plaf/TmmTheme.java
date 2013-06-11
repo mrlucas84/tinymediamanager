@@ -8,7 +8,6 @@ import java.io.IOException;
 import javax.swing.plaf.FontUIResource;
 
 import com.jtattoo.plaf.AbstractTheme;
-import com.jtattoo.plaf.JTattooUtilities;
 
 public class TmmTheme extends AbstractTheme {
 
@@ -33,12 +32,7 @@ public class TmmTheme extends AbstractTheme {
   @Override
   public FontUIResource getControlTextFont() {
     if (controlFont == null) {
-      if (JTattooUtilities.isLinux() && JTattooUtilities.isHiresScreen()) {
-        controlFont = new FontUIResource(ROBOTO, Font.BOLD, 14);
-      }
-      else {
-        controlFont = new FontUIResource(ROBOTO, Font.PLAIN, 12);
-      }
+      controlFont = new FontUIResource(ROBOTO, Font.PLAIN, 12);
     }
     return controlFont;
   }
@@ -46,12 +40,8 @@ public class TmmTheme extends AbstractTheme {
   @Override
   public FontUIResource getSystemTextFont() {
     if (systemFont == null) {
-      if (JTattooUtilities.isLinux() && JTattooUtilities.isHiresScreen()) {
-        systemFont = new FontUIResource(ROBOTO, Font.BOLD, 14);
-      }
-      else {
-        systemFont = new FontUIResource(ROBOTO, Font.PLAIN, 12);
-      }
+      systemFont = new FontUIResource(ROBOTO, Font.PLAIN, 12);
+
     }
     return systemFont;
   }
@@ -59,12 +49,8 @@ public class TmmTheme extends AbstractTheme {
   @Override
   public FontUIResource getUserTextFont() {
     if (userFont == null) {
-      if (JTattooUtilities.isLinux() && JTattooUtilities.isHiresScreen()) {
-        userFont = new FontUIResource(ROBOTO, Font.BOLD, 14);
-      }
-      else {
-        userFont = new FontUIResource(ROBOTO, Font.PLAIN, 12);
-      }
+      userFont = new FontUIResource(ROBOTO, Font.PLAIN, 12);
+
     }
     return userFont;
   }
@@ -72,12 +58,8 @@ public class TmmTheme extends AbstractTheme {
   @Override
   public FontUIResource getMenuTextFont() {
     if (menuFont == null) {
-      if (JTattooUtilities.isLinux() && JTattooUtilities.isHiresScreen()) {
-        menuFont = new FontUIResource(ROBOTO, Font.BOLD, 14);
-      }
-      else {
-        menuFont = new FontUIResource(ROBOTO, Font.PLAIN, 12);
-      }
+      menuFont = new FontUIResource(ROBOTO, Font.PLAIN, 12);
+
     }
     return menuFont;
   }
@@ -85,12 +67,7 @@ public class TmmTheme extends AbstractTheme {
   @Override
   public FontUIResource getWindowTitleFont() {
     if (windowTitleFont == null) {
-      if (JTattooUtilities.isLinux() && JTattooUtilities.isHiresScreen()) {
-        windowTitleFont = new FontUIResource(ROBOTO, Font.BOLD, 14);
-      }
-      else {
-        windowTitleFont = new FontUIResource(ROBOTO, Font.BOLD, 12);
-      }
+      windowTitleFont = new FontUIResource(ROBOTO, Font.BOLD, 12);
     }
     return windowTitleFont;
   }
@@ -98,12 +75,7 @@ public class TmmTheme extends AbstractTheme {
   @Override
   public FontUIResource getSubTextFont() {
     if (smallFont == null) {
-      if (JTattooUtilities.isLinux() && JTattooUtilities.isHiresScreen()) {
-        smallFont = new FontUIResource(ROBOTO, Font.BOLD, 12);
-      }
-      else {
-        smallFont = new FontUIResource(ROBOTO, Font.PLAIN, 10);
-      }
+      smallFont = new FontUIResource(ROBOTO, Font.PLAIN, 10);
     }
     return smallFont;
   }
