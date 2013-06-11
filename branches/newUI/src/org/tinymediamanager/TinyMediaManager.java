@@ -52,6 +52,7 @@ import org.tinymediamanager.thirdparty.MediaInfo;
 import org.tinymediamanager.ui.MainWindow;
 import org.tinymediamanager.ui.TmmUIHelper;
 import org.tinymediamanager.ui.TmmWindowSaver;
+import org.tinymediamanager.ui.plaf.light.TmmLightLookAndFeel;
 
 import chrriis.dj.nativeswing.swtimpl.NativeInterface;
 
@@ -299,28 +300,28 @@ public class TinyMediaManager {
        *           the exception
        */
       private void setLookAndFeel() throws Exception {
-        // Get the native look and feel class name
-        // String laf = UIManager.getSystemLookAndFeelClassName();
+        // // Get the native look and feel class name
+        // // String laf = UIManager.getSystemLookAndFeelClassName();
         Properties props = new Properties();
-        props.setProperty("controlTextFont", "Dialog 12");
-        props.setProperty("systemTextFont", "Dialog 12");
-        props.setProperty("userTextFont", "Dialog 12");
-        props.setProperty("menuTextFont", "Dialog 12");
-        props.setProperty("windowTitleFont", "Dialog bold 12");
-        props.setProperty("subTextFont", "Dialog 10");
-        props.setProperty("backgroundColor", "237 237 237");
-        props.setProperty("menuBackgroundColor", "237 237 237");
-        props.setProperty("menuColorLight", "237 237 237");
-        props.setProperty("menuColorDark", "237 237 237");
-        props.setProperty("toolbarColorLight", "237 237 237");
-        props.setProperty("toolbarColorDark", "237 237 237");
-        // props.setProperty("tooltipBackgroundColor", "237 237 237");
+        // props.setProperty("controlTextFont", "Dialog 12");
+        // props.setProperty("systemTextFont", "Dialog 12");
+        // props.setProperty("userTextFont", "Dialog 12");
+        // props.setProperty("menuTextFont", "Dialog 12");
+        // props.setProperty("windowTitleFont", "Dialog bold 12");
+        // props.setProperty("subTextFont", "Dialog 10");
+        // props.setProperty("backgroundColor", "237 237 237");
+        // props.setProperty("menuBackgroundColor", "237 237 237");
+        // props.setProperty("menuColorLight", "237 237 237");
+        // props.setProperty("menuColorDark", "237 237 237");
+        // props.setProperty("toolbarColorLight", "237 237 237");
+        // props.setProperty("toolbarColorDark", "237 237 237");
+        // // props.setProperty("tooltipBackgroundColor", "237 237 237");
         props.put("windowDecoration", "system");
-        props.put("logoString", "");
+        // props.put("logoString", "");
 
         // Get the look and feel class name
-        com.jtattoo.plaf.luna.LunaLookAndFeel.setTheme(props);
-        String laf = "com.jtattoo.plaf.luna.LunaLookAndFeel";
+        TmmLightLookAndFeel.setTheme(props);
+        String laf = "org.tinymediamanager.ui.plaf.light.TmmLightLookAndFeel";
 
         // Install the look and feel
         UIManager.setLookAndFeel(laf);
@@ -347,6 +348,7 @@ public class TinyMediaManager {
 
           // check really old alpha version
           FileUtils.deleteQuietly(new File("lib/beansbinding-1.2.1.jar"));
+          FileUtils.deleteQuietly(new File("lib/beansbinding.jar"));
         }
         else if (version.equals("2.0")) {
           // do something to upgrade to 2.1/3.0

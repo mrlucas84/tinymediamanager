@@ -92,6 +92,8 @@ public class TvShowEpisode extends MediaEntity implements Comparable<TvShowEpiso
   /** The votes. */
   private int                 votes             = 0;
 
+  private boolean             subtitles         = false;
+
   /** The actors. */
   @OneToMany(cascade = CascadeType.ALL)
   private List<TvShowActor>   actors            = new ArrayList<TvShowActor>();
@@ -442,8 +444,22 @@ public class TvShowEpisode extends MediaEntity implements Comparable<TvShowEpiso
   public void setNfoFilename(String newValue) {
     String oldValue = this.nfoFilename;
     this.nfoFilename = newValue;
+    setNFO(new File(path, nfoFilename));
     firePropertyChange(NFO_FILENAME, oldValue, newValue);
     firePropertyChange(HAS_NFO_FILE, false, true);
+  }
+
+  private void setNFO(File file) {
+    List<MediaFile> nfos = getMediaFiles(MediaFileType.NFO);
+    MediaFile mediaFile = null;
+    if (nfos.size() > 0) {
+      mediaFile = nfos.get(0);
+      mediaFile.setFile(file);
+    }
+    else {
+      mediaFile = new MediaFile(file, MediaFileType.NFO);
+      addToMediaFiles(mediaFile);
+    }
   }
 
   /**
@@ -796,5 +812,23 @@ public class TvShowEpisode extends MediaEntity implements Comparable<TvShowEpiso
     }
 
     return mediaFilesWithSubtitles;
+  }
+
+  public boolean hasSubtitles() {
+    if (this.subtitles) {
+      return true; // local ones found
+    }
+
+    for (MediaFile mf : getMediaFiles(MediaFileType.VIDEO)) {
+      if (mf.hasSubtitles()) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  public void setSubtitles(boolean sub) {
+    this.subtitles = sub;
   }
 }

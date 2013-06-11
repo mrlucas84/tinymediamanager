@@ -19,12 +19,8 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Locale;
-import java.util.MissingResourceException;
 import java.util.Set;
 
 import org.apache.commons.io.FileExistsException;
@@ -47,66 +43,11 @@ import org.tinymediamanager.core.Utils;
 public class MovieRenamer {
 
   /** The Constant LOGGER. */
-  private final static Logger       LOGGER                = LoggerFactory.getLogger(MovieRenamer.class);
-  private final static List<String> subtitleLanguageArray = generateSubtitleLanguageArray();
-
-  /**
-   * Generates a List of language/country names and abbreviations<br>
-   * sorted from the longest to shortest
-   * 
-   * @return List of language/country names
-   */
-  private static List<String> generateSubtitleLanguageArray() {
-    List<String> langArray = new ArrayList<String>();
-    Locale intl = new Locale("en");
-
-    Locale locales[] = Locale.getAvailableLocales();
-    // all possible variants of language/country/prefixes/non-iso style
-    for (Locale locale : locales) {
-      langArray.add(locale.getDisplayLanguage(intl));
-      langArray.add(locale.getDisplayLanguage());
-      langArray.add(locale.getDisplayLanguage(intl).substring(0, 3)); // eg German -> Ger, where iso3=deu
-      langArray.add(locale.getISO3Language());
-      try {
-        String c = locale.getISO3Country();
-        langArray.add(c);
-      }
-      catch (MissingResourceException e) {
-        // tjo... not available, see javadoc
-      }
-    }
-    for (String l : Locale.getISOLanguages()) {
-      langArray.add(l);
-    }
-    for (String l : Locale.getISOCountries()) {
-      langArray.add(l);
-    }
-    Set<String> cleanloc = new LinkedHashSet<String>(langArray);
-    cleanloc.remove(""); // remove empty
-    langArray.clear();
-    langArray.addAll(cleanloc);
-    // sort length wise, to reduce false positives
-    Collections.sort(langArray, new Comparator<String>() {
-      public int compare(String a1, String a2) {
-        return a2.length() - a1.length();
-      }
-    });
-    return langArray;
-  }
-
-  /**
-   * Get a List of language/country names and abbreviations<br>
-   * sorted from the longest to shortest
-   * 
-   * @return List of language/country names
-   */
-  public static List<String> getSubtitleLanguageArray() {
-    return subtitleLanguageArray;
-  }
+  private final static Logger LOGGER = LoggerFactory.getLogger(MovieRenamer.class);
 
   private static void renameSubtitles(Movie m) {
     // build language lists
-    List<String> langArray = getSubtitleLanguageArray();
+    Set<String> langArray = Utils.KEY_TO_LOCALE_MAP.keySet();
 
     // the filename of movie, to remove from subtitle, to ease parsing
     String vname = Utils.cleanStackingMarkers(m.getMediaFiles(MediaFileType.VIDEO).get(0).getBasename()).toLowerCase();
@@ -124,8 +65,8 @@ public class MovieRenamer {
 
       for (String l : langArray) {
         if (shortname.endsWith(l.toLowerCase())) {
-          LOGGER.debug("found language '" + l + "' in subtitle");
-          lang = l;
+          lang = Utils.getDisplayLanguage(l);
+          LOGGER.debug("found language '" + l + "' in subtitle; displaying it as '" + lang + "'");
           break;
         }
       }
@@ -191,6 +132,10 @@ public class MovieRenamer {
       return;
     }
 
+    // all the good & needed mediafiles
+    ArrayList<MediaFile> needed = new ArrayList<MediaFile>();
+    ArrayList<MediaFile> cleanup = new ArrayList<MediaFile>();
+
     LOGGER.info("Renaming movie: " + movie.getTitle());
     LOGGER.debug("movie year: " + movie.getYear());
     LOGGER.debug("movie path: " + movie.getPath());
@@ -203,10 +148,10 @@ public class MovieRenamer {
     if (!newPathname.isEmpty()) {
       newPathname = movie.getDataSource() + File.separator + newPathname;
 
+      File srcDir = new File(oldPathname);
+      File destDir = new File(newPathname);
       // move directory if needed
-      if (!StringUtils.equals(oldPathname, newPathname)) {
-        File srcDir = new File(oldPathname);
-        File destDir = new File(newPathname);
+      if (!srcDir.equals(destDir)) {
         boolean ok = false;
         try {
           // FileUtils.moveDirectory(srcDir, destDir);
@@ -231,164 +176,225 @@ public class MovieRenamer {
       LOGGER.info("Folder rename settings were empty - NOT renaming folder");
     }
 
-    // all the good & needed mediafiles
-    ArrayList<MediaFile> needed = new ArrayList<MediaFile>();
-    ArrayList<MediaFile> cleanup = new ArrayList<MediaFile>();
-
     // if empty, do not rename file, but DO move them to movie root
     boolean renameFiles = !Globals.settings.getMovieSettings().getMovieRenamerFilename().isEmpty();
 
-    // rename MediaFiles
-    for (MediaFile mf : movie.getMediaFiles()) {
-      // TODO: needs more testing; lock on windows due to open handles (b/c of exists?)
-      // if (mf.getFile() == null || !mf.getFile().exists()) {
-      // MediaFile does not exist, skip it (will be cleaned from DB)
-      // continue;
-      // }
-      LOGGER.info("rename file " + mf.getFile().getAbsolutePath());
+    // cleanup with old movie name
+    for (MovieNfoNaming s : MovieNfoNaming.values()) {
+      // mark all known variants for cleanup
+      MediaFile del = new MediaFile(new File(movie.getPath(), movie.getNfoFilename(s)));
+      cleanup.add(del);
+    }
+    for (MoviePosterNaming s : MoviePosterNaming.values()) {
+      // mark all known variants for cleanup
+      MediaFile del = new MediaFile(new File(movie.getPath(), movie.getPosterFilename(s)));
+      cleanup.add(del);
+    }
+    for (MovieFanartNaming s : MovieFanartNaming.values()) {
+      // mark all known variants for cleanup
+      MediaFile del = new MediaFile(new File(movie.getPath(), movie.getFanartFilename(s)));
+      cleanup.add(del);
+    }
 
+    // ######################################################################
+    // ## rename VIDEO
+    // ######################################################################
+    for (MediaFile vid : movie.getMediaFiles(MediaFileType.VIDEO)) {
+      LOGGER.info("rename file " + vid.getFile().getAbsolutePath());
+
+      String newFilename = vid.getFilename();
+      String newPath = movie.getPath() + File.separator;
+      String fileExtension = FilenameUtils.getExtension(vid.getFilename());
+
+      if (!movie.isDisc()) {
+        cleanup.add(new MediaFile(vid)); // mark old file for cleanup (clone current)
+        if (renameFiles) {
+          // create new filename according to template
+          newFilename = createDestination(Globals.settings.getMovieSettings().getMovieRenamerFilename(), movie);
+          // is there any stacking information in the filename?
+          // use vid.getStacking() != 0 for custom stacking format?
+          String stacking = Utils.getStackingMarker(vid.getFilename());
+          if (!stacking.isEmpty()) {
+            newFilename += " " + stacking;
+          }
+          else if (vid.getStacking() != 0) {
+            newFilename += " CD" + vid.getStacking();
+          }
+          newFilename += "." + fileExtension;
+        }
+
+        MediaFile newMF = new MediaFile(vid);
+        File newFile = new File(newPath, newFilename);
+        try {
+          moveFile(vid.getFile(), newFile);
+          newMF.setPath(newPath);
+          newMF.setFilename(newFilename);
+        }
+        catch (FileNotFoundException e) {
+          LOGGER.error("error moving video file - file not found", e);
+        }
+        catch (Exception e) {
+          LOGGER.error("error moving video file", e);
+        }
+        needed.add(newMF);
+      }
+      else {
+        LOGGER.info("Movie is a DVD/BluRay disc folder - NOT renaming file");
+        needed.add(vid); // but keep it
+      }
+    }
+
+    MediaFile mf = null;
+
+    // ######################################################################
+    // ## rename NFO
+    // ######################################################################
+    List<MediaFile> mfl = movie.getMediaFiles(MediaFileType.NFO);
+    if (mfl != null && mfl.size() > 0) {
+      mf = mfl.get(0);
+      cleanup.add(new MediaFile(mf)); // mark old file for cleanup (clone current)
+      String newFilename = mf.getFilename();
+      String newPath = movie.getPath() + File.separator;
+
+      for (MovieNfoNaming name : Globals.settings.getMovieSettings().getMovieNfoFilenames()) {
+        MediaFile newMF = new MediaFile(mf);
+        newFilename = movie.getNfoFilename(name);
+        File newFile = new File(newPath, newFilename);
+        try {
+          boolean ok = copyFile(mf.getFile(), newFile);
+          if (ok) {
+            // movie.setNfoFilename(newFilename); // TODO remove when work completely with MediaFiles
+            newMF.setPath(newPath);
+            newMF.setFilename(newFilename);
+          }
+        }
+        catch (Exception e) {
+          LOGGER.error("error renaming Nfo", e);
+        }
+        needed.add(newMF);
+      }
+    }
+
+    // ######################################################################
+    // ## rename POSTER
+    // ######################################################################
+    mfl = movie.getMediaFiles(MediaFileType.POSTER);
+    if (mfl != null && mfl.size() > 0) {
+      mf = mfl.get(0);
+      cleanup.add(new MediaFile(mf)); // mark old file for cleanup (clone current)
+      String newFilename = mf.getFilename();
+      String newPath = movie.getPath() + File.separator;
+
+      for (MoviePosterNaming name : Globals.settings.getMovieSettings().getMoviePosterFilenames()) {
+        newFilename = movie.getPosterFilename(name);
+        String curExt = mf.getExtension();
+        if (curExt.equalsIgnoreCase("tbn")) {
+          String cont = mf.getContainerFormat();
+          if (cont.equalsIgnoreCase("PNG")) {
+            curExt = "png";
+          }
+          else if (cont.equalsIgnoreCase("JPEG")) {
+            curExt = "jpg";
+          }
+        }
+        if (!curExt.equals(FilenameUtils.getExtension(newFilename))) {
+          // match extension to not rename PNG to JPG and vice versa
+          continue;
+        }
+        MediaFile newMF = new MediaFile(mf);
+        File newFile = new File(newPath, newFilename);
+        try {
+          boolean ok = copyFile(mf.getFile(), newFile);
+          if (ok) {
+            newMF.setPath(newPath);
+            newMF.setFilename(newFilename);
+          }
+        }
+        catch (Exception e) {
+          LOGGER.error("error renaming poster", e);
+        }
+        needed.add(newMF);
+      }
+    }
+
+    // ######################################################################
+    // ## rename FANART
+    // ######################################################################
+    mfl = movie.getMediaFiles(MediaFileType.FANART);
+    if (mfl != null && mfl.size() > 0) {
+      mf = mfl.get(0);
+      cleanup.add(new MediaFile(mf)); // mark old file for cleanup (clone current)
+      String newFilename = mf.getFilename();
+      String newPath = movie.getPath() + File.separator;
+
+      for (MovieFanartNaming name : Globals.settings.getMovieSettings().getMovieFanartFilenames()) {
+        newFilename = movie.getFanartFilename(name);
+        String curExt = mf.getExtension();
+        if (curExt.equalsIgnoreCase("tbn")) {
+          String cont = mf.getContainerFormat();
+          if (cont.equalsIgnoreCase("PNG")) {
+            curExt = "png";
+          }
+          else if (cont.equalsIgnoreCase("JPEG")) {
+            curExt = "jpg";
+          }
+        }
+        if (!mf.getExtension().equals(FilenameUtils.getExtension(newFilename))) {
+          // match extension to not rename PNG to JPG and vice versa
+          continue;
+        }
+        MediaFile newMF = new MediaFile(mf);
+        File newFile = new File(newPath, newFilename);
+        try {
+          boolean ok = copyFile(mf.getFile(), newFile);
+          if (ok) {
+            newMF.setPath(newPath);
+            newMF.setFilename(newFilename);
+          }
+        }
+        catch (Exception e) {
+          LOGGER.error("error renaming fanart", e);
+        }
+        needed.add(newMF);
+      }
+    }
+
+    // ######################################################################
+    // ## rename TRAILER
+    // ######################################################################
+    mfl = movie.getMediaFiles(MediaFileType.TRAILER);
+    if (mfl != null && mfl.size() > 0) {
+      mf = mfl.get(0);
+      cleanup.add(new MediaFile(mf)); // mark old file for cleanup (clone current)
       String newFilename = mf.getFilename();
       String newPath = movie.getPath() + File.separator;
       String fileExtension = FilenameUtils.getExtension(mf.getFilename());
+      newFilename = createDestination(Globals.settings.getMovieSettings().getMovieRenamerFilename(), movie) + "-trailer." + fileExtension;
+      MediaFile newMF = new MediaFile(mf);
+      File newFile = new File(newPath, newFilename);
+      try {
+        moveFile(mf.getFile(), newFile);
+        newMF.setPath(newPath);
+        newMF.setFilename(newFilename);
+      }
+      catch (Exception e) {
+        LOGGER.error("error renaming trailer", e);
+      }
+      needed.add(newMF);
+    }
 
-      if (mf.getType().equals(MediaFileType.VIDEO)) {
-        // ######################################################################
-        // ## rename VIDEO
-        // ######################################################################
-        if (!movie.isDisc()) {
-          if (renameFiles) {
-            // create new filename according to template
-            newFilename = createDestination(Globals.settings.getMovieSettings().getMovieRenamerFilename(), movie);
-            // is there any stacking information in the filename?
-            // use mf.getStacking() != 0 for custom stacking format?
-            String stacking = Utils.getStackingMarker(mf.getFilename());
-            if (!stacking.isEmpty()) {
-              newFilename += " " + stacking;
-            }
-            else if (mf.getStacking() != 0) {
-              newFilename += " CD" + mf.getStacking();
-            }
-            newFilename += "." + fileExtension;
-          }
+    // ######################################################################
+    // ## rename SUBTITLE
+    // ######################################################################
+    for (MediaFile sub : movie.getMediaFiles(MediaFileType.SUBTITLE)) {
+      needed.add(sub); // keep all subtitles, will be cleaned afterwards
+    }
 
-          File newFile = new File(newPath, newFilename);
-          try {
-            moveFile(mf.getFile(), new File(newPath, newFilename));
-            cleanup.add(mf); // mark old file for cleanup
-            needed.add(new MediaFile(newFile)); // add new variant
-          }
-          catch (FileNotFoundException e) {
-            LOGGER.error("error moving video file - file not found", e);
-            needed.add(mf); // add old variant
-          }
-          catch (Exception e) {
-            LOGGER.error("error moving video file", e);
-            needed.add(mf); // add old variant
-          }
-        }
-        else {
-          LOGGER.info("Movie is a DVD/BluRay disc folder - NOT renaming file");
-          needed.add(mf); // add old variant
-        }
-      }
-      else if (mf.getType().equals(MediaFileType.NFO)) {
-        // ######################################################################
-        // ## rename NFO
-        // ######################################################################
-        for (MovieNfoNaming name : Globals.settings.getMovieSettings().getMovieNfoFilenames()) {
-          newFilename = movie.getNfoFilename(name);
-          File newFile = new File(newPath, newFilename);
-          try {
-            boolean ok = copyFile(mf.getFile(), newFile);
-            if (ok) {
-              movie.setNfoFilename(newFilename); // TODO remove when work completely with MediaFiles
-              cleanup.add(mf); // mark old file for cleanup
-              needed.add(new MediaFile(newFile)); // add new variant
-            }
-          }
-          catch (Exception e) {
-            LOGGER.error("error renaming Nfo", e);
-            needed.add(mf); // add old variant
-          }
-        }
-      }
-      else if (mf.getType().equals(MediaFileType.POSTER)) {
-        // ######################################################################
-        // ## rename POSTER
-        // ######################################################################
-        for (MoviePosterNaming name : Globals.settings.getMovieSettings().getMoviePosterFilenames()) {
-          newFilename = movie.getPosterFilename(name);
-          if (!mf.getExtension().equals(FilenameUtils.getExtension(newFilename))) {
-            // match extension to not rename PNG to JPG and vice versa
-            continue;
-          }
-          File newFile = new File(newPath, newFilename);
-          try {
-            boolean ok = copyFile(mf.getFile(), newFile);
-            if (ok) {
-              cleanup.add(mf); // mark old file for cleanup
-              needed.add(new MediaFile(newFile, MediaFileType.POSTER)); // add new variant
-            }
-          }
-          catch (Exception e) {
-            LOGGER.error("error renaming poster", e);
-            needed.add(mf); // add old variant
-          }
-        }
-      }
-      else if (mf.getType().equals(MediaFileType.FANART)) {
-        // ######################################################################
-        // ## rename FANART
-        // ######################################################################
-        for (MovieFanartNaming name : Globals.settings.getMovieSettings().getMovieFanartFilenames()) {
-          newFilename = movie.getFanartFilename(name);
-          if (!mf.getExtension().equals(FilenameUtils.getExtension(newFilename))) {
-            // match extension to not rename PNG to JPG and vice versa
-            continue;
-          }
-          File newFile = new File(newPath, newFilename);
-          try {
-            boolean ok = copyFile(mf.getFile(), newFile);
-            if (ok) {
-              cleanup.add(mf); // mark old file for cleanup
-              needed.add(new MediaFile(newFile, MediaFileType.FANART)); // add new variant
-            }
-          }
-          catch (Exception e) {
-            LOGGER.error("error renaming fanart", e);
-            needed.add(mf); // add old variant
-          }
-        }
-      }
-      else if (mf.getType().equals(MediaFileType.SUBTITLE)) {
-        // ######################################################################
-        // ## rename SUBTITLE
-        // ######################################################################
-        needed.add(mf); // cleanup will be done afterwards
-      }
-      else if (mf.getType().equals(MediaFileType.TRAILER)) {
-        // ######################################################################
-        // ## rename TRAILER
-        // ######################################################################
-        newFilename = createDestination(Globals.settings.getMovieSettings().getMovieRenamerFilename(), movie) + "-trailer." + fileExtension;
-        File newFile = new File(newPath, newFilename);
-        try {
-          moveFile(mf.getFile(), newFile);
-          cleanup.add(mf); // mark old file for cleanup
-          needed.add(new MediaFile(newFile)); // add new variant
-        }
-        catch (Exception e) {
-          LOGGER.error("error renaming trailer", e);
-          needed.add(mf); // add old variant
-        }
-      }
-      else {
-        // ######################################################################
-        // ## rename UNKNOWN
-        // ######################################################################
-        LOGGER.warn("Unknown MediaFileType - NOT renaming file");
-        needed.add(mf); // but keep it
-      }
+    // ######################################################################
+    // ## rename UNKNOWN
+    // ######################################################################
+    for (MediaFile unk : movie.getMediaFiles(MediaFileType.UNKNOWN)) {
+      needed.add(unk); // keep all unknown
     }
 
     // remove duplicate MediaFiles
@@ -403,23 +409,26 @@ public class MovieRenamer {
     // cleanup & rename subtitle files
     renameSubtitles(movie);
 
-    movie.gatherMediaFileInformation(true);
+    movie.gatherMediaFileInformation(false);
     movie.saveToDb();
 
     // ######################################################################
     // ## CLEANUP
     // ######################################################################
-
-    LOGGER.debug("Cleanup...");
+    LOGGER.info("Cleanup...");
     for (int i = cleanup.size() - 1; i >= 0; i--) {
       // cleanup files which are not needed
       if (!needed.contains(cleanup.get(i))) {
-        MediaFile mf = cleanup.get(i);
-        FileUtils.deleteQuietly(mf.getFile()); // delete cleanup file
-        File[] list = mf.getFile().getParentFile().listFiles();
+        MediaFile cl = cleanup.get(i);
+        if (cl.getFile().exists()) { // unneded, but for not diplaying wrong deletes in logger...
+          LOGGER.debug("Deleting " + cl.getFilename());
+          FileUtils.deleteQuietly(cl.getFile()); // delete cleanup file
+        }
+        File[] list = cl.getFile().getParentFile().listFiles();
         if (list != null && list.length == 0) {
           // if directory is empty, delete it as well
-          FileUtils.deleteQuietly(mf.getFile().getParentFile());
+          LOGGER.debug("Deleting empty Directory" + cl.getFile().getParentFile().getAbsolutePath());
+          FileUtils.deleteQuietly(cl.getFile().getParentFile());
         }
       }
     }
@@ -440,7 +449,7 @@ public class MovieRenamer {
    *           if an IO error occurs moving the file
    * @author Myron Boyle
    */
-  private static boolean moveDirectorySafe(File srcDir, File destDir) throws IOException {
+  public static boolean moveDirectorySafe(File srcDir, File destDir) throws IOException {
     // rip-off from
     // http://svn.apache.org/repos/asf/commons/proper/io/trunk/src/main/java/org/apache/commons/io/FileUtils.java
     if (srcDir == null) {
@@ -569,7 +578,7 @@ public class MovieRenamer {
 
     // replace illegal characters
     // http://msdn.microsoft.com/en-us/library/windows/desktop/aa365247%28v=vs.85%29.aspx
-    newDestination = newDestination.replaceAll("([:<>|?*])", "");
+    newDestination = newDestination.replaceAll("([\"\\:<>|/?*])", "");
     // replace empty brackets
     newDestination = newDestination.replaceAll("\\(\\)", "");
 
@@ -620,7 +629,7 @@ public class MovieRenamer {
       if (newFilename.exists()) {
         // overwrite?
         LOGGER.warn(newFilename + " exists - do nothing.");
-        return false;
+        return true;
       }
       else {
         if (oldFilename.exists()) {
@@ -633,7 +642,7 @@ public class MovieRenamer {
       }
     }
     else { // file is the same
-      return true;
+      return false;
     }
   }
 }

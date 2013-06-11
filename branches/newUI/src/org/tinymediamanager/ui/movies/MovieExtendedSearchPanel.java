@@ -139,7 +139,6 @@ public class MovieExtendedSearchPanel extends CollapsiblePanel {
    */
   public MovieExtendedSearchPanel(MovieSelectionModel model) {
     super(BUNDLE.getString("movieextendedsearch.options")); //$NON-NLS-1$
-
     this.movieSelectionModel = model;
 
     // JPanel panel = new JPanel();

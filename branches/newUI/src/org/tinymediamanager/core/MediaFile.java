@@ -18,8 +18,10 @@ package org.tinymediamanager.core;
 import java.io.File;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Scanner;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -37,7 +39,6 @@ import org.apache.commons.lang3.builder.ToStringStyle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.tinymediamanager.Globals;
-import org.tinymediamanager.core.movie.MovieRenamer;
 import org.tinymediamanager.thirdparty.MediaInfo;
 import org.tinymediamanager.thirdparty.MediaInfo.StreamKind;
 
@@ -84,6 +85,27 @@ public class MediaFile extends AbstractModelObject implements Comparable<MediaFi
   private MediaInfo                  mediaInfo;
   @Transient
   private File                       file             = null;
+
+  /**
+   * "clones" a new media file.
+   */
+  public MediaFile(MediaFile clone) {
+    this.path = clone.path;
+    this.filename = clone.filename;
+    this.filesize = clone.filesize;
+    this.videoCodec = clone.videoCodec;
+    this.containerFormat = clone.containerFormat;
+    this.videoFormat = clone.videoFormat;
+    this.exactVideoFormat = clone.exactVideoFormat;
+    this.videoHeight = clone.videoHeight;
+    this.videoWidth = clone.videoWidth;
+    this.overallBitRate = clone.overallBitRate;
+    this.durationInSecs = clone.durationInSecs;
+    this.stacking = clone.stacking;
+    this.type = clone.type;
+    this.audioStreams = clone.audioStreams;
+    this.subtitles = clone.subtitles;
+  }
 
   /**
    * Instantiates a new media file.
@@ -159,7 +181,7 @@ public class MediaFile extends AbstractModelObject implements Comparable<MediaFi
       return parseImageType();
     }
 
-    if (ext.equals("ac3") || ext.equals("dts") || ext.equals("mp3") || ext.equals("ogg")) {
+    if (Globals.settings.getAudioFileType().contains("." + ext)) {
       return MediaFileType.AUDIO;
     }
 
@@ -437,7 +459,9 @@ public class MediaFile extends AbstractModelObject implements Comparable<MediaFi
 
   public String getSubtitlesAsString() {
     StringBuilder sb = new StringBuilder();
-    for (MediaFileSubtitle sub : subtitles) {
+    Set<MediaFileSubtitle> cleansub = new LinkedHashSet<MediaFileSubtitle>(subtitles);
+
+    for (MediaFileSubtitle sub : cleansub) {
       if (sb.length() > 0) {
         sb.append(", ");
       }
@@ -874,7 +898,9 @@ public class MediaFile extends AbstractModelObject implements Comparable<MediaFi
     StringBuilder sb = new StringBuilder(videoCodec);
 
     for (MediaFileAudioStream audioStream : audioStreams) {
-      sb.append(" / ");
+      if (sb.length() > 0) {
+        sb.append(" / ");
+      }
       sb.append(audioStream.getCodec());
     }
 
@@ -927,23 +953,42 @@ public class MediaFile extends AbstractModelObject implements Comparable<MediaFi
         audioStreams.clear();
         for (int i = 0; i < streams; i++) {
           MediaFileAudioStream stream = new MediaFileAudioStream();
-
           String audioCodec = getMediaInfo(StreamKind.Audio, i, "CodecID/Hint", "Format");
           stream.setCodec(audioCodec.replaceAll("\\p{Punct}", ""));
-
           String channels = getMediaInfo(StreamKind.Audio, i, "Channel(s)");
           stream.setChannels(StringUtils.isEmpty(channels) ? "" : channels + "ch");
-
           try {
             String br = getMediaInfo(StreamKind.Audio, i, "BitRate");
             stream.setBitrate(Integer.valueOf(br) / 1024);
           }
           catch (Exception e) {
           }
-
           String language = getMediaInfo(StreamKind.Audio, i, "Language");
-          stream.setLanguage(language);
-
+          if (language.isEmpty()) {
+            // try to parse from filename
+            String shortname = getBasename().toLowerCase();
+            Set<String> langArray = Utils.KEY_TO_LOCALE_MAP.keySet();
+            for (String l : langArray) {
+              if (shortname.equalsIgnoreCase(l) || shortname.matches("(?i).*[_ .-]+" + l + "$")) {// ends with lang + delimiter prefix
+                String lang = Utils.getDisplayLanguage(l);
+                LOGGER.debug("found language '" + l + "' in audiofile; displaying it as '" + lang + "'");
+                stream.setLanguage(lang);
+                break;
+              }
+            }
+          }
+          else {
+            // map locale
+            String l = Utils.getDisplayLanguage(language);
+            if (l.isEmpty()) {
+              // could not map locale, use detected
+              stream.setLanguage(language);
+            }
+            else {
+              // set our localized name
+              stream.setLanguage(l);
+            }
+          }
           audioStreams.add(stream);
         }
 
@@ -973,18 +1018,60 @@ public class MediaFile extends AbstractModelObject implements Comparable<MediaFi
             sub.setForced(true);
             shortname = shortname.replaceAll("\\p{Punct}*forced", "");
           }
-          List<String> langArray = MovieRenamer.getSubtitleLanguageArray();
+          Set<String> langArray = Utils.KEY_TO_LOCALE_MAP.keySet();
           for (String l : langArray) {
             if (shortname.equalsIgnoreCase(l) || shortname.matches("(?i).*[_ .-]+" + l + "$")) {// ends with lang + delimiter prefix
-              LOGGER.debug("found language '" + l + "' in subtitle");
-              sub.setLanguage(l);
+              String lang = Utils.getDisplayLanguage(l);
+              LOGGER.debug("found language '" + l + "' in subtitle; displaying it as '" + lang + "'");
+              sub.setLanguage(lang);
               break;
             }
           }
           sub.setCodec(getExtension());
-          setContainerFormat(getExtension());
           subtitles.add(sub);
         }
+        setContainerFormat(getExtension());
+        break;
+
+      case AUDIO:
+        MediaFileAudioStream stream = new MediaFileAudioStream();
+        String audioCodec = getMediaInfo(StreamKind.Audio, 0, "CodecID/Hint", "Format");
+        stream.setCodec(audioCodec.replaceAll("\\p{Punct}", ""));
+        String channels = getMediaInfo(StreamKind.Audio, 0, "Channel(s)");
+        stream.setChannels(StringUtils.isEmpty(channels) ? "" : channels + "ch");
+        try {
+          String br = getMediaInfo(StreamKind.Audio, 0, "BitRate");
+          stream.setBitrate(Integer.valueOf(br) / 1024);
+        }
+        catch (Exception e) {
+        }
+        String language = getMediaInfo(StreamKind.Audio, 0, "Language");
+        if (language.isEmpty()) {
+          // try to parse from filename
+          String shortname = getBasename().toLowerCase();
+          Set<String> langArray = Utils.KEY_TO_LOCALE_MAP.keySet();
+          for (String l : langArray) {
+            if (shortname.equalsIgnoreCase(l) || shortname.matches("(?i).*[_ .-]+" + l + "$")) {// ends with lang + delimiter prefix
+              String lang = Utils.getDisplayLanguage(l);
+              LOGGER.debug("found language '" + l + "' in audiofile; displaying it as '" + lang + "'");
+              stream.setLanguage(lang);
+              break;
+            }
+          }
+        }
+        else {
+          // map locale
+          String l = Utils.getDisplayLanguage(language);
+          if (l.isEmpty()) {
+            // could not map locale, use detected
+            stream.setLanguage(language);
+          }
+          else {
+            // set our localized name
+            stream.setLanguage(l);
+          }
+        }
+        audioStreams.add(stream);
         break;
 
       case POSTER:
@@ -1160,6 +1247,11 @@ public class MediaFile extends AbstractModelObject implements Comparable<MediaFi
       return getType().ordinal() - mf2.getType().ordinal();
     }
 
-    return this.getFile().getAbsolutePath().compareTo(mf2.getFile().getAbsolutePath());
+    return this.getFile().compareTo(mf2.getFile());
+  }
+
+  @Override
+  public int hashCode() {
+    return this.getFile().hashCode();
   }
 }

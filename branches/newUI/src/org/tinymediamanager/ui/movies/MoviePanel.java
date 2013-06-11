@@ -211,6 +211,7 @@ public class MoviePanel extends JPanel {
    */
   public MoviePanel() {
     super();
+    setOpaque(false);
     // load movielist
     LOGGER.debug("loading MovieList");
     movieList = MovieList.getInstance();
@@ -228,10 +229,12 @@ public class MoviePanel extends JPanel {
             FormFactory.RELATED_GAP_ROWSPEC, RowSpec.decode("fill:default:grow"), }));
 
     splitPaneHorizontal = new JSplitPane();
+    splitPaneHorizontal.setOpaque(false);
     splitPaneHorizontal.setContinuousLayout(true);
     add(splitPaneHorizontal, "2, 2, fill, fill");
 
     JPanel panelMovieList = new JPanel();
+    panelMovieList.putClientProperty("class", "roundedPanel");
     splitPaneHorizontal.setLeftComponent(panelMovieList);
     panelMovieList
         .setLayout(new FormLayout(new ColumnSpec[] { FormFactory.RELATED_GAP_COLSPEC, ColumnSpec.decode("200px:grow"),
