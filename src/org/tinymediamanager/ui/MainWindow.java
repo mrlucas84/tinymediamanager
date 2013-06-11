@@ -15,6 +15,7 @@
  */
 package org.tinymediamanager.ui;
 
+import java.awt.BorderLayout;
 import java.awt.Cursor;
 import java.awt.Desktop;
 import java.awt.Dialog;
@@ -47,6 +48,7 @@ import javax.swing.JPanel;
 import javax.swing.JProgressBar;
 import javax.swing.JTabbedPane;
 import javax.swing.SwingWorker;
+import javax.swing.UIManager;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringEscapeUtils;
@@ -61,6 +63,7 @@ import org.tinymediamanager.core.movie.MovieSet;
 import org.tinymediamanager.core.tvshow.TvShow;
 import org.tinymediamanager.core.tvshow.TvShowList;
 import org.tinymediamanager.scraper.util.CachedUrl;
+import org.tinymediamanager.ui.components.ToolbarPanel;
 import org.tinymediamanager.ui.components.VerticalTextIcon;
 import org.tinymediamanager.ui.dialogs.AboutDialog;
 import org.tinymediamanager.ui.dialogs.BugReportDialog;
@@ -82,54 +85,25 @@ import com.jgoodies.forms.layout.RowSpec;
  */
 public class MainWindow extends JFrame {
 
-  /** The Constant BUNDLE. */
+  private static final long           serialVersionUID = -6342448589302283399L;
   private static final ResourceBundle BUNDLE           = ResourceBundle.getBundle("messages", new UTF8Control()); //$NON-NLS-1$
-  /** The logger. */
   private final static Logger         LOGGER           = LoggerFactory.getLogger(MainWindow.class);
-
-  /** The Constant serialVersionUID. */
-  private static final long           serialVersionUID = 1L;
-
-  /** The action exit. */
-  private final Action                actionExit       = new ExitAction();
-
-  /** The action about. */
-  private final Action                actionAbout      = new AboutAction();
-
-  /** The action feedback. */
-  private final Action                actionFeedback   = new FeedbackAction();
-
-  /** The action bug report. */
-  private final Action                actionBugReport  = new BugReportAction();
-
-  /** The action donate. */
-  private final Action                actionDonate     = new DonateAction();
-
-  /** The instance. */
   private static MainWindow           instance;
 
-  /** The panel movies. */
+  private final Action                actionExit       = new ExitAction();
+  private final Action                actionAbout      = new AboutAction();
+  private final Action                actionFeedback   = new FeedbackAction();
+  private final Action                actionBugReport  = new BugReportAction();
+  private final Action                actionDonate     = new DonateAction();
+
   private JPanel                      panelMovies;
-
-  /** The panel status bar. */
   private JPanel                      panelStatusBar;
-
-  /** The lbl loading img. */
   private JLabel                      lblLoadingImg;
-
-  /** The label progressAction. */
   private JLabel                      lblProgressAction;
-
-  /** The progress bar. */
   private JProgressBar                progressBar;
-
-  /** The button cancelScraper. */
   private JButton                     btnCancelTask;
 
-  /** The active task. */
   private TmmSwingWorker              activeTask;
-
-  /** The status task. */
   private StatusbarThread             statusTask       = new StatusbarThread();
 
   /**
@@ -319,17 +293,24 @@ public class MainWindow extends JFrame {
     // setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
     setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
 
-    getContentPane().setLayout(
-        new FormLayout(new ColumnSpec[] { ColumnSpec.decode("default:grow"), ColumnSpec.decode("1dlu"), }, new RowSpec[] {
-            FormFactory.RELATED_GAP_ROWSPEC, RowSpec.decode("fill:max(500px;default):grow"), FormFactory.NARROW_LINE_GAP_ROWSPEC,
-            FormFactory.DEFAULT_ROWSPEC, }));
+    JPanel toolbarPanel = new ToolbarPanel();
+    getContentPane().add(toolbarPanel, BorderLayout.NORTH);
+
+    JPanel rootPanel = new JPanel();
+    rootPanel.putClientProperty("class", "rootPanel");
+    getContentPane().add(rootPanel);
+
+    rootPanel.setLayout(new FormLayout(new ColumnSpec[] { ColumnSpec.decode("default:grow"), ColumnSpec.decode("1dlu"), }, new RowSpec[] {
+        FormFactory.RELATED_GAP_ROWSPEC, RowSpec.decode("fill:max(500px;default):grow"), FormFactory.NARROW_LINE_GAP_ROWSPEC,
+        FormFactory.DEFAULT_ROWSPEC, }));
 
     JTabbedPane tabbedPane = VerticalTextIcon.createTabbedPane(JTabbedPane.LEFT);
+    UIManager.put("TabbedPane.contentOpaque", false);
     tabbedPane.setTabPlacement(JTabbedPane.LEFT);
-    getContentPane().add(tabbedPane, "1, 2, fill, fill");
+    rootPanel.add(tabbedPane, "1, 2, fill, fill");
 
     panelStatusBar = new JPanel();
-    getContentPane().add(panelStatusBar, "1, 4");
+    rootPanel.add(panelStatusBar, "1, 4");
     panelStatusBar.setLayout(new FormLayout(
         new ColumnSpec[] { FormFactory.RELATED_GAP_COLSPEC, ColumnSpec.decode("default:grow"), FormFactory.DEFAULT_COLSPEC,
             FormFactory.LABEL_COMPONENT_GAP_COLSPEC, FormFactory.DEFAULT_COLSPEC, FormFactory.LABEL_COMPONENT_GAP_COLSPEC,

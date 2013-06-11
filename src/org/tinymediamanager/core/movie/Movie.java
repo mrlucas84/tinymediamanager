@@ -156,6 +156,10 @@ public class Movie extends MediaEntity {
   /** is this a disc movie folder (video_ts / bdmv)?. */
   private boolean             isDisc            = false;
 
+  /** is this movie new in our list? */
+  @Transient
+  private boolean             newlyAdded        = false;
+
   /** The spoken languages. */
   private String              spokenLanguages   = "";
 
@@ -265,8 +269,22 @@ public class Movie extends MediaEntity {
   public void setNfoFilename(String newValue) {
     String oldValue = this.nfoFilename;
     this.nfoFilename = newValue;
+    setNFO(new File(path, nfoFilename));
     firePropertyChange(NFO_FILENAME, oldValue, newValue);
     firePropertyChange(HAS_NFO_FILE, false, true);
+  }
+
+  private void setNFO(File file) {
+    List<MediaFile> nfos = getMediaFiles(MediaFileType.NFO);
+    MediaFile mediaFile = null;
+    if (nfos.size() > 0) {
+      mediaFile = nfos.get(0);
+      mediaFile.setFile(file);
+    }
+    else {
+      mediaFile = new MediaFile(file, MediaFileType.NFO);
+      addToMediaFiles(mediaFile);
+    }
   }
 
   /**
@@ -302,7 +320,7 @@ public class Movie extends MediaEntity {
     setObservables();
 
     // load genres
-    for (String genre : genres) {
+    for (String genre : new ArrayList<String>(genres)) {
       addGenre(MediaGenres.getGenre(genre));
     }
   }
@@ -1708,6 +1726,25 @@ public class Movie extends MediaEntity {
    */
   public void setDisc(boolean isDisc) {
     this.isDisc = isDisc;
+  }
+
+  /**
+   * has this movie been newlay added in our list?!
+   * 
+   * @return true/false
+   */
+  public boolean isNewlyAdded() {
+    return this.newlyAdded;
+  }
+
+  /**
+   * has this movie been newlay added in our list?!
+   * 
+   * @param newlyAdded
+   *          true/false
+   */
+  public void setNewlyAdded(boolean newlyAdded) {
+    this.newlyAdded = newlyAdded;
   }
 
   /**
