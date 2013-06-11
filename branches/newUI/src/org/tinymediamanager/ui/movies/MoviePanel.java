@@ -95,13 +95,8 @@ import com.jgoodies.forms.layout.RowSpec;
  */
 public class MoviePanel extends JPanel {
 
-  /** The Constant BUNDLE. */
+  private static final long             serialVersionUID             = 5783887949951797288L;
   private static final ResourceBundle   BUNDLE                       = ResourceBundle.getBundle("messages", new UTF8Control()); //$NON-NLS-1$
-
-  /** The Constant serialVersionUID. */
-  private static final long             serialVersionUID             = 1L;
-
-  /** The logger. */
   private final static Logger           LOGGER                       = LoggerFactory.getLogger(MoviePanel.class);
 
   /** The movie list. */

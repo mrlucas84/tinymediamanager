@@ -29,6 +29,8 @@ import javax.swing.JScrollBar;
 import javax.swing.plaf.ComponentUI;
 import javax.swing.plaf.basic.BasicScrollBarUI;
 
+import com.jtattoo.plaf.AbstractLookAndFeel;
+
 /**
  * The Class TmmLightScrollBarUI.
  * 
@@ -102,6 +104,10 @@ public class TmmLightScrollBarUI extends BasicScrollBarUI {
 
   @Override
   protected void paintTrack(Graphics g, JComponent c, Rectangle trackBounds) {
+    // background
+    c.setBackground(AbstractLookAndFeel.getTheme().getBackgroundColor());
+
+    // track
     Graphics2D g2D = (Graphics2D) g;
     Composite savedComposite = g2D.getComposite();
     RenderingHints savedRenderingHints = g2D.getRenderingHints();
