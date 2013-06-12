@@ -64,6 +64,7 @@ import org.tinymediamanager.core.movie.MovieSet;
 import org.tinymediamanager.core.tvshow.TvShow;
 import org.tinymediamanager.core.tvshow.TvShowList;
 import org.tinymediamanager.scraper.util.CachedUrl;
+import org.tinymediamanager.ui.components.MainTabbedPane;
 import org.tinymediamanager.ui.components.ToolbarPanel;
 import org.tinymediamanager.ui.dialogs.AboutDialog;
 import org.tinymediamanager.ui.dialogs.BugReportDialog;
@@ -315,7 +316,7 @@ public class MainWindow extends JFrame {
     leftPanel.setOpaque(false);
     leftPanel.setLayout(new FormLayout(new ColumnSpec[] { ColumnSpec.decode("default:grow"), FormFactory.RELATED_GAP_COLSPEC, },
         new RowSpec[] { RowSpec.decode("fill:default:grow"), }));
-    tabbedPane = new JTabbedPane();
+    tabbedPane = new MainTabbedPane();
     leftPanel.add(tabbedPane, "1, 1, fill, fill");
     splitPane.setLeftComponent(leftPanel);
 
