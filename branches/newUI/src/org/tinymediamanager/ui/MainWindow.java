@@ -301,19 +301,32 @@ public class MainWindow extends JFrame {
     rootPanel.putClientProperty("class", "rootPanel");
     getContentPane().add(rootPanel);
 
-    rootPanel.setLayout(new FormLayout(new ColumnSpec[] { ColumnSpec.decode("default:grow"), ColumnSpec.decode("1dlu"), }, new RowSpec[] {
-        FormFactory.RELATED_GAP_ROWSPEC, RowSpec.decode("fill:max(500px;default):grow"), FormFactory.NARROW_LINE_GAP_ROWSPEC,
-        FormFactory.DEFAULT_ROWSPEC, }));
+    rootPanel.setLayout(new FormLayout(
+        new ColumnSpec[] { ColumnSpec.decode("15dlu"), ColumnSpec.decode("default:grow"), ColumnSpec.decode("15dlu"), }, new RowSpec[] {
+            RowSpec.decode("10dlu"), RowSpec.decode("fill:max(500px;default):grow"), RowSpec.decode("10dlu"), FormFactory.DEFAULT_ROWSPEC, }));
 
     JSplitPane splitPane = new JSplitPane();
-    rootPanel.add(splitPane, "1, 2, fill, fill");
+    splitPane.setContinuousLayout(true);
+    splitPane.setOpaque(false);
+    splitPane.putClientProperty("flatMode", true);
+    rootPanel.add(splitPane, "2, 2, fill, fill");
 
+    JPanel leftPanel = new JPanel();
+    leftPanel.setOpaque(false);
+    leftPanel.setLayout(new FormLayout(new ColumnSpec[] { ColumnSpec.decode("default:grow"), FormFactory.RELATED_GAP_COLSPEC, },
+        new RowSpec[] { RowSpec.decode("fill:default:grow"), }));
     tabbedPane = new JTabbedPane();
-    splitPane.setLeftComponent(tabbedPane);
+    leftPanel.add(tabbedPane, "1, 1, fill, fill");
+    splitPane.setLeftComponent(leftPanel);
 
+    JPanel rightPanel = new JPanel();
+    rightPanel.setOpaque(false);
+    rightPanel.setLayout(new FormLayout(new ColumnSpec[] { FormFactory.RELATED_GAP_COLSPEC, ColumnSpec.decode("default:grow"), }, new RowSpec[] {
+        RowSpec.decode("10dlu"), FormFactory.RELATED_GAP_ROWSPEC, RowSpec.decode("fill:default:grow"), }));
     detailPanel = new JPanel();
     detailPanel.setLayout(new CardLayout(0, 0));
-    splitPane.setRightComponent(detailPanel);
+    rightPanel.add(detailPanel, "2, 3, fill, fill");
+    splitPane.setRightComponent(rightPanel);
 
     // JTabbedPane tabbedPane = VerticalTextIcon.createTabbedPane(JTabbedPane.LEFT);
     // UIManager.put("TabbedPane.contentOpaque", false);
@@ -339,11 +352,14 @@ public class MainWindow extends JFrame {
 
     addModule(MovieUIModule.getInstance());
 
+    // FIXME
+    tabbedPane.addTab("TV SHOWS", new JPanel());
+
   }
 
   private void buildStatusbar() {
     panelStatusBar = new JPanel();
-    rootPanel.add(panelStatusBar, "1, 4");
+    rootPanel.add(panelStatusBar, "2, 4");
     panelStatusBar.setLayout(new FormLayout(
         new ColumnSpec[] { FormFactory.RELATED_GAP_COLSPEC, ColumnSpec.decode("default:grow"), FormFactory.DEFAULT_COLSPEC,
             FormFactory.LABEL_COMPONENT_GAP_COLSPEC, FormFactory.DEFAULT_COLSPEC, FormFactory.LABEL_COMPONENT_GAP_COLSPEC,
