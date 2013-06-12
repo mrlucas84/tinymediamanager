@@ -65,106 +65,42 @@ import com.jgoodies.forms.layout.RowSpec;
  * @author Manuel Laggner
  */
 public class MovieInformationPanel extends JPanel {
-  /** The Constant BUNDLE. */
+
+  private static final long           serialVersionUID = -8527284262749511617L;
   private static final ResourceBundle BUNDLE           = ResourceBundle.getBundle("messages", new UTF8Control()); //$NON-NLS-1$
 
-  /** The Constant serialVersionUID. */
-  private static final long           serialVersionUID = -8527284262749511617L;
-
-  /** The split pane vertical. */
-  private JSplitPane                  splitPaneVertical;
-
-  /** The panel top. */
-  private JPanel                      panelTop;
-
-  /** The panel watched image. */
-  private JPanel                      panelWatchedImage;
-
-  /** The panel movie logos. */
-  private JPanel                      panelMovieLogos;
-
-  /** The panel rating. */
-  private StarRater                   panelRatingStars;
-
-  /** The lbl watched image. */
-  private JLabel                      lblWatchedImage;
-
-  /** The lbl movie name. */
-  private JLabel                      lblMovieName;
-
-  /** The label rating. */
-  private JLabel                      lblRating;
-
-  /** The lbl vote count. */
-  private JLabel                      lblVoteCount;
-
-  /** The lbl original name. */
-  private JLabel                      lblTagline;
-
-  /** The lbl certification image. */
-  private JLabel                      lblCertificationImage;
-
-  /** The lbl movie background. */
-  private ImageLabel                  lblMovieBackground;
-
-  /** The lbl movie poster. */
-  private ImageLabel                  lblMoviePoster;
-
-  /** The table cast. */
-  private JTable                      tableCast;
-
-  /** The tabbed pane movie details. */
-  private JTabbedPane                 tabbedPaneMovieDetails;
-
-  /** The panel overview. */
-  private JPanel                      panelOverview;
-
-  /** The panel movie cast. */
-  private JPanel                      panelMovieCast;
-
-  /** The panel details. */
-  private JPanel                      panelDetails;
-
-  /** The lbl director t. */
-  private JLabel                      lblDirectorT;
-
-  /** The lbl director. */
-  private JLabel                      lblDirector;
-
-  /** The lbl writer t. */
-  private JLabel                      lblWriterT;
-
-  /** The lbl writer. */
-  private JLabel                      lblWriter;
-
-  /** The lbl actors. */
-  private JLabel                      lblActors;
-
-  /** The text pane. */
-  private JTextPane                   tpOverview;
-
-  /** The panel media information. */
-  private JPanel                      panelMediaInformation;
-
-  /** The panel media files. */
-  private JPanel                      panelMediaFiles;
-
-  /** The lbl actor thumb. */
-  private ActorImageLabel             lblActorThumb;
-
-  /** The panel movie trailer. */
-  private MovieTrailerPanel           panelMovieTrailer;
-
-  /** The movie selection model. */
   private MovieSelectionModel         movieSelectionModel;
 
-  /** The lbl media logo resolution. */
+  private JSplitPane                  splitPaneVertical;
+  private JPanel                      panelTop;
+  private JPanel                      panelWatchedImage;
+  private JPanel                      panelMovieLogos;
+  private StarRater                   panelRatingStars;
+  private JLabel                      lblWatchedImage;
+  private JLabel                      lblMovieName;
+  private JLabel                      lblRating;
+  private JLabel                      lblVoteCount;
+  private JLabel                      lblTagline;
+  private JLabel                      lblCertificationImage;
+  private ImageLabel                  lblMovieBackground;
+  private ImageLabel                  lblMoviePoster;
+  private JTable                      tableCast;
+  private JTabbedPane                 tabbedPaneMovieDetails;
+  private JPanel                      panelOverview;
+  private JPanel                      panelMovieCast;
+  private JPanel                      panelDetails;
+  private JLabel                      lblDirectorT;
+  private JLabel                      lblDirector;
+  private JLabel                      lblWriterT;
+  private JLabel                      lblWriter;
+  private JLabel                      lblActors;
+  private JTextPane                   tpOverview;
+  private JPanel                      panelMediaInformation;
+  private JPanel                      panelMediaFiles;
+  private ActorImageLabel             lblActorThumb;
+  private MovieTrailerPanel           panelMovieTrailer;
   private JLabel                      lblMediaLogoResolution;
-
-  /** The lbl media logo video codec. */
   private JLabel                      lblMediaLogoVideoCodec;
-
-  /** The lbl media logo audio. */
   private JLabel                      lblMediaLogoAudio;
 
   /**
@@ -176,7 +112,9 @@ public class MovieInformationPanel extends JPanel {
   public MovieInformationPanel(MovieSelectionModel movieSelectionModel) {
     this.movieSelectionModel = movieSelectionModel;
 
-    setLayout(new FormLayout(new ColumnSpec[] { ColumnSpec.decode("650px:grow"), }, new RowSpec[] { RowSpec.decode("fill:default:grow"), }));
+    putClientProperty("class", "roundedPanel");
+    setLayout(new FormLayout(new ColumnSpec[] { ColumnSpec.decode("15dlu"), ColumnSpec.decode("650px:grow"), ColumnSpec.decode("15dlu") },
+        new RowSpec[] { RowSpec.decode("15dlu"), RowSpec.decode("fill:default:grow"), RowSpec.decode("15dlu") }));
 
     splitPaneVertical = new JSplitPane();
     splitPaneVertical.setBorder(null);
@@ -184,10 +122,10 @@ public class MovieInformationPanel extends JPanel {
     splitPaneVertical.setContinuousLayout(true);
     splitPaneVertical.setOneTouchExpandable(true);
     splitPaneVertical.setOrientation(JSplitPane.VERTICAL_SPLIT);
-    add(splitPaneVertical, "1, 1, fill, fill");
+    splitPaneVertical.setOpaque(false);
+    add(splitPaneVertical, "2, 2, fill, fill");
 
     panelTop = new JPanel();
-    panelTop.setBorder(null);
     splitPaneVertical.setTopComponent(panelTop);
     panelTop.setLayout(new FormLayout(new ColumnSpec[] { FormFactory.RELATED_GAP_COLSPEC, ColumnSpec.decode("300px:grow"),
         FormFactory.RELATED_GAP_COLSPEC, FormFactory.DEFAULT_COLSPEC, }, new RowSpec[] { RowSpec.decode("fill:default"),
@@ -195,7 +133,7 @@ public class MovieInformationPanel extends JPanel {
 
     JPanel panelMovieHeader = new JPanel();
     panelTop.add(panelMovieHeader, "2, 1, 3, 1, fill, top");
-    panelMovieHeader.setBorder(null);
+    panelMovieHeader.setOpaque(false);
     panelMovieHeader.setLayout(new BorderLayout(0, 0));
 
     JPanel panelMovieTitle = new JPanel();

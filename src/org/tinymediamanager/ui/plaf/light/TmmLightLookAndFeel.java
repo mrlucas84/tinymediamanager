@@ -44,7 +44,6 @@ import com.jtattoo.plaf.luna.LunaComboBoxUI;
 import com.jtattoo.plaf.luna.LunaIconFactory;
 import com.jtattoo.plaf.luna.LunaInternalFrameUI;
 import com.jtattoo.plaf.luna.LunaRootPaneUI;
-import com.jtattoo.plaf.luna.LunaTabbedPaneUI;
 import com.jtattoo.plaf.luna.LunaTableHeaderUI;
 import com.jtattoo.plaf.luna.LunaToolBarUI;
 
@@ -212,7 +211,6 @@ public class TmmLightLookAndFeel extends AbstractLookAndFeel {
         // LunaLookAndFeel classes
         "ButtonUI", LunaButtonUI.class.getName(), 
         "ComboBoxUI", LunaComboBoxUI.class.getName(), 
-        "TabbedPaneUI", LunaTabbedPaneUI.class.getName(), 
         "TableHeaderUI", LunaTableHeaderUI.class.getName(), 
         "ToolBarUI", LunaToolBarUI.class.getName(), 
         "InternalFrameUI", LunaInternalFrameUI.class.getName(), 
@@ -221,6 +219,7 @@ public class TmmLightLookAndFeel extends AbstractLookAndFeel {
         // TmmLookAndFeel classes
         "PanelUI", TmmLightPanelUI.class.getName(), 
         "ScrollBarUI", TmmLightScrollBarUI.class.getName(),
+        "TabbedPaneUI", TmmLightTabbedPaneUI.class.getName(),
     };
     table.putDefaults(uiDefaults);
     // @formatter:on
