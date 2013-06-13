@@ -23,6 +23,8 @@ import javax.swing.JPanel;
 
 import org.tinymediamanager.ui.ITmmUIModule;
 import org.tinymediamanager.ui.UTF8Control;
+import org.tinymediamanager.ui.movies.actions.MovieEditAction;
+import org.tinymediamanager.ui.movies.actions.MovieSingleScrapeAction;
 
 /**
  * @author Manuel Laggner
@@ -38,10 +40,15 @@ public class MovieUIModule implements ITmmUIModule {
 
   private final MovieSelectionModel   selectionModel;
 
+  private Action                      searchAction;
+  private Action                      editAction;
+
   private MovieUIModule() {
     listPanel = new MovieListPanel();
     selectionModel = listPanel.selectionModel;
     detailPanel = new MovieInformationPanel(selectionModel);
+
+    createActions();
   }
 
   public static MovieUIModule getInstance() {
@@ -53,6 +60,11 @@ public class MovieUIModule implements ITmmUIModule {
 
   public MovieSelectionModel getSelectionModel() {
     return selectionModel;
+  }
+
+  private void createActions() {
+    searchAction = new MovieSingleScrapeAction(false);
+    editAction = new MovieEditAction(false);
   }
 
   @Override
@@ -97,8 +109,7 @@ public class MovieUIModule implements ITmmUIModule {
    */
   @Override
   public Action getSearchAction() {
-    // TODO Auto-generated method stub
-    return null;
+    return searchAction;
   }
 
   /*
@@ -119,8 +130,7 @@ public class MovieUIModule implements ITmmUIModule {
    */
   @Override
   public Action getEditAction() {
-    // TODO Auto-generated method stub
-    return null;
+    return editAction;
   }
 
   /*

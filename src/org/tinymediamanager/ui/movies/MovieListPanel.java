@@ -15,36 +15,24 @@
  */
 package org.tinymediamanager.ui.movies;
 
-import java.awt.event.ActionEvent;
 import java.net.URL;
 
-import javax.swing.Action;
 import javax.swing.ImageIcon;
-import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
-import javax.swing.JToolBar;
 import javax.swing.ListSelectionModel;
 import javax.swing.event.TableModelEvent;
 import javax.swing.event.TableModelListener;
 
-import org.gpl.JSplitButton.JSplitButton;
-import org.gpl.JSplitButton.action.SplitButtonActionListener;
 import org.tinymediamanager.core.movie.Movie;
 import org.tinymediamanager.core.movie.MovieList;
 import org.tinymediamanager.ui.BorderCellRenderer;
 import org.tinymediamanager.ui.IconRenderer;
 import org.tinymediamanager.ui.MainWindow;
-import org.tinymediamanager.ui.components.JSearchTextField;
 import org.tinymediamanager.ui.components.ZebraJTable;
-import org.tinymediamanager.ui.movies.actions.MovieEditAction;
-import org.tinymediamanager.ui.movies.actions.MovieMediaInformationAction;
-import org.tinymediamanager.ui.movies.actions.MovieRenameAction;
-import org.tinymediamanager.ui.movies.actions.MovieSingleScrapeAction;
-import org.tinymediamanager.ui.movies.actions.MovieUpdateDatasourceAction;
 
 import ca.odell.glazedlists.FilterList;
 import ca.odell.glazedlists.SortedList;
@@ -65,7 +53,7 @@ import com.jgoodies.forms.layout.RowSpec;
  */
 public class MovieListPanel extends JPanel {
 
-  private static final long serialVersionUID   = -1681460428331929420L;
+  private static final long serialVersionUID = -1681460428331929420L;
 
   MovieSelectionModel       selectionModel;
 
@@ -73,64 +61,16 @@ public class MovieListPanel extends JPanel {
   private JTable            movieTable;
   private JLabel            lblMovieCountFiltered;
 
-  private Action            actionSingleScrape = new MovieSingleScrapeAction(false);
-
   public MovieListPanel() {
     putClientProperty("class", "roundedPanel");
 
-    setLayout(new FormLayout(new ColumnSpec[] { FormFactory.RELATED_GAP_COLSPEC, ColumnSpec.decode("200px:grow"), ColumnSpec.decode("150px:grow"), },
-        new RowSpec[] { RowSpec.decode("26px"), FormFactory.RELATED_GAP_ROWSPEC, RowSpec.decode("fill:max(200px;default):grow"),
-            FormFactory.RELATED_GAP_ROWSPEC, FormFactory.DEFAULT_ROWSPEC, FormFactory.DEFAULT_ROWSPEC, }));
+    setLayout(new FormLayout(new ColumnSpec[] { ColumnSpec.decode("400px:grow") }, new RowSpec[] { RowSpec.decode("15dlu"),
+        RowSpec.decode("fill:max(400px;default):grow"), FormFactory.RELATED_GAP_ROWSPEC, FormFactory.DEFAULT_ROWSPEC, FormFactory.DEFAULT_ROWSPEC,
+        RowSpec.decode("15dlu"), }));
 
-    buildToolbar();
     buildTable();
     buildSearchPanel();
     buildStatusPanel();
-  }
-
-  private void buildToolbar() {
-    JToolBar toolBar = new JToolBar();
-    toolBar.setRollover(true);
-    toolBar.setFloatable(false);
-    toolBar.setOpaque(false);
-    add(toolBar, "2, 1, left, fill");
-
-    toolBar.add(new MovieUpdateDatasourceAction(false));
-    JSplitButton buttonScrape = new JSplitButton(new ImageIcon(getClass().getResource("/org/tinymediamanager/ui/images/Search.png")));
-    // temp fix for size of the button
-    buttonScrape.setText("   ");
-    buttonScrape.setHorizontalAlignment(JButton.LEFT);
-    // buttonScrape.setMargin(new Insets(2, 2, 2, 24));
-    buttonScrape.setSplitWidth(18);
-
-    // register for listener
-    buttonScrape.addSplitButtonActionListener(new SplitButtonActionListener() {
-      public void buttonClicked(ActionEvent e) {
-        actionSingleScrape.actionPerformed(e);
-      }
-
-      public void splitButtonClicked(ActionEvent e) {
-      }
-    });
-
-    // JPopupMenu popup = new JPopupMenu("popup");
-    // JMenuItem item = new JMenuItem(actionScrape2);
-    // popup.add(item);
-    // item = new JMenuItem(actionScrapeUnscraped);
-    // popup.add(item);
-    // item = new JMenuItem(actionScrapeSelected);
-    // popup.add(item);
-    // buttonScrape.setPopupMenu(popup);
-    toolBar.add(buttonScrape);
-
-    toolBar.add(new MovieEditAction(false));
-    toolBar.add(new MovieRenameAction(false));
-    toolBar.add(new MovieMediaInformationAction(false));
-
-    // textField = new JTextField();
-    searchField = new JSearchTextField();
-    add(searchField, "3, 1, right, bottom");
-    searchField.setColumns(10);
   }
 
   private void buildTable() {
@@ -138,6 +78,9 @@ public class MovieListPanel extends JPanel {
     MovieList movieList = MovieList.getInstance();
     SortedList<Movie> sortedMovies = new SortedList<Movie>(GlazedListsSwing.swingThreadProxyList(movieList.getMovies()), new MovieComparator());
     sortedMovies.setMode(SortedList.AVOID_MOVING_ELEMENTS);
+
+    // FIXME
+    searchField = new JTextField();
 
     MatcherEditor<Movie> textMatcherEditor = new TextComponentMatcherEditor<Movie>(searchField, new MovieFilterator());
     MovieMatcherEditor movieMatcherEditor = new MovieMatcherEditor();
@@ -217,17 +160,17 @@ public class MovieListPanel extends JPanel {
     }
 
     JScrollPane scrollPane = ZebraJTable.createStripedJScrollPane(movieTable);
-    add(scrollPane, "2, 3, 2, 1, fill, fill");
+    add(scrollPane, "1, 2, 1, 1, fill, fill");
   }
 
   private void buildSearchPanel() {
     JPanel panelExtendedSearch = new MovieExtendedSearchPanel(selectionModel);
-    add(panelExtendedSearch, "2, 5, 2, 1, fill, fill");
+    add(panelExtendedSearch, "1, 4, fill, fill");
   }
 
   private void buildStatusPanel() {
     JPanel panelStatus = new JPanel();
-    add(panelStatus, "2, 6, 2, 1");
+    add(panelStatus, "1, 5");
     panelStatus.setLayout(new FormLayout(new ColumnSpec[] { FormFactory.RELATED_GAP_COLSPEC, ColumnSpec.decode("1px"),
         ColumnSpec.decode("146px:grow"), FormFactory.RELATED_GAP_COLSPEC, ColumnSpec.decode("default:grow"), }, new RowSpec[] { RowSpec
         .decode("fill:default:grow"), }));

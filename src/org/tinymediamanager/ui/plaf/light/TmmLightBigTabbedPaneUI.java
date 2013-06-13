@@ -25,43 +25,42 @@ import java.awt.Rectangle;
 import java.awt.RenderingHints;
 import java.awt.Toolkit;
 
+import javax.swing.Icon;
 import javax.swing.JComponent;
 import javax.swing.plaf.ComponentUI;
 
 import com.jtattoo.plaf.AbstractLookAndFeel;
 import com.jtattoo.plaf.BaseTabbedPaneUI;
+import com.jtattoo.plaf.luna.LunaTabbedPaneUI;
 
 /**
  * The Class TmmLightTabbedPaneUI.
  * 
  * @author Manuel Laggner
  */
-public class TmmLightTabbedPaneUI extends BaseTabbedPaneUI {
+public class TmmLightBigTabbedPaneUI extends BaseTabbedPaneUI {
 
-  protected static int   BORDER_RADIUS  = 15;
-  protected static int   TAB_GAP        = 2;
-
-  protected static Color BORDER_COLOR   = new Color(203, 203, 203);
-  protected static Color SELECTED_COLOR = new Color(141, 165, 179);
+  protected static int BORDER_RADIUS = 15;
+  protected static int TAB_GAP       = 2;
 
   public static ComponentUI createUI(JComponent c) {
     Object prop = c.getClientProperty("class");
     if (prop != null && prop instanceof String && "big".equals(prop.toString())) {
       return new TmmLightBigTabbedPaneUI();
     }
-    return new TmmLightTabbedPaneUI();
+    return new LunaTabbedPaneUI();
   }
 
   @Override
   public void installDefaults() {
     super.installDefaults();
-    tabInsets = new Insets(3, 10, 3, 10);
+    tabInsets = new Insets(0, 20, 0, 20);
   }
 
-  // @Override
-  // protected Font getTabFont(boolean isSelected) {
-  // return super.getTabFont(isSelected).deriveFont(16f);
-  // }
+  @Override
+  protected Font getTabFont(boolean isSelected) {
+    return super.getTabFont(isSelected).deriveFont(16f);
+  }
 
   @Override
   protected FontMetrics getFontMetrics() {
@@ -76,16 +75,15 @@ public class TmmLightTabbedPaneUI extends BaseTabbedPaneUI {
     g2D.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
     if (isSelected) {
-      g.setColor(SELECTED_COLOR);
+      g.setColor(AbstractLookAndFeel.getBackgroundColor());
     }
     else {
-      g.setColor(AbstractLookAndFeel.getBackgroundColor());
-
+      g.setColor(new Color(163, 163, 163));
     }
 
     if (tabPlacement == TOP) {
       g.fillRoundRect(x + TAB_GAP, y, w - 2 * TAB_GAP, h, BORDER_RADIUS, BORDER_RADIUS);
-      g.fillRect(x + TAB_GAP, y + BORDER_RADIUS / 2, w - 2 * TAB_GAP, h - BORDER_RADIUS / 2);
+      g.fillRect(x + TAB_GAP, y + BORDER_RADIUS, w - 2 * TAB_GAP, h - BORDER_RADIUS / 2);
       // g.fillRect(x + 1, y + 1, w - 1, h + 2);
     }
     else if (tabPlacement == LEFT) {
@@ -103,44 +101,23 @@ public class TmmLightTabbedPaneUI extends BaseTabbedPaneUI {
 
   @Override
   protected void paintRoundedTopTabBorder(int tabIndex, Graphics g, int x1, int y1, int x2, int y2, boolean isSelected) {
-    Graphics2D g2D = (Graphics2D) g;
-    Object savedRederingHint = g2D.getRenderingHint(RenderingHints.KEY_ANTIALIASING);
-    g2D.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-    g.setColor(BORDER_COLOR);
-
-    g.drawLine(x1 + TAB_GAP + BORDER_RADIUS / 2, y1, x2 - TAB_GAP - BORDER_RADIUS / 2, y1);
-    g.drawArc(x1 + TAB_GAP, y1, BORDER_RADIUS, BORDER_RADIUS, 90, 90);
-    g.drawArc(x2 - BORDER_RADIUS - TAB_GAP, y1, BORDER_RADIUS, BORDER_RADIUS, 0, 90);
-    g.drawLine(x1 + TAB_GAP, y1 + GAP + 1, x1 + TAB_GAP, y2 - 1);
-    g.drawLine(x2 - TAB_GAP, y1 + GAP + 1, x2 - TAB_GAP, y2 - 1);
-
-    g2D.setRenderingHint(RenderingHints.KEY_ANTIALIASING, savedRederingHint);
   }
 
   @Override
   protected void paintContentBorder(Graphics g, int tabPlacement, int selectedIndex, int x, int y, int w, int h) {
-    int tabAreaHeight = calculateTabAreaHeight(tabPlacement, runCount, maxTabHeight);
-
-    Graphics2D g2D = (Graphics2D) g;
-    Object savedRederingHint = g2D.getRenderingHint(RenderingHints.KEY_ANTIALIASING);
-    g2D.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-    g.setColor(BORDER_COLOR);
-
-    Insets bi = new Insets(0, 0, 0, 0);
-    if (tabPane.getBorder() != null) {
-      bi = tabPane.getBorder().getBorderInsets(tabPane);
-    }
-    int sepHeight = tabAreaInsets.bottom;
-
-    g.drawLine(x, y + tabAreaHeight - sepHeight + bi.top, x + w, y + tabAreaHeight - sepHeight + bi.top);
-
-    g2D.setRenderingHint(RenderingHints.KEY_ANTIALIASING, savedRederingHint);
   }
 
   @Override
   protected void paintFocusIndicator(Graphics g, int tabPlacement, Rectangle[] rects, int tabIndex, Rectangle iconRect, Rectangle textRect,
       boolean isSelected) {
   }
+
+  @Override
+  protected void layoutLabel(int tabPlacement, FontMetrics metrics, int tabIndex, String title, Icon icon, Rectangle tabRect, Rectangle iconRect,
+      Rectangle textRect, boolean isSelected) {
+    super.layoutLabel(tabPlacement, metrics, tabIndex, title, icon, tabRect, iconRect, textRect, isSelected);
+
+    textRect.y += (metrics.getDescent() / 2);
+  }
+
 }
