@@ -104,6 +104,7 @@ public class MainWindow extends JFrame {
   private JPanel                      rootPanel;
   private JTabbedPane                 tabbedPane;
   private JPanel                      detailPanel;
+  private ToolbarPanel                toolbarPanel;
 
   private TmmSwingWorker              activeTask;
   private StatusbarThread             statusTask       = new StatusbarThread();
@@ -295,7 +296,7 @@ public class MainWindow extends JFrame {
     // setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
     setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
 
-    JPanel toolbarPanel = new ToolbarPanel();
+    toolbarPanel = new ToolbarPanel();
     getContentPane().add(toolbarPanel, BorderLayout.NORTH);
 
     rootPanel = new JPanel();
@@ -352,6 +353,10 @@ public class MainWindow extends JFrame {
     createShutdownListener();
 
     addModule(MovieUIModule.getInstance());
+
+    // FIXME move to a dynamic place
+    toolbarPanel.setSearchAction(MovieUIModule.getInstance().getSearchAction());
+    toolbarPanel.setEditAction(MovieUIModule.getInstance().getEditAction());
 
     // FIXME
     tabbedPane.addTab("TV SHOWS", new JPanel());

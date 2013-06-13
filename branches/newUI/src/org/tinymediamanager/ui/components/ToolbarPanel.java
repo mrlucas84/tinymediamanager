@@ -16,7 +16,11 @@
 package org.tinymediamanager.ui.components;
 
 import java.awt.Color;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
 
+import javax.swing.Action;
+import javax.swing.Icon;
 import javax.swing.ImageIcon;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -34,7 +38,13 @@ import com.jgoodies.forms.layout.RowSpec;
  */
 public class ToolbarPanel extends JPanel {
   private static final long serialVersionUID = 7969400170662870244L;
+
   private JTextField        textField;
+  private JLabel            btnSearch;
+  private JLabel            btnEdit;
+
+  private Action            searchAction;
+  private Action            editAction;
 
   public ToolbarPanel() {
     putClientProperty("class", "toolbarPanel");
@@ -44,34 +54,27 @@ public class ToolbarPanel extends JPanel {
         FormFactory.DEFAULT_COLSPEC, ColumnSpec.decode("10dlu"), FormFactory.DEFAULT_COLSPEC, FormFactory.RELATED_GAP_COLSPEC, }, new RowSpec[] {
         FormFactory.UNRELATED_GAP_ROWSPEC, FormFactory.DEFAULT_ROWSPEC, FormFactory.DEFAULT_ROWSPEC, FormFactory.UNRELATED_GAP_ROWSPEC, }));
 
-    JLabel btnNewButton = new JLabel("");
-    btnNewButton.setOpaque(false);
-    btnNewButton.setIcon(new ImageIcon(ToolbarPanel.class.getResource("/org/tinymediamanager/ui/images/Search_Scrape_Icon.png")));
-    add(btnNewButton, "2, 2, center, default");
+    btnSearch = createButton("", new ImageIcon(ToolbarPanel.class.getResource("/org/tinymediamanager/ui/images/Search_Scrape_Icon.png")));
+    add(btnSearch, "2, 2, center, default");
 
-    JLabel btnNewButton_1 = new JLabel("");
-    btnNewButton_1.setIcon(new ImageIcon(ToolbarPanel.class.getResource("/org/tinymediamanager/ui/images/Edit_Icon.png")));
-    add(btnNewButton_1, "4, 2, center, default");
+    btnEdit = createButton("", new ImageIcon(ToolbarPanel.class.getResource("/org/tinymediamanager/ui/images/Edit_Icon.png")));
+    add(btnEdit, "4, 2, center, default");
 
-    JLabel btnNewButton_2 = new JLabel("");
-    btnNewButton_2.setIcon(new ImageIcon(ToolbarPanel.class.getResource("/org/tinymediamanager/ui/images/Refresh_Database_Icon.png")));
-    add(btnNewButton_2, "6, 2, center, default");
+    JLabel btnUpdate = createButton("", new ImageIcon(ToolbarPanel.class.getResource("/org/tinymediamanager/ui/images/Refresh_Database_Icon.png")));
+    add(btnUpdate, "6, 2, center, default");
 
-    JLabel btnNewButton_3 = new JLabel("");
-    btnNewButton_3.setIcon(new ImageIcon(ToolbarPanel.class.getResource("/org/tinymediamanager/ui/images/Export_Icon.png")));
-    add(btnNewButton_3, "8, 2, center, default");
+    JLabel btnExport = createButton("", new ImageIcon(ToolbarPanel.class.getResource("/org/tinymediamanager/ui/images/Export_Icon.png")));
+    add(btnExport, "8, 2, center, default");
 
     textField = new JTextField();
     add(textField, "10, 2, fill, default");
     textField.setColumns(10);
 
-    JLabel btnNewButton_4 = new JLabel("");
-    btnNewButton_4.setIcon(new ImageIcon(ToolbarPanel.class.getResource("/org/tinymediamanager/ui/images/Tools_Icon.png")));
-    add(btnNewButton_4, "12, 2, center, default");
+    JLabel btnTools = createButton("", new ImageIcon(ToolbarPanel.class.getResource("/org/tinymediamanager/ui/images/Tools_Icon.png")));
+    add(btnTools, "12, 2, center, default");
 
-    JLabel btnNewButton_5 = new JLabel("");
-    btnNewButton_5.setIcon(new ImageIcon(ToolbarPanel.class.getResource("/org/tinymediamanager/ui/images/Settings_Icon.png")));
-    add(btnNewButton_5, "14, 2, center, default");
+    JLabel btnSettings = createButton("", new ImageIcon(ToolbarPanel.class.getResource("/org/tinymediamanager/ui/images/Settings_Icon.png")));
+    add(btnSettings, "14, 2, center, default");
 
     JLabel lblNewLabel = new JLabel("Search & Scrape");
     lblNewLabel.setForeground(Color.LIGHT_GRAY);
@@ -96,5 +99,63 @@ public class ToolbarPanel extends JPanel {
     JLabel lblSettings = new JLabel("Settings");
     lblSettings.setForeground(Color.LIGHT_GRAY);
     add(lblSettings, "14, 3, center, default");
+  }
+
+  public void setSearchAction(Action action) {
+    searchAction = action;
+    Object shortDescription = action.getValue(Action.SHORT_DESCRIPTION);
+    if (shortDescription != null) {
+      btnSearch.setToolTipText(shortDescription.toString());
+    }
+    else {
+      btnSearch.setToolTipText("");
+    }
+  }
+
+  public void setEditAction(Action action) {
+    editAction = action;
+  }
+
+  private JLabel createButton(String text, Icon icon) {
+    JLabel button = new JLabel("");
+    button.setIcon(icon);
+    button.setOpaque(false);
+    button.addMouseListener(new MouseListener() {
+      @Override
+      public void mouseReleased(MouseEvent arg0) {
+      }
+
+      @Override
+      public void mousePressed(MouseEvent arg0) {
+      }
+
+      @Override
+      public void mouseExited(MouseEvent arg0) {
+      }
+
+      @Override
+      public void mouseEntered(MouseEvent arg0) {
+      }
+
+      @Override
+      public void mouseClicked(MouseEvent arg0) {
+        buttonCallback(arg0.getSource());
+      }
+    });
+
+    return button;
+  }
+
+  private void buttonCallback(Object sender) {
+    if (sender == btnSearch) {
+      if (searchAction != null) {
+        searchAction.actionPerformed(null);
+      }
+    }
+    else if (sender == btnEdit) {
+      if (editAction != null) {
+        editAction.actionPerformed(null);
+      }
+    }
   }
 }

@@ -26,10 +26,9 @@ public class MainTabbedPane extends JTabbedPane {
 
   private static final long serialVersionUID = -2587027562615455270L;
 
-  public MainTabbedPane() {
-    super();
-
+  @Override
+  public void updateUI() {
     putClientProperty("class", "big");
-    updateUI();
+    super.updateUI();
   }
 }
