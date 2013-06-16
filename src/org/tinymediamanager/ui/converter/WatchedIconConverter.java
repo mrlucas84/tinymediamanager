@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.tinymediamanager.ui;
+package org.tinymediamanager.ui.converter;
 
 import javax.swing.Icon;
 import javax.swing.ImageIcon;
@@ -28,10 +28,11 @@ import org.jdesktop.beansbinding.Converter;
 public class WatchedIconConverter extends Converter<Boolean, Icon> {
 
   /** The Constant watchedIcon. */
-  public final static ImageIcon watchedIcon    = new ImageIcon(WatchedIconConverter.class.getResource("images/watched.png"));
+  public final static ImageIcon watchedIcon    = new ImageIcon(WatchedIconConverter.class.getResource("/org/tinymediamanager/ui/images/watched.png"));
 
   /** The Constant notWatchedIcon. */
-  public final static ImageIcon notWatchedIcon = new ImageIcon(WatchedIconConverter.class.getResource("images/not_watched.png"));
+  public final static ImageIcon notWatchedIcon = new ImageIcon(
+                                                   WatchedIconConverter.class.getResource("/org/tinymediamanager/ui/images/not_watched.png"));
 
   /*
    * (non-Javadoc)

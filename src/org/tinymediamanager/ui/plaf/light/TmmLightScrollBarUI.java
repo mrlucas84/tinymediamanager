@@ -54,16 +54,28 @@ public class TmmLightScrollBarUI extends BasicScrollBarUI {
     super();
   }
 
+  @Override
   protected void installDefaults() {
     super.installDefaults();
   }
 
+  @Override
   public Dimension getPreferredSize(JComponent c) {
     if (scrollbar.getOrientation() == JScrollBar.VERTICAL) {
       return new Dimension(SCROLL_BAR_WIDTH, SCROLL_BAR_WIDTH * 3 + 16);
     }
     else {
       return new Dimension(SCROLL_BAR_WIDTH * 3 + 16, SCROLL_BAR_WIDTH);
+    }
+  }
+
+  @Override
+  protected Dimension getMinimumThumbSize() {
+    if (scrollbar.getOrientation() == JScrollBar.VERTICAL) {
+      return new Dimension(TRACK_WIDTH, SCROLL_BAR_WIDTH * 3);
+    }
+    else {
+      return new Dimension(SCROLL_BAR_WIDTH * 3, TRACK_WIDTH);
     }
   }
 

@@ -13,41 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.tinymediamanager.ui;
+package org.tinymediamanager.ui.actions;
 
-import javax.swing.Action;
-import javax.swing.JMenu;
-import javax.swing.JPanel;
-import javax.swing.JPopupMenu;
+import java.awt.event.ActionEvent;
+
+import javax.swing.AbstractAction;
 
 /**
- * Interface ITmmUIModule to access UI Modules easily
+ * The SettingsAction to display the settings
  * 
  * @author Manuel Laggner
  */
-public interface ITmmUIModule {
+public class SettingsAction extends AbstractAction {
+  private static final long serialVersionUID = 8930602755330446751L;
 
-  public String getModuleId();
-
-  public JPanel getTabPanel();
-
-  public String getTabTitle();
-
-  public JPanel getDetailPanel();
-
-  public Action getSearchAction();
-
-  public JPopupMenu getSearchMenu();
-
-  public Action getEditAction();
-
-  public JMenu getEditMenu();
-
-  public Action getUpdateAction();
-
-  public JMenu getUpdateMenu();
-
-  public Action getExportAction();
-
-  public JMenu getExportMenu();
+  @Override
+  public void actionPerformed(ActionEvent arg0) {
+    // TODO add settings popup menu
+  }
 }

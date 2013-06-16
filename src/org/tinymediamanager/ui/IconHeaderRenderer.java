@@ -17,24 +17,24 @@ package org.tinymediamanager.ui;
 
 import java.awt.Component;
 
+import javax.swing.BorderFactory;
 import javax.swing.ImageIcon;
 import javax.swing.JLabel;
 import javax.swing.JTable;
 import javax.swing.table.DefaultTableCellRenderer;
 
 import org.apache.commons.lang3.StringUtils;
+import org.tinymediamanager.ui.components.TmmTable;
 
 /**
- * The Class IconRenderer.
+ * The Class IconHeaderRenderer. Renders an Icon as the table header
  * 
  * @author Manuel Laggner
  */
-public class IconRenderer extends DefaultTableCellRenderer {
+public class IconHeaderRenderer extends DefaultTableCellRenderer {
 
-  /** The Constant serialVersionUID. */
-  private static final long serialVersionUID = 1L;
+  private static final long serialVersionUID = 400599451709865596L;
 
-  /** The tooltip. */
   private String            tooltip;
 
   /**
@@ -43,16 +43,14 @@ public class IconRenderer extends DefaultTableCellRenderer {
    * @param tooltip
    *          the tooltip
    */
-  public IconRenderer(String tooltip) {
+  public IconHeaderRenderer(String tooltip) {
     this.tooltip = tooltip;
   }
 
   /*
    * (non-Javadoc)
    * 
-   * @see
-   * javax.swing.table.DefaultTableCellRenderer#getTableCellRendererComponent
-   * (javax.swing.JTable, java.lang.Object, boolean, boolean, int, int)
+   * @see javax.swing.table.DefaultTableCellRenderer#getTableCellRendererComponent (javax.swing.JTable, java.lang.Object, boolean, boolean, int, int)
    */
   @Override
   public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
@@ -64,6 +62,7 @@ public class IconRenderer extends DefaultTableCellRenderer {
       setIcon(null);
     }
     setHorizontalAlignment(JLabel.CENTER);
+    setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, TmmTable.TABLE_GRID_COLOR));
 
     // set a tooltip
     if (StringUtils.isNotBlank(tooltip)) {

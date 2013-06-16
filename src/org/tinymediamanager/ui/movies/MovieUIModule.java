@@ -20,6 +20,7 @@ import java.util.ResourceBundle;
 import javax.swing.Action;
 import javax.swing.JMenu;
 import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
 
 import org.tinymediamanager.ui.ITmmUIModule;
 import org.tinymediamanager.ui.UTF8Control;
@@ -43,12 +44,15 @@ public class MovieUIModule implements ITmmUIModule {
   private Action                      searchAction;
   private Action                      editAction;
 
+  private JPopupMenu                  searchPopupMenu;
+
   private MovieUIModule() {
     listPanel = new MovieListPanel();
     selectionModel = listPanel.selectionModel;
     detailPanel = new MovieInformationPanel(selectionModel);
 
     createActions();
+    createPopupMenu();
   }
 
   public static MovieUIModule getInstance() {
@@ -65,6 +69,23 @@ public class MovieUIModule implements ITmmUIModule {
   private void createActions() {
     searchAction = new MovieSingleScrapeAction(false);
     editAction = new MovieEditAction(false);
+  }
+
+  private void createPopupMenu() {
+    // popup menu
+    searchPopupMenu = new JPopupMenu();
+    searchPopupMenu.add(new MovieSingleScrapeAction(true));
+    // popupMenu.add(actionScrapeSelected);
+    // popupMenu.add(actionScrapeMetadataSelected);
+    // popupMenu.addSeparator();
+    // popupMenu.add(actionEditMovie2);
+    // popupMenu.add(actionBatchEdit);
+    // popupMenu.add(actionRename2);
+    // popupMenu.add(actionMediaInformation2);
+    // popupMenu.add(actionExport);
+    // popupMenu.addSeparator();
+    // popupMenu.add(actionRemove2);
+
   }
 
   @Override
@@ -118,9 +139,8 @@ public class MovieUIModule implements ITmmUIModule {
    * @see org.tinymediamanager.ui.ITmmUIModule#getSearchMenu()
    */
   @Override
-  public JMenu getSearchMenu() {
-    // TODO Auto-generated method stub
-    return null;
+  public JPopupMenu getSearchMenu() {
+    return searchPopupMenu;
   }
 
   /*

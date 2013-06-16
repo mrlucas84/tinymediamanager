@@ -13,41 +13,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.tinymediamanager.ui;
+package org.tinymediamanager.ui.actions;
 
-import javax.swing.Action;
-import javax.swing.JMenu;
-import javax.swing.JPanel;
-import javax.swing.JPopupMenu;
+import java.awt.Dialog;
+import java.awt.event.ActionEvent;
+
+import javax.swing.AbstractAction;
+
+import org.tinymediamanager.ui.MainWindow;
+import org.tinymediamanager.ui.dialogs.AboutDialog;
 
 /**
- * Interface ITmmUIModule to access UI Modules easily
+ * The AboutAction to display the aboutbox
  * 
  * @author Manuel Laggner
  */
-public interface ITmmUIModule {
+public class AboutAction extends AbstractAction {
+  private static final long serialVersionUID = -6578562721885387890L;
 
-  public String getModuleId();
-
-  public JPanel getTabPanel();
-
-  public String getTabTitle();
-
-  public JPanel getDetailPanel();
-
-  public Action getSearchAction();
-
-  public JPopupMenu getSearchMenu();
-
-  public Action getEditAction();
-
-  public JMenu getEditMenu();
-
-  public Action getUpdateAction();
-
-  public JMenu getUpdateMenu();
-
-  public Action getExportAction();
-
-  public JMenu getExportMenu();
+  @Override
+  public void actionPerformed(ActionEvent e) {
+    Dialog aboutDialog = new AboutDialog();
+    aboutDialog.setLocationRelativeTo(MainWindow.getActiveInstance());
+    aboutDialog.setVisible(true);
+  }
 }
