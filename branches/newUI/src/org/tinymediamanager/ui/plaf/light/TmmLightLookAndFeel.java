@@ -13,10 +13,12 @@ import com.jtattoo.plaf.AbstractLookAndFeel;
 import com.jtattoo.plaf.AbstractTheme;
 import com.jtattoo.plaf.BaseCheckBoxMenuItemUI;
 import com.jtattoo.plaf.BaseCheckBoxUI;
+import com.jtattoo.plaf.BaseComboBoxUI;
 import com.jtattoo.plaf.BaseDesktopPaneUI;
 import com.jtattoo.plaf.BaseEditorPaneUI;
 import com.jtattoo.plaf.BaseFileChooserUI;
 import com.jtattoo.plaf.BaseFormattedTextFieldUI;
+import com.jtattoo.plaf.BaseInternalFrameUI;
 import com.jtattoo.plaf.BaseLabelUI;
 import com.jtattoo.plaf.BaseMenuBarUI;
 import com.jtattoo.plaf.BaseMenuItemUI;
@@ -26,12 +28,12 @@ import com.jtattoo.plaf.BasePopupMenuUI;
 import com.jtattoo.plaf.BaseProgressBarUI;
 import com.jtattoo.plaf.BaseRadioButtonMenuItemUI;
 import com.jtattoo.plaf.BaseRadioButtonUI;
+import com.jtattoo.plaf.BaseRootPaneUI;
 import com.jtattoo.plaf.BaseScrollPaneUI;
 import com.jtattoo.plaf.BaseSeparatorUI;
 import com.jtattoo.plaf.BaseSliderUI;
 import com.jtattoo.plaf.BaseSpinnerUI;
 import com.jtattoo.plaf.BaseSplitPaneUI;
-import com.jtattoo.plaf.BaseTableUI;
 import com.jtattoo.plaf.BaseTextAreaUI;
 import com.jtattoo.plaf.BaseTextFieldUI;
 import com.jtattoo.plaf.BaseToggleButtonUI;
@@ -39,13 +41,7 @@ import com.jtattoo.plaf.BaseToolTipUI;
 import com.jtattoo.plaf.BaseTreeUI;
 import com.jtattoo.plaf.JTattooUtilities;
 import com.jtattoo.plaf.luna.LunaBorderFactory;
-import com.jtattoo.plaf.luna.LunaButtonUI;
-import com.jtattoo.plaf.luna.LunaComboBoxUI;
 import com.jtattoo.plaf.luna.LunaIconFactory;
-import com.jtattoo.plaf.luna.LunaInternalFrameUI;
-import com.jtattoo.plaf.luna.LunaRootPaneUI;
-import com.jtattoo.plaf.luna.LunaTableHeaderUI;
-import com.jtattoo.plaf.luna.LunaToolBarUI;
 
 public class TmmLightLookAndFeel extends AbstractLookAndFeel {
 
@@ -193,7 +189,6 @@ public class TmmLightLookAndFeel extends AbstractLookAndFeel {
         "RadioButtonUI", BaseRadioButtonUI.class.getName(), 
         "ToolTipUI", BaseToolTipUI.class.getName(), 
         "TreeUI", BaseTreeUI.class.getName(),
-        "TableUI", BaseTableUI.class.getName(), 
         "SliderUI", BaseSliderUI.class.getName(), 
         "ProgressBarUI", BaseProgressBarUI.class.getName(),
         "ScrollPaneUI", BaseScrollPaneUI.class.getName(), 
@@ -207,19 +202,18 @@ public class TmmLightLookAndFeel extends AbstractLookAndFeel {
         "RadioButtonMenuItemUI", BaseRadioButtonMenuItemUI.class.getName(), 
         "PopupMenuSeparatorUI", BaseSeparatorUI.class.getName(), 
         "DesktopPaneUI", BaseDesktopPaneUI.class.getName(),
-
-        // LunaLookAndFeel classes
-        "ButtonUI", LunaButtonUI.class.getName(), 
-        "ComboBoxUI", LunaComboBoxUI.class.getName(), 
-        "TableHeaderUI", LunaTableHeaderUI.class.getName(), 
-        "ToolBarUI", LunaToolBarUI.class.getName(), 
-        "InternalFrameUI", LunaInternalFrameUI.class.getName(), 
-        "RootPaneUI", LunaRootPaneUI.class.getName(), 
+         
+        "ComboBoxUI", BaseComboBoxUI.class.getName(),  
+        "ToolBarUI", BaseMenuBarUI.class.getName(), 
+        "InternalFrameUI", BaseInternalFrameUI.class.getName(), 
+        "RootPaneUI", BaseRootPaneUI.class.getName(), 
         
         // TmmLookAndFeel classes
         "PanelUI", TmmLightPanelUI.class.getName(), 
         "ScrollBarUI", TmmLightScrollBarUI.class.getName(),
         "TabbedPaneUI", TmmLightTabbedPaneUI.class.getName(),
+        "TableUI", TmmLightTableUI.class.getName(),
+        "ButtonUI", TmmButtonUI.class.getName(),
     };
     table.putDefaults(uiDefaults);
     // @formatter:on

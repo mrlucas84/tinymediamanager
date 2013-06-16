@@ -30,9 +30,9 @@ import javax.swing.event.TableModelListener;
 import org.tinymediamanager.core.movie.Movie;
 import org.tinymediamanager.core.movie.MovieList;
 import org.tinymediamanager.ui.BorderCellRenderer;
-import org.tinymediamanager.ui.IconRenderer;
+import org.tinymediamanager.ui.IconHeaderRenderer;
 import org.tinymediamanager.ui.MainWindow;
-import org.tinymediamanager.ui.components.ZebraJTable;
+import org.tinymediamanager.ui.components.TmmTable;
 
 import ca.odell.glazedlists.FilterList;
 import ca.odell.glazedlists.SortedList;
@@ -90,7 +90,7 @@ public class MovieListPanel extends JPanel {
     final DefaultEventTableModel<Movie> movieTableModel = new DefaultEventTableModel<Movie>(textFilteredMovies, new MovieTableFormat());
 
     // build the table
-    movieTable = new ZebraJTable(movieTableModel);
+    movieTable = new TmmTable(movieTableModel);
 
     movieTableModel.addTableModelListener(new TableModelListener() {
       @Override
@@ -112,40 +112,40 @@ public class MovieListPanel extends JPanel {
 
     // year column
     movieTable.getTableHeader().getColumnModel().getColumn(1).setPreferredWidth(35);
-    movieTable.getTableHeader().getColumnModel().getColumn(1).setMinWidth(35);
+    movieTable.getTableHeader().getColumnModel().getColumn(1).setMinWidth(40);
     movieTable.getTableHeader().getColumnModel().getColumn(1).setMaxWidth(50);
 
     // NFO column
-    movieTable.getTableHeader().getColumnModel().getColumn(2).setHeaderRenderer(new IconRenderer("NFO"));
-    movieTable.getTableHeader().getColumnModel().getColumn(2).setMaxWidth(20);
-    URL imageURL = MainWindow.class.getResource("images/File.png");
+    movieTable.getTableHeader().getColumnModel().getColumn(2).setHeaderRenderer(new IconHeaderRenderer("NFO"));
+    movieTable.getTableHeader().getColumnModel().getColumn(2).setMaxWidth(25);
+    URL imageURL = MainWindow.class.getResource("/org/tinymediamanager/ui/images/NFO_Icon.png");
     if (imageURL != null) {
       movieTable.getColumnModel().getColumn(2).setHeaderValue(new ImageIcon(imageURL));
     }
 
     // Images column
-    movieTable.getTableHeader().getColumnModel().getColumn(3).setHeaderRenderer(new IconRenderer("Images"));
-    movieTable.getTableHeader().getColumnModel().getColumn(3).setMaxWidth(20);
+    movieTable.getTableHeader().getColumnModel().getColumn(3).setHeaderRenderer(new IconHeaderRenderer("Images"));
+    movieTable.getTableHeader().getColumnModel().getColumn(3).setMaxWidth(25);
     imageURL = null;
-    imageURL = MainWindow.class.getResource("images/Image.png");
+    imageURL = MainWindow.class.getResource("/org/tinymediamanager/ui/images/Images_Icon.png");
     if (imageURL != null) {
       movieTable.getColumnModel().getColumn(3).setHeaderValue(new ImageIcon(imageURL));
     }
 
     // trailer column
-    movieTable.getTableHeader().getColumnModel().getColumn(4).setHeaderRenderer(new IconRenderer("Trailer"));
-    movieTable.getTableHeader().getColumnModel().getColumn(4).setMaxWidth(20);
+    movieTable.getTableHeader().getColumnModel().getColumn(4).setHeaderRenderer(new IconHeaderRenderer("Trailer"));
+    movieTable.getTableHeader().getColumnModel().getColumn(4).setMaxWidth(25);
     imageURL = null;
-    imageURL = MainWindow.class.getResource("images/ClapBoard.png");
+    imageURL = MainWindow.class.getResource("/org/tinymediamanager/ui/images/Trailer_Icon.png");
     if (imageURL != null) {
       movieTable.getColumnModel().getColumn(4).setHeaderValue(new ImageIcon(imageURL));
     }
 
     // subtitles column
-    movieTable.getTableHeader().getColumnModel().getColumn(5).setHeaderRenderer(new IconRenderer("Subtitles"));
-    movieTable.getTableHeader().getColumnModel().getColumn(5).setMaxWidth(20);
+    movieTable.getTableHeader().getColumnModel().getColumn(5).setHeaderRenderer(new IconHeaderRenderer("Subtitles"));
+    movieTable.getTableHeader().getColumnModel().getColumn(5).setMaxWidth(25);
     imageURL = null;
-    imageURL = MainWindow.class.getResource("images/subtitle.png");
+    imageURL = MainWindow.class.getResource("/org/tinymediamanager/ui/images/Subs_Icon.png");
     if (imageURL != null) {
       movieTable.getColumnModel().getColumn(5).setHeaderValue(new ImageIcon(imageURL));
     }
@@ -159,7 +159,8 @@ public class MovieListPanel extends JPanel {
       }
     }
 
-    JScrollPane scrollPane = ZebraJTable.createStripedJScrollPane(movieTable);
+    int[] cols = { 0 };
+    JScrollPane scrollPane = TmmTable.createJScrollPane(movieTable, cols);
     add(scrollPane, "1, 2, 1, 1, fill, fill");
   }
 

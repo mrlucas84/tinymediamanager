@@ -28,7 +28,7 @@ import javax.swing.tree.TreeCellRenderer;
 
 import org.tinymediamanager.core.movie.Movie;
 import org.tinymediamanager.core.movie.MovieSet;
-import org.tinymediamanager.ui.ImageIconConverter;
+import org.tinymediamanager.ui.converter.ImageIconConverter;
 import org.tinymediamanager.ui.moviesets.MovieSetTreeNode;
 import org.tinymediamanager.ui.moviesets.MovieTreeNode;
 

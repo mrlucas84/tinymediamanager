@@ -63,7 +63,7 @@ import org.tinymediamanager.core.movie.tasks.MovieRenameTask;
 import org.tinymediamanager.core.movie.tasks.MovieScrapeTask;
 import org.tinymediamanager.core.movie.tasks.MovieUpdateDatasourceTask;
 import org.tinymediamanager.ui.BorderCellRenderer;
-import org.tinymediamanager.ui.IconRenderer;
+import org.tinymediamanager.ui.IconHeaderRenderer;
 import org.tinymediamanager.ui.MainWindow;
 import org.tinymediamanager.ui.TmmSwingWorker;
 import org.tinymediamanager.ui.UTF8Control;
@@ -425,7 +425,7 @@ public class MoviePanel extends JPanel {
     table.getTableHeader().getColumnModel().getColumn(1).setMaxWidth(50);
 
     // NFO column
-    table.getTableHeader().getColumnModel().getColumn(2).setHeaderRenderer(new IconRenderer("NFO"));
+    table.getTableHeader().getColumnModel().getColumn(2).setHeaderRenderer(new IconHeaderRenderer("NFO"));
     table.getTableHeader().getColumnModel().getColumn(2).setMaxWidth(20);
     URL imageURL = MainWindow.class.getResource("images/File.png");
     if (imageURL != null) {
@@ -433,7 +433,7 @@ public class MoviePanel extends JPanel {
     }
 
     // Images column
-    table.getTableHeader().getColumnModel().getColumn(3).setHeaderRenderer(new IconRenderer("Images"));
+    table.getTableHeader().getColumnModel().getColumn(3).setHeaderRenderer(new IconHeaderRenderer("Images"));
     table.getTableHeader().getColumnModel().getColumn(3).setMaxWidth(20);
     imageURL = null;
     imageURL = MainWindow.class.getResource("images/Image.png");
@@ -442,7 +442,7 @@ public class MoviePanel extends JPanel {
     }
 
     // trailer column
-    table.getTableHeader().getColumnModel().getColumn(4).setHeaderRenderer(new IconRenderer("Trailer"));
+    table.getTableHeader().getColumnModel().getColumn(4).setHeaderRenderer(new IconHeaderRenderer("Trailer"));
     table.getTableHeader().getColumnModel().getColumn(4).setMaxWidth(20);
     imageURL = null;
     imageURL = MainWindow.class.getResource("images/ClapBoard.png");
@@ -451,7 +451,7 @@ public class MoviePanel extends JPanel {
     }
 
     // subtitles column
-    table.getTableHeader().getColumnModel().getColumn(5).setHeaderRenderer(new IconRenderer("Subtitles"));
+    table.getTableHeader().getColumnModel().getColumn(5).setHeaderRenderer(new IconHeaderRenderer("Subtitles"));
     table.getTableHeader().getColumnModel().getColumn(5).setMaxWidth(20);
     imageURL = null;
     imageURL = MainWindow.class.getResource("images/subtitle.png");

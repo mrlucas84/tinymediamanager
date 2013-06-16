@@ -32,8 +32,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.tinymediamanager.core.tvshow.TvShow;
 import org.tinymediamanager.core.tvshow.TvShowEpisode;
 import org.tinymediamanager.core.tvshow.TvShowSeason;
-import org.tinymediamanager.ui.ImageIconConverter;
 import org.tinymediamanager.ui.UTF8Control;
+import org.tinymediamanager.ui.converter.ImageIconConverter;
 
 import com.jgoodies.forms.factories.FormFactory;
 import com.jgoodies.forms.layout.ColumnSpec;

@@ -19,7 +19,6 @@ import java.awt.BorderLayout;
 import java.awt.CardLayout;
 import java.awt.Cursor;
 import java.awt.Desktop;
-import java.awt.Dialog;
 import java.awt.Dimension;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
@@ -27,18 +26,12 @@ import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.ResourceBundle;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-import javax.swing.AbstractAction;
-import javax.swing.Action;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
-import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JMenu;
@@ -52,23 +45,11 @@ import javax.swing.JTabbedPane;
 import javax.swing.SwingWorker;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang3.StringEscapeUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.tinymediamanager.Globals;
-import org.tinymediamanager.core.ImageCache;
-import org.tinymediamanager.core.ImageCacheTask;
-import org.tinymediamanager.core.movie.Movie;
-import org.tinymediamanager.core.movie.MovieList;
-import org.tinymediamanager.core.movie.MovieSet;
-import org.tinymediamanager.core.tvshow.TvShow;
-import org.tinymediamanager.core.tvshow.TvShowList;
-import org.tinymediamanager.scraper.util.CachedUrl;
 import org.tinymediamanager.ui.components.MainTabbedPane;
 import org.tinymediamanager.ui.components.ToolbarPanel;
-import org.tinymediamanager.ui.dialogs.AboutDialog;
-import org.tinymediamanager.ui.dialogs.BugReportDialog;
-import org.tinymediamanager.ui.dialogs.FeedbackDialog;
 import org.tinymediamanager.ui.movies.MoviePanel;
 import org.tinymediamanager.ui.movies.MovieUIModule;
 
@@ -88,12 +69,6 @@ public class MainWindow extends JFrame {
   private static final ResourceBundle BUNDLE           = ResourceBundle.getBundle("messages", new UTF8Control()); //$NON-NLS-1$
   private final static Logger         LOGGER           = LoggerFactory.getLogger(MainWindow.class);
   private static MainWindow           instance;
-
-  private final Action                actionExit       = new ExitAction();
-  private final Action                actionAbout      = new AboutAction();
-  private final Action                actionFeedback   = new FeedbackAction();
-  private final Action                actionBugReport  = new BugReportAction();
-  private final Action                actionDonate     = new DonateAction();
 
   private JPanel                      panelMovies;
   private JPanel                      panelStatusBar;
@@ -125,22 +100,6 @@ public class MainWindow extends JFrame {
     JMenuBar menuBar = new JMenuBar();
     setJMenuBar(menuBar);
 
-    JMenu mnTmm = new JMenu("tinyMediaManager");
-    menuBar.add(mnTmm);
-
-    // JMenuItem mntmSettings = mnTmm.add(actionSettings);
-    // mntmSettings.setText("Settings");
-
-    JMenuItem mntmFeedback = mnTmm.add(actionFeedback);
-    mntmFeedback.setText(BUNDLE.getString("Feedback")); //$NON-NLS-1$
-
-    JMenuItem mntmBugReport = mnTmm.add(actionBugReport);
-    mntmBugReport.setText(BUNDLE.getString("BugReport")); //$NON-NLS-1$
-
-    mnTmm.addSeparator();
-
-    JMenuItem mntmExit = mnTmm.add(actionExit);
-    mntmExit.setText(BUNDLE.getString("tmm.exit")); //$NON-NLS-1$
     initialize();
 
     // debug menu
@@ -182,74 +141,6 @@ public class MainWindow extends JFrame {
     JMenu cache = new JMenu(BUNDLE.getString("tmm.cache")); //$NON-NLS-1$
     debug.add(cache);
 
-    JMenuItem clearUrlCache = new JMenuItem(BUNDLE.getString("tmm.clearurlcache")); //$NON-NLS-1$
-    cache.add(clearUrlCache);
-    clearUrlCache.addActionListener(new ActionListener() {
-      @Override
-      public void actionPerformed(ActionEvent arg0) {
-        File cache = new File(CachedUrl.CACHE_DIR);
-        if (cache.exists()) {
-          try {
-            FileUtils.deleteDirectory(cache);
-          }
-          catch (Exception e) {
-            LOGGER.warn(e.getMessage());
-          }
-        }
-      }
-    });
-    cache.addSeparator();
-    JMenuItem clearImageCache = new JMenuItem(BUNDLE.getString("tmm.clearimagecache")); //$NON-NLS-1$
-    cache.add(clearImageCache);
-    clearImageCache.addActionListener(new ActionListener() {
-      @Override
-      public void actionPerformed(ActionEvent arg0) {
-        File cache = new File(ImageCache.CACHE_DIR);
-        if (cache.exists()) {
-          try {
-            FileUtils.deleteDirectory(cache);
-          }
-          catch (Exception e) {
-            LOGGER.warn(e.getMessage());
-          }
-        }
-      }
-    });
-
-    JMenuItem rebuildImageCache = new JMenuItem(BUNDLE.getString("tmm.rebuildimagecache")); //$NON-NLS-1$
-    cache.add(rebuildImageCache);
-    rebuildImageCache.addActionListener(new ActionListener() {
-      @Override
-      public void actionPerformed(ActionEvent arg0) {
-        if (!Globals.settings.isImageCache()) {
-          JOptionPane.showMessageDialog(null, "Image cache is not activated!");
-          return;
-        }
-
-        List<File> imageFiles = new ArrayList<File>();
-        // movie list
-        List<Movie> movies = new ArrayList<Movie>(MovieList.getInstance().getMovies());
-        for (Movie movie : movies) {
-          imageFiles.addAll(movie.getImagesToCache());
-        }
-
-        // moviesets
-        List<MovieSet> movieSets = new ArrayList<MovieSet>(MovieList.getInstance().getMovieSetList());
-        for (MovieSet movieSet : movieSets) {
-          imageFiles.addAll(movieSet.getImagesToCache());
-        }
-
-        // tv dhows
-        List<TvShow> tvShows = new ArrayList<TvShow>(TvShowList.getInstance().getTvShows());
-        for (TvShow tvShow : tvShows) {
-          imageFiles.addAll(tvShow.getImagesToCache());
-        }
-
-        ImageCacheTask task = new ImageCacheTask(imageFiles);
-        Globals.executor.execute(task);
-      }
-    });
-
     JMenuItem tmmFolder = new JMenuItem(BUNDLE.getString("tmm.gotoinstalldir")); //$NON-NLS-1$
     debug.add(tmmFolder);
     tmmFolder.addActionListener(new ActionListener() {
@@ -270,15 +161,6 @@ public class MainWindow extends JFrame {
     });
 
     menuBar.add(debug);
-
-    mnTmm = new JMenu("?");
-    menuBar.add(mnTmm);
-    JMenuItem mntmDonate = mnTmm.add(actionDonate);
-    mntmDonate.setText(BUNDLE.getString("tmm.donate")); //$NON-NLS-1$
-    mnTmm.addSeparator();
-    JMenuItem mntmAbout = mnTmm.add(actionAbout);
-    mntmAbout.setText(BUNDLE.getString("tmm.about")); //$NON-NLS-1$
-    // setVisible(true);
 
     // Globals.executor.execute(new MyStatusbarThread());
     // use a Future to be able to cancel it
@@ -356,6 +238,7 @@ public class MainWindow extends JFrame {
 
     // FIXME move to a dynamic place
     toolbarPanel.setSearchAction(MovieUIModule.getInstance().getSearchAction());
+    toolbarPanel.setSearchPopupMenu(MovieUIModule.getInstance().getSearchMenu());
     toolbarPanel.setEditAction(MovieUIModule.getInstance().getEditAction());
 
     // FIXME
@@ -520,71 +403,12 @@ public class MainWindow extends JFrame {
   }
 
   /**
-   * The Class ExitAction.
-   * 
-   * @author Manuel Laggner
-   */
-  private class ExitAction extends AbstractAction {
-
-    /** The Constant serialVersionUID. */
-    private static final long serialVersionUID = 1L;
-
-    /**
-     * Instantiates a new exit action.
-     */
-    public ExitAction() {
-      // putValue(NAME, "SwingAction");
-      // putValue(SHORT_DESCRIPTION, "Some short description");
-    }
-
-    /*
-     * (non-Javadoc)
-     * 
-     * @see java.awt.event.ActionListener#actionPerformed(java.awt.event.ActionEvent)
-     */
-    public void actionPerformed(ActionEvent e) {
-      instance.setVisible(false);
-      instance.dispose();
-    }
-  }
-
-  /**
    * Gets the movie panel.
    * 
    * @return the movie panel
    */
   public MoviePanel getMoviePanel() {
     return (MoviePanel) panelMovies;
-  }
-
-  /**
-   * The Class AboutAction.
-   * 
-   * @author Manuel Laggner
-   */
-  private class AboutAction extends AbstractAction {
-
-    /** The Constant serialVersionUID. */
-    private static final long serialVersionUID = 1L;
-
-    /**
-     * Instantiates a new about action.
-     */
-    public AboutAction() {
-      // putValue(NAME, "SwingAction");
-      // putValue(SHORT_DESCRIPTION, "Some short description");
-    }
-
-    /*
-     * (non-Javadoc)
-     * 
-     * @see java.awt.event.ActionListener#actionPerformed(java.awt.event.ActionEvent)
-     */
-    public void actionPerformed(ActionEvent e) {
-      Dialog aboutDialog = new AboutDialog();
-      aboutDialog.setLocationRelativeTo(MainWindow.getActiveInstance());
-      aboutDialog.setVisible(true);
-    }
   }
 
   /**
@@ -609,102 +433,11 @@ public class MainWindow extends JFrame {
   }
 
   /**
-   * The Class FeedbackAction.
-   * 
-   * @author Manuel Laggner
-   */
-  private class FeedbackAction extends AbstractAction {
-
-    /** The Constant serialVersionUID. */
-    private static final long serialVersionUID = 1L;
-
-    /**
-     * Instantiates a new feedback action.
-     */
-    public FeedbackAction() {
-    }
-
-    /*
-     * (non-Javadoc)
-     * 
-     * @see java.awt.event.ActionListener#actionPerformed(java.awt.event.ActionEvent)
-     */
-    public void actionPerformed(ActionEvent e) {
-      JDialog dialog = new FeedbackDialog();
-      dialog.pack();
-      dialog.setLocationRelativeTo(MainWindow.getActiveInstance());
-      dialog.setVisible(true);
-    }
-  }
-
-  /**
    * Gets the frame.
    * 
    * @return the frame
    */
   public static JFrame getFrame() {
     return instance;
-  }
-
-  /**
-   * The Class BugReportAction.
-   * 
-   * @author Manuel Laggner
-   */
-  private class BugReportAction extends AbstractAction {
-
-    /** The Constant serialVersionUID. */
-    private static final long serialVersionUID = 1L;
-
-    /**
-     * Instantiates a new feedback action.
-     */
-    public BugReportAction() {
-    }
-
-    /*
-     * (non-Javadoc)
-     * 
-     * @see java.awt.event.ActionListener#actionPerformed(java.awt.event.ActionEvent)
-     */
-    public void actionPerformed(ActionEvent e) {
-      JDialog dialog = new BugReportDialog();
-      dialog.pack();
-      dialog.setLocationRelativeTo(MainWindow.getActiveInstance());
-      dialog.setVisible(true);
-    }
-  }
-
-  /**
-   * The Class DonateAction.
-   * 
-   * @author Manuel Laggner
-   */
-  private class DonateAction extends AbstractAction {
-
-    /** The Constant serialVersionUID. */
-    private static final long serialVersionUID = 1L;
-
-    /**
-     * Instantiates a new feedback action.
-     */
-    public DonateAction() {
-    }
-
-    /*
-     * (non-Javadoc)
-     * 
-     * @see java.awt.event.ActionListener#actionPerformed(java.awt.event.ActionEvent)
-     */
-    public void actionPerformed(ActionEvent e) {
-      try {
-        String url = StringEscapeUtils
-            .unescapeHtml4("https://www.paypal.com/cgi-bin/webscr?cmd=_donations&amp;business=manuel%2elaggner%40gmail%2ecom&amp;lc=GB&amp;item_name=tinyMediaManager&amp;currency_code=EUR&amp;bn=PP%2dDonationsBF%3abtn_donate_LG%2egif%3aNonHosted");
-        Desktop.getDesktop().browse(new URI(url));
-      }
-      catch (Exception e1) {
-        LOGGER.error("Donate", e1);
-      }
-    }
   }
 }

@@ -22,9 +22,9 @@ import javax.swing.ImageIcon;
 
 import org.apache.commons.lang3.StringUtils;
 import org.tinymediamanager.core.movie.Movie;
-import org.tinymediamanager.ui.ImageIconConverter;
 import org.tinymediamanager.ui.MainWindow;
 import org.tinymediamanager.ui.UTF8Control;
+import org.tinymediamanager.ui.converter.ImageIconConverter;
 
 import ca.odell.glazedlists.gui.AdvancedTableFormat;
 
@@ -34,9 +34,12 @@ import ca.odell.glazedlists.gui.AdvancedTableFormat;
  * @author Manuel Laggner
  */
 public class MovieTableFormat implements AdvancedTableFormat<Movie> {
-  private static final ResourceBundle  BUNDLE           = ResourceBundle.getBundle("messages", new UTF8Control());            //$NON-NLS-1$
-  private final static ImageIcon       checkIcon        = new ImageIcon(MainWindow.class.getResource("images/Checkmark.png"));
-  private final static ImageIcon       crossIcon        = new ImageIcon(MainWindow.class.getResource("images/Cross.png"));
+  private static final ResourceBundle  BUNDLE           = ResourceBundle.getBundle("messages", new UTF8Control());                               //$NON-NLS-1$
+  private final static ImageIcon       checkIcon        = new ImageIcon(
+                                                            MainWindow.class.getResource("/org/tinymediamanager/ui/images/Dot_Available.png"));
+  private final static ImageIcon       crossIcon        = new ImageIcon(
+                                                            MainWindow.class.getResource("/org/tinymediamanager/ui/images/Dot_Unavailable.png"));
+
   private static Comparator<Movie>     movieComparator  = new MovieComparator();
   private static Comparator<String>    stringComparator = new StringComparator();
   private static Comparator<ImageIcon> imageComparator  = new ImageComparator();
