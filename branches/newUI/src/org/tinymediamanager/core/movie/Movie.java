@@ -316,6 +316,10 @@ public class Movie extends MediaEntity {
    */
   public void initializeAfterLoading() {
     super.initializeAfterLoading();
+    // remove empty tag and null values
+    Utils.removeEmptyStringsFromList(tags);
+    Utils.removeEmptyStringsFromList(genres);
+
     // set observables
     setObservables();
 
@@ -413,6 +417,10 @@ public class Movie extends MediaEntity {
    *          the new tag
    */
   public void addToTags(String newTag) {
+    if (StringUtils.isBlank(newTag)) {
+      return;
+    }
+
     for (String tag : tagsObservable) {
       if (tag.equals(newTag)) {
         return;
@@ -970,11 +978,33 @@ public class Movie extends MediaEntity {
     // set scraped
     setScraped(true);
 
+    // update DB
+    saveToDb();
+
+    // create MovieSet
+    if (config.isCollection()) {
+      int col = metadata.getTmdbIdSet();
+      if (col != 0) {
+        MovieSet movieSet = MovieList.getInstance().findMovieSet(metadata.getCollectionName());
+        // no one found - create it
+        if (movieSet == null) {
+          movieSet = new MovieSet(metadata.getCollectionName());
+          movieSet.setTmdbId(col);
+          movieSet.saveToDb();
+          MovieList.getInstance().addMovieSet(movieSet);
+        }
+        // add movie to movieset
+        if (movieSet != null) {
+          movieSet.addMovie(this);
+          setMovieSet(movieSet);
+          saveToDb();
+        }
+      }
+    }
+
     // write NFO
     writeNFO();
 
-    // update DB
-    saveToDb();
   }
 
   /**

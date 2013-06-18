@@ -355,15 +355,15 @@ public class ZelluloidMetadataProvider implements IMediaMetadataProvider, IMedia
     String imdb = "";
 
     // only title search
-    if (StringUtils.isNotEmpty(options.get(MediaSearchOptions.SearchParam.TITLE))) {
-      searchTerm = cleanSearch(options.get(MediaSearchOptions.SearchParam.TITLE));
-      searchUrl = BASE_URL + "/suche/index.php3?qstring=" + URLEncoder.encode(searchTerm, "UTF-8");
-      LOGGER.debug("search with title: " + searchTerm);
-    }
-    else if (StringUtils.isNotEmpty(options.get(MediaSearchOptions.SearchParam.QUERY))) {
+    if (StringUtils.isNotEmpty(options.get(MediaSearchOptions.SearchParam.QUERY))) {
       searchTerm = cleanSearch(options.get(MediaSearchOptions.SearchParam.QUERY));
       searchUrl = BASE_URL + "/suche/index.php3?qstring=" + URLEncoder.encode(searchTerm, "UTF-8");
       LOGGER.debug("search for everything: " + searchTerm);
+    }
+    else if (StringUtils.isNotEmpty(options.get(MediaSearchOptions.SearchParam.TITLE))) {
+      searchTerm = cleanSearch(options.get(MediaSearchOptions.SearchParam.TITLE));
+      searchUrl = BASE_URL + "/suche/index.php3?qstring=" + URLEncoder.encode(searchTerm, "UTF-8");
+      LOGGER.debug("search with title: " + searchTerm);
     }
     else {
       LOGGER.debug("empty searchString");
@@ -444,7 +444,15 @@ public class ZelluloidMetadataProvider implements IMediaMetadataProvider, IMedia
         // sr.setPosterUrl(BASE_URL + "/images" + StrgUtils.substr(a.toString(),
         // "images(.*?)\\&quot"));
 
-        sr.setScore(MetadataUtil.calculateScore(searchTerm, sr.getTitle()));
+        if (imdb.equals(sr.getIMDBId())) {
+          // perfect match
+          sr.setScore(1);
+        }
+        else {
+          // compare score based on names
+          sr.setScore(MetadataUtil.calculateScore(searchTerm, sr.getTitle()));
+        }
+
         // populate extra args
         MetadataUtil.copySearchQueryToSearchResult(options, sr);
         res.put(id, sr);

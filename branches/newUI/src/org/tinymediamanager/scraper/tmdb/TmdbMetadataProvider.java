@@ -132,8 +132,7 @@ public class TmdbMetadataProvider implements IMediaMetadataProvider, IMediaArtwo
       throw new Exception("wrong media type for this scraper");
     }
 
-    // detect the string to search
-    if (StringUtils.isNotEmpty(query.get(MediaSearchOptions.SearchParam.QUERY))) {
+    if (StringUtils.isEmpty(searchString) && StringUtils.isNotEmpty(query.get(MediaSearchOptions.SearchParam.QUERY))) {
       searchString = query.get(MediaSearchOptions.SearchParam.QUERY);
     }
 
@@ -158,27 +157,51 @@ public class TmdbMetadataProvider implements IMediaMetadataProvider, IMediaArtwo
     searchString = MetadataUtil.removeNonSearchCharacters(searchString);
 
     // begin search
-    LOGGER.debug("========= BEGIN TMDB Scraper Search for: " + searchString);
+    LOGGER.info("========= BEGIN TMDB Scraper Search for: " + searchString);
     // ApiUrl tmdbSearchMovie = new ApiUrl(tmdb, "search/movie");
     // tmdbSearchMovie.addArgument(ApiUrl.PARAM_LANGUAGE, Globals.settings.getMovieSettings().getScraperLanguage().name());
 
-    List<MovieDb> moviesFound = null;
+    List<MovieDb> moviesFound = new ArrayList<MovieDb>();
+
+    String imdbId = "";
+    int tmdbId = 0;
     synchronized (tmdb) {
-      // old api
-      // moviesFound = tmdb.searchMovie(searchString,
-      // Globals.settings.getScraperLanguage().name(), false);
-      // new api
-      trackConnections();
-      moviesFound = tmdb.searchMovie(searchString, year, Globals.settings.getMovieSettings().getScraperLanguage().name(), false, 0);
-      baseUrl = tmdb.getConfiguration().getBaseUrl();
+      // 1. try with TMDBid
+      if (StringUtils.isNotEmpty(query.get(MediaSearchOptions.SearchParam.TMDBID))) {
+        trackConnections();
+        // if we have already an ID, get this result and do not search
+        tmdbId = Integer.valueOf(query.get(MediaSearchOptions.SearchParam.TMDBID));
+        moviesFound.add(tmdb.getMovieInfo(tmdbId, Globals.settings.getMovieSettings().getScraperLanguage().name()));
+        LOGGER.debug("found " + moviesFound.size() + " results with TMDB id");
+      }
+
+      // 2. try with IMDBid
+      if (moviesFound.size() == 0 && StringUtils.isNotEmpty(query.get(MediaSearchOptions.SearchParam.IMDBID))) {
+        trackConnections();
+        imdbId = query.get(MediaSearchOptions.SearchParam.IMDBID);
+        moviesFound.add(tmdb.getMovieInfoImdb(imdbId, Globals.settings.getMovieSettings().getScraperLanguage().name()));
+        LOGGER.debug("found " + moviesFound.size() + " results with IMDB id");
+      }
+
+      // 3. try with search string and year
+      if (moviesFound.size() == 0) {
+        trackConnections();
+        moviesFound = tmdb.searchMovie(searchString, year, Globals.settings.getMovieSettings().getScraperLanguage().name(), false, 0);
+        baseUrl = tmdb.getConfiguration().getBaseUrl();
+        LOGGER.debug("found " + moviesFound.size() + " results with search string");
+      }
+
+      // 4. if the last token in search string seems to be a year, try without :)
       if (searchString.matches(".*\\s\\d{4}$") && (moviesFound == null || moviesFound.size() == 0)) {
         // nada found & last part seems to be date; strip off and try again
         searchString = searchString.replaceFirst("\\s\\d{4}$", "");
         moviesFound = tmdb.searchMovie(searchString, year, Globals.settings.getMovieSettings().getScraperLanguage().name(), false, 0);
+        LOGGER.debug("found " + moviesFound.size() + " results with search string removed year");
       }
+
     }
 
-    LOGGER.debug("found " + moviesFound.size() + " results");
+    LOGGER.info("found " + moviesFound.size() + " results");
 
     if (moviesFound == null || moviesFound.size() == 0) {
       return resultList;
@@ -201,7 +224,14 @@ public class TmdbMetadataProvider implements IMediaMetadataProvider, IMediaArtwo
       // populate extra args
       MetadataUtil.copySearchQueryToSearchResult(query, sr);
 
-      sr.setScore(MetadataUtil.calculateScore(searchString, movie.getTitle()));
+      if (imdbId.equals(sr.getIMDBId()) || String.valueOf(tmdbId).equals(sr.getId())) {
+        // perfect match
+        sr.setScore(1);
+      }
+      else {
+        // compare score based on names
+        sr.setScore(MetadataUtil.calculateScore(searchString, movie.getTitle()));
+      }
       resultList.add(sr);
     }
     Collections.sort(resultList);
@@ -267,6 +297,10 @@ public class TmdbMetadataProvider implements IMediaMetadataProvider, IMediaArtwo
     md.setTmdbId(movie.getId());
     if (movie.getBelongsToCollection() != null) {
       md.setTmdbIdSet(movie.getBelongsToCollection().getId());
+      CollectionInfo info = tmdb.getCollectionInfo(md.getTmdbIdSet(), Globals.settings.getMovieSettings().getScraperLanguage().name());
+      if (info != null) {
+        md.setCollectionName(info.getName());
+      }
     }
     md.setPlot(movie.getOverview());
     md.setTitle(movie.getTitle());

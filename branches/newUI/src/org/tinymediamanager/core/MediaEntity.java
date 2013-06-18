@@ -112,6 +112,15 @@ public abstract class MediaEntity extends AbstractModelObject {
   }
 
   /**
+   * get the INTERNAL ID of this object. Do not confuse it with the IDs from the metadata provider!
+   * 
+   * @return internal id
+   */
+  public int getId() {
+    return id;
+  }
+
+  /**
    * Gets the id.
    * 
    * @return the id
@@ -733,7 +742,7 @@ public abstract class MediaEntity extends AbstractModelObject {
   public List<MediaFile> getMediaFiles(MediaFileType type) {
     List<MediaFile> mf = new ArrayList<MediaFile>();
     // synchronized (mediaFilesObservable) {
-    for (MediaFile mediaFile : this.mediaFilesObservable) {
+    for (MediaFile mediaFile : new ArrayList<MediaFile>(mediaFilesObservable)) {
       if (mediaFile.getType().equals(type)) {
         mf.add(mediaFile);
       }
@@ -829,7 +838,7 @@ public abstract class MediaEntity extends AbstractModelObject {
    */
   public void updateMediaFilePath(File oldPath, File newPath) {
     // synchronized (mediaFilesObservable) {
-    for (MediaFile mf : mediaFilesObservable) {
+    for (MediaFile mf : new ArrayList<MediaFile>(mediaFilesObservable)) {
       mf.fixPathForRenamedFolder(oldPath, newPath);
     }
     // }

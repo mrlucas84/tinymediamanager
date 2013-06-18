@@ -468,8 +468,6 @@ public class MoviePanel extends JPanel {
       }
     }
 
-    panelRight.init();
-
     // initialize filteredCount
     lblMovieCountFiltered.setText(String.valueOf(movieTableModel.getRowCount()));
   }
