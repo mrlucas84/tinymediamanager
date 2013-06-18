@@ -27,47 +27,24 @@ import org.tinymediamanager.core.AbstractModelObject;
 @XmlRootElement(name = "MovieScraperMetadata")
 public class MovieScraperMetadataConfig extends AbstractModelObject {
 
-  /** The title. */
-  private boolean title         = true;
-
-  /** The original title. */
-  private boolean originalTitle = true;
-
-  /** The tagline. */
-  private boolean tagline       = true;
-
-  /** The plot. */
-  private boolean plot          = true;
-
-  /** The rating. */
-  private boolean rating        = true;
-
-  /** The runtime. */
-  private boolean runtime       = true;
-
-  /** The year. */
-  private boolean year          = true;
-
-  /** The certification. */
-  private boolean certification = true;
-
-  /** The cast. */
-  private boolean cast          = true;
-
-  /** The genres. */
-  private boolean genres        = true;
-
-  /** The artwork. */
-  private boolean artwork       = true;
-
-  /** The trailer. */
-  private boolean trailer       = true;
-
   /**
-   * Instantiates a new scraper metadata config.
+   * these booleans indicate which metadata should be scraped
    */
-  public MovieScraperMetadataConfig() {
+  private boolean title         = true;
+  private boolean originalTitle = true;
+  private boolean tagline       = true;
+  private boolean plot          = true;
+  private boolean rating        = true;
+  private boolean runtime       = true;
+  private boolean year          = true;
+  private boolean certification = true;
+  private boolean cast          = true;
+  private boolean genres        = true;
+  private boolean artwork       = true;
+  private boolean trailer       = true;
+  private boolean collection    = true;
 
+  public MovieScraperMetadataConfig() {
   }
 
   /**
@@ -176,6 +153,15 @@ public class MovieScraperMetadataConfig extends AbstractModelObject {
    */
   public boolean isTrailer() {
     return trailer;
+  }
+
+  /**
+   * Checks if is collection.
+   * 
+   * @return true, if is collection
+   */
+  public boolean isCollection() {
+    return collection;
   }
 
   /**
@@ -318,6 +304,18 @@ public class MovieScraperMetadataConfig extends AbstractModelObject {
     boolean oldValue = this.trailer;
     this.trailer = newValue;
     firePropertyChange("trailer", oldValue, newValue);
+  }
+
+  /**
+   * Sets the collection (movie set).
+   * 
+   * @param newValue
+   *          the new collection (movie set)
+   */
+  public void setCollection(boolean newValue) {
+    boolean oldValue = this.trailer;
+    this.collection = newValue;
+    firePropertyChange("collection", oldValue, newValue);
   }
 
 }
