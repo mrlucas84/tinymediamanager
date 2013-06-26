@@ -19,6 +19,8 @@ import java.awt.event.ActionEvent;
 
 import javax.swing.AbstractAction;
 
+import org.tinymediamanager.ui.dialogs.SettingsDialog;
+
 /**
  * The SettingsAction to display the settings
  * 
@@ -29,6 +31,7 @@ public class SettingsAction extends AbstractAction {
 
   @Override
   public void actionPerformed(ActionEvent arg0) {
-    // TODO add settings popup menu
+    SettingsDialog dialog = new SettingsDialog();
+    dialog.setVisible(true);
   }
 }

@@ -237,9 +237,7 @@ public class MainWindow extends JFrame {
     addModule(MovieUIModule.getInstance());
 
     // FIXME move to a dynamic place
-    toolbarPanel.setSearchAction(MovieUIModule.getInstance().getSearchAction());
-    toolbarPanel.setSearchPopupMenu(MovieUIModule.getInstance().getSearchMenu());
-    toolbarPanel.setEditAction(MovieUIModule.getInstance().getEditAction());
+    toolbarPanel.setUIModule(MovieUIModule.getInstance());
 
     // FIXME
     tabbedPane.addTab("TV SHOWS", new JPanel());

@@ -35,6 +35,7 @@ import javax.swing.JPopupMenu;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
 
+import org.tinymediamanager.ui.ITmmUIModule;
 import org.tinymediamanager.ui.actions.AboutAction;
 import org.tinymediamanager.ui.actions.BugReportAction;
 import org.tinymediamanager.ui.actions.ClearImageCacheAction;
@@ -169,51 +170,52 @@ public class ToolbarPanel extends JPanel {
     add(lblSearch, "2, 2, center, default");
 
     lblEdit = createMenu("Edit");
-    lblEdit.setForeground(Color.LIGHT_GRAY);
     add(lblEdit, "4, 2, center, default");
 
     lblUpdate = new JLabel("Refresh database");
-    lblUpdate.setForeground(Color.LIGHT_GRAY);
+    lblUpdate.setForeground(arrowColor);
     add(lblUpdate, "6, 2, center, default");
 
     lblExport = createMenu("Export");
-    lblExport.setForeground(Color.LIGHT_GRAY);
     add(lblExport, "8, 2, center, default");
 
     lblTools = createMenu("Tools");
-    lblTools.setForeground(Color.LIGHT_GRAY);
     add(lblTools, "12, 2, center, default");
 
     lblSettings = new JLabel("Settings");
-    lblSettings.setForeground(Color.LIGHT_GRAY);
+    lblSettings.setForeground(arrowColor);
     add(lblSettings, "14, 2, center, default");
 
     lblAbout = new JLabel("About");
-    lblAbout.setForeground(Color.LIGHT_GRAY);
+    lblAbout.setForeground(arrowColor);
     add(lblAbout, "16, 2, center, default");
 
     lblDonate = new JLabel("Donate");
-    lblDonate.setForeground(Color.LIGHT_GRAY);
+    lblDonate.setForeground(arrowColor);
     add(lblDonate, "18, 2, center, default");
   }
 
-  public void setSearchAction(Action action) {
-    searchAction = action;
+  public void setUIModule(ITmmUIModule module) {
+    searchAction = module.getSearchAction();
+    setTooltipFromAction(btnSearch, searchAction);
+    searchPopupMenu = module.getSearchMenu();
+
+    editAction = module.getEditAction();
+    setTooltipFromAction(btnEdit, editAction);
+    editPopupMenu = module.getEditMenu();
+
+    updateAction = module.getUpdateAction();
+    setTooltipFromAction(btnEdit, updateAction);
+  }
+
+  private void setTooltipFromAction(JButton button, Action action) {
     Object shortDescription = action.getValue(Action.SHORT_DESCRIPTION);
     if (shortDescription != null) {
-      btnSearch.setToolTipText(shortDescription.toString());
+      button.setToolTipText(shortDescription.toString());
     }
     else {
-      btnSearch.setToolTipText("");
+      button.setToolTipText("");
     }
-  }
-
-  public void setEditAction(Action action) {
-    editAction = action;
-  }
-
-  public void setSearchPopupMenu(JPopupMenu menu) {
-    searchPopupMenu = menu;
   }
 
   /**
@@ -307,6 +309,11 @@ public class ToolbarPanel extends JPanel {
     else if (sender == btnEdit) {
       if (editAction != null) {
         editAction.actionPerformed(null);
+      }
+    }
+    else if (sender == btnUpdate) {
+      if (updateAction != null) {
+        updateAction.actionPerformed(null);
       }
     }
     else if (sender == btnSettings) {
