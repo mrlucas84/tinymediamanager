@@ -18,7 +18,6 @@ package org.tinymediamanager.ui.movies;
 import java.util.ResourceBundle;
 
 import javax.swing.Action;
-import javax.swing.JMenu;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 
@@ -26,6 +25,7 @@ import org.tinymediamanager.ui.ITmmUIModule;
 import org.tinymediamanager.ui.UTF8Control;
 import org.tinymediamanager.ui.movies.actions.MovieEditAction;
 import org.tinymediamanager.ui.movies.actions.MovieSingleScrapeAction;
+import org.tinymediamanager.ui.movies.actions.MovieUpdateDatasourceAction;
 
 /**
  * @author Manuel Laggner
@@ -43,8 +43,10 @@ public class MovieUIModule implements ITmmUIModule {
 
   private Action                      searchAction;
   private Action                      editAction;
+  private Action                      updateAction;
 
   private JPopupMenu                  searchPopupMenu;
+  private JPopupMenu                  editPopupMenu;
 
   private MovieUIModule() {
     listPanel = new MovieListPanel();
@@ -69,10 +71,11 @@ public class MovieUIModule implements ITmmUIModule {
   private void createActions() {
     searchAction = new MovieSingleScrapeAction(false);
     editAction = new MovieEditAction(false);
+    updateAction = new MovieUpdateDatasourceAction(false);
   }
 
   private void createPopupMenu() {
-    // popup menu
+    // search popup menu
     searchPopupMenu = new JPopupMenu();
     searchPopupMenu.add(new MovieSingleScrapeAction(true));
     // popupMenu.add(actionScrapeSelected);
@@ -85,6 +88,10 @@ public class MovieUIModule implements ITmmUIModule {
     // popupMenu.add(actionExport);
     // popupMenu.addSeparator();
     // popupMenu.add(actionRemove2);
+
+    // edit popup menu
+    editPopupMenu = new JPopupMenu();
+    editPopupMenu.add(new MovieEditAction(true));
 
   }
 
@@ -159,9 +166,8 @@ public class MovieUIModule implements ITmmUIModule {
    * @see org.tinymediamanager.ui.ITmmUIModule#getEditMenu()
    */
   @Override
-  public JMenu getEditMenu() {
-    // TODO Auto-generated method stub
-    return null;
+  public JPopupMenu getEditMenu() {
+    return editPopupMenu;
   }
 
   /*
@@ -171,8 +177,7 @@ public class MovieUIModule implements ITmmUIModule {
    */
   @Override
   public Action getUpdateAction() {
-    // TODO Auto-generated method stub
-    return null;
+    return updateAction;
   }
 
   /*
@@ -181,7 +186,7 @@ public class MovieUIModule implements ITmmUIModule {
    * @see org.tinymediamanager.ui.ITmmUIModule#getUpdateMenu()
    */
   @Override
-  public JMenu getUpdateMenu() {
+  public JPopupMenu getUpdateMenu() {
     // TODO Auto-generated method stub
     return null;
   }
@@ -203,7 +208,7 @@ public class MovieUIModule implements ITmmUIModule {
    * @see org.tinymediamanager.ui.ITmmUIModule#getExportMenu()
    */
   @Override
-  public JMenu getExportMenu() {
+  public JPopupMenu getExportMenu() {
     // TODO Auto-generated method stub
     return null;
   }

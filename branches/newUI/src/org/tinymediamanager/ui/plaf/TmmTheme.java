@@ -16,8 +16,8 @@ public class TmmTheme extends AbstractTheme {
   static {
     try {
       // Font dialogRegular = Font.createFont(Font.PLAIN, TmmTheme.class.getResource("Roboto-Regular.ttf").openStream());
-      Font dialogRegular = Font.createFont(Font.PLAIN, TmmTheme.class.getResource("Roboto-Light.ttf").openStream());
-      GraphicsEnvironment.getLocalGraphicsEnvironment().registerFont(dialogRegular);
+      Font robotoRegular = Font.createFont(Font.PLAIN, TmmTheme.class.getResource("Roboto-Light.ttf").openStream());
+      GraphicsEnvironment.getLocalGraphicsEnvironment().registerFont(robotoRegular);
     }
     catch (FontFormatException e) {
       // TODO Auto-generated catch block

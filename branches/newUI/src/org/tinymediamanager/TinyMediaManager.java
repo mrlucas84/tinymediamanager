@@ -52,6 +52,7 @@ import org.tinymediamanager.thirdparty.MediaInfo;
 import org.tinymediamanager.ui.MainWindow;
 import org.tinymediamanager.ui.TmmUIHelper;
 import org.tinymediamanager.ui.TmmWindowSaver;
+import org.tinymediamanager.ui.plaf.TmmTheme;
 import org.tinymediamanager.ui.plaf.light.TmmLightLookAndFeel;
 
 import chrriis.dj.nativeswing.swtimpl.NativeInterface;
@@ -138,8 +139,11 @@ public class TinyMediaManager {
           if (splash != null) {
             g2 = splash.createGraphics();
             if (g2 != null) {
-              Font font = new Font("Dialog", Font.PLAIN, 14);
+              Font font = getFont();
               g2.setFont(font);
+              g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+              g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+              g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_LCD_HRGB);
             }
             else {
               LOGGER.debug("got no graphics from splash");
@@ -279,18 +283,30 @@ public class TinyMediaManager {
        *          the text
        */
       private void updateProgress(Graphics2D g2, String text, int progress) {
-        // LOGGER.debug("graphics found");
-        Object oldAAValue = g2.getRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING);
-        g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-        g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_LCD_HRGB);
         g2.setComposite(AlphaComposite.Clear);
-        g2.fillRect(20, 200, 480, 305);
+        g2.fillRect(100, 350, 250, 100);
         g2.setPaintMode();
-        g2.setColor(Color.WHITE);
-        g2.drawString(text + "...", 20, 295);
-        g2.fillRect(20, 300, 460 * progress / 100, 10);
-        g2.drawString(ReleaseInfo.getVersion() + " " + ReleaseInfo.getBuild(), 430, 325);
-        g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, oldAAValue);
+
+        // paint text
+        g2.setColor(new Color(134, 134, 134));
+        g2.drawString("version " + ReleaseInfo.getVersion() + " " + ReleaseInfo.getBuild(), 101, 393);
+        g2.drawString(text + "...", 101, 411);
+
+        // paint progess bar
+        g2.setColor(new Color(20, 20, 20));
+        g2.fillRoundRect(101, 423, 227, 6, 6, 6);
+
+        g2.setColor(new Color(134, 134, 134));
+        g2.fillRoundRect(101, 423, 227 * progress / 100, 6, 6, 6);
+      }
+
+      private Font getFont() {
+        try {
+          return Font.createFont(Font.PLAIN, TmmTheme.class.getResource("Roboto-Light.ttf").openStream()).deriveFont(11f);
+        }
+        catch (Exception e) {
+          return Font.getFont("Dialog").deriveFont(11f);
+        }
       }
 
       /**
@@ -339,16 +355,6 @@ public class TinyMediaManager {
               .showMessageDialog(null,
                   "And since you are upgrading to a complete new version, we need to cleanup/delete the complete database this time.\nWe're sorry for that.");
           FileUtils.deleteQuietly(new File("tmm.odb"));
-
-          // upgrade from alpha - delete unneeded files
-          FileUtils.deleteQuietly(new File("lib/jackson-core-lgpl.jar"));
-          FileUtils.deleteQuietly(new File("lib/jackson-core-lgpl.jarv"));
-          FileUtils.deleteQuietly(new File("lib/jackson-mapper-lgpl.jar"));
-          FileUtils.deleteQuietly(new File("lib/jackson-mapper-lgpl.jarv"));
-
-          // check really old alpha version
-          FileUtils.deleteQuietly(new File("lib/beansbinding-1.2.1.jar"));
-          FileUtils.deleteQuietly(new File("lib/beansbinding.jar"));
         }
         else if (version.equals("2.0")) {
           // do something to upgrade to 2.1/3.0
