@@ -20,18 +20,21 @@ import java.awt.CardLayout;
 import java.awt.Cursor;
 import java.awt.Desktop;
 import java.awt.Dimension;
+import java.awt.FlowLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
+import java.util.List;
 import java.util.ResourceBundle;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
+import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JMenu;
@@ -48,8 +51,12 @@ import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.tinymediamanager.Globals;
+import org.tinymediamanager.core.Message.MessageLevel;
+import org.tinymediamanager.core.MessageManager;
 import org.tinymediamanager.ui.components.MainTabbedPane;
+import org.tinymediamanager.ui.components.NotificationMessage;
 import org.tinymediamanager.ui.components.ToolbarPanel;
+import org.tinymediamanager.ui.dialogs.MessageSummaryDialog;
 import org.tinymediamanager.ui.movies.MoviePanel;
 import org.tinymediamanager.ui.movies.MovieUIModule;
 
@@ -80,9 +87,11 @@ public class MainWindow extends JFrame {
   private JTabbedPane                 tabbedPane;
   private JPanel                      detailPanel;
   private ToolbarPanel                toolbarPanel;
+  private JPanel                      panelMessage;
 
   private TmmSwingWorker              activeTask;
   private StatusbarThread             statusTask       = new StatusbarThread();
+  private List<String>                messagesList;
 
   /**
    * Create the application.
@@ -242,6 +251,13 @@ public class MainWindow extends JFrame {
     // FIXME
     tabbedPane.addTab("TV SHOWS", new JPanel());
 
+    // message panel
+    panelMessage = new JPanel();
+    panelMessage.setOpaque(false);
+    panelMessage.setLayout(new FlowLayout());
+    panelMessage.setPreferredSize(new Dimension(250, 0));
+    getContentPane().add(panelMessage, BorderLayout.EAST);
+    MessageManager.instance.addListener(new UIMessageListener());
   }
 
   private void buildStatusbar() {
@@ -388,6 +404,17 @@ public class MainWindow extends JFrame {
               lblLoadingImg.setIcon(null);
             }
           }
+
+          // if a main task is finished and a message collector is alive -> show it with the messages collected
+          if (messagesList != null && activeTask != null && (activeTask.isDone() || activeTask.isCancelled())) {
+            if (messagesList.size() > 0) {
+              MessageSummaryDialog dialog = new MessageSummaryDialog(messagesList);
+              dialog.setLocationRelativeTo(MainWindow.getActiveInstance());
+              dialog.setVisible(true);
+            }
+            messagesList = null;
+          }
+
           String text = String.format(
               "<html><body>" + BUNDLE.getString("status.activethreads") + " [%d/%d]<br>" + BUNDLE.getString("status.queuesize")
                   + " %d </body></html>", this.ex.getActiveCount(), this.ex.getMaximumPoolSize(), this.ex.getQueue().size()); //$NON-NLS-1$
@@ -434,12 +461,21 @@ public class MainWindow extends JFrame {
     return false;
   }
 
-  /**
-   * Gets the frame.
-   * 
-   * @return the frame
-   */
   public static JFrame getFrame() {
     return instance;
+  }
+
+  public void addMessage(MessageLevel level, String title, String message) {
+    JPanel msg = new NotificationMessage(level, title, message);
+    panelMessage.add(msg);
+
+    if (messagesList != null) {
+      messagesList.add(message + ": " + title);
+    }
+  }
+
+  public void removeMessage(JComponent comp) {
+    panelMessage.remove(comp);
+    panelMessage.revalidate();
   }
 }

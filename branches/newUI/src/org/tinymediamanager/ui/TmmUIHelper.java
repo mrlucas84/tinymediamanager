@@ -15,12 +15,15 @@
  */
 package org.tinymediamanager.ui;
 
+import java.awt.Desktop;
 import java.awt.FileDialog;
 import java.awt.Window;
 import java.io.File;
+import java.net.URI;
 
 import javax.swing.JFileChooser;
 import javax.swing.SwingUtilities;
+import javax.transaction.NotSupportedException;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.SystemUtils;
@@ -276,6 +279,47 @@ public class TmmUIHelper {
     }
     else {
       return null;
+    }
+  }
+
+  /**
+   * Open the file with the systems default application
+   * 
+   * @param file
+   * @throws Exception
+   */
+  public static void openFile(File file) throws Exception {
+    if (SystemUtils.IS_OS_WINDOWS) {
+      // use explorer directly - ship around access exceptions and the unresolved network bug
+      // http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=6780505
+      Runtime.getRuntime().exec(new String[] { "explorer", file.getAbsolutePath() });
+    }
+    else if (Desktop.isDesktopSupported()) {
+      Desktop.getDesktop().open(file);
+    }
+    else if (SystemUtils.IS_OS_LINUX) {
+      Runtime.getRuntime().exec(new String[] { "xdg-open", file.getAbsolutePath() });
+    }
+    else {
+      throw new NotSupportedException();
+    }
+  }
+
+  /**
+   * Browse to the given url using the systems default browser
+   * 
+   * @param url
+   * @throws Exception
+   */
+  public static void browseUrl(String url) throws Exception {
+    if (Desktop.isDesktopSupported()) {
+      Desktop.getDesktop().browse(new URI(url));
+    }
+    else if (SystemUtils.IS_OS_LINUX) {
+      Runtime.getRuntime().exec(new String[] { "xdg-open", url });
+    }
+    else {
+      throw new NotSupportedException();
     }
   }
 }

@@ -15,102 +15,70 @@
  */
 package org.tinymediamanager.core.movie.tasks;
 
+import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.Callable;
 
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.tinymediamanager.TmmThreadPool;
+import org.tinymediamanager.core.MediaFileInformationFetcherTask;
 import org.tinymediamanager.core.Message;
 import org.tinymediamanager.core.Message.MessageLevel;
 import org.tinymediamanager.core.MessageManager;
 import org.tinymediamanager.core.movie.Movie;
-import org.tinymediamanager.core.movie.MovieRenamer;
 
 /**
- * The Class MovieRenameTask.
+ * The Class MovieReloadMediaInformationTask, to explicit reload mediainformation.
  * 
  * @author Manuel Laggner
  */
-public class MovieRenameTask extends TmmThreadPool {
+public class MovieReloadMediaInformationTask extends TmmThreadPool {
+  private static final Logger LOGGER = LoggerFactory.getLogger(MovieReloadMediaInformationTask.class);
 
-  /** The Constant LOGGER. */
-  private final static Logger LOGGER = LoggerFactory.getLogger(MovieRenameTask.class);
+  private List<Movie>         moviesToReload;
 
-  /** The movies to rename. */
-  private List<Movie>         moviesToRename;
-
-  /**
-   * Instantiates a new movie rename task.
-   * 
-   * @param moviesToRename
-   *          the movies to rename
-   * @param label
-   *          the label
-   * @param progressBar
-   *          the progress bar
-   * @param button
-   *          the button
-   */
-  public MovieRenameTask(List<Movie> moviesToRename) {
-    this.moviesToRename = moviesToRename;
-    initThreadPool(1, "rename");
+  public MovieReloadMediaInformationTask(List<Movie> movies) {
+    moviesToReload = new ArrayList<Movie>(movies);
+    initThreadPool(1, "reloadMI");
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see javax.swing.SwingWorker#doInBackground()
-   */
   @Override
   protected Void doInBackground() throws Exception {
     try {
-      startProgressBar("renaming movies...");
-      // rename movies
-      for (int i = 0; i < moviesToRename.size(); i++) {
-        Movie movie = moviesToRename.get(i);
-        submitTask(new RenameMovieTask(movie));
+      LOGGER.info("get MediaInfo...");
+      // update MediaInfo
+      startProgressBar("getting Mediainfo...");
+      for (Movie m : moviesToReload) {
+        if (cancel) {
+          break;
+        }
+        submitTask(new MediaFileInformationFetcherTask(m.getMediaFiles(), m));
       }
+
       waitForCompletionOrCancel();
+      LOGGER.info("Done getting MediaInfo)");
       if (cancel) {
         cancel(false);// swing cancel
       }
-      LOGGER.info("Done renaming movies)");
     }
     catch (Exception e) {
       LOGGER.error("Thread crashed", e);
-      MessageManager.instance.pushMessage(new Message(MessageLevel.ERROR, "Settings.renamer", "message.renamer.threadcrashed"));
+      MessageManager.instance.pushMessage(new Message(MessageLevel.ERROR, "MediaInfo", "message.mediainfo.threadcrashed"));
     }
     return null;
   }
 
-  /**
-   * ThreadpoolWorker to work off ONE possible movie from root datasource directory
-   * 
-   * @author Myron Boyle
-   * @version 1.0
-   */
-  private class RenameMovieTask implements Callable<Object> {
-
-    private Movie movie = null;
-
-    public RenameMovieTask(Movie movie) {
-      this.movie = movie;
-    }
-
-    @Override
-    public String call() throws Exception {
-      MovieRenamer.renameMovie(movie);
-      return movie.getTitle();
-    }
+  @Override
+  public void callback(Object obj) {
+    startProgressBar((String) obj, getTaskcount(), getTaskdone());
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see javax.swing.SwingWorker#done()
-   */
+  @Override
+  public void cancel() {
+    cancel = true;
+  }
+
   @Override
   public void done() {
     stopProgressBar();
@@ -156,21 +124,5 @@ public class MovieRenameTask extends TmmThreadPool {
     progressBar.setIndeterminate(false);
     progressBar.setVisible(false);
     btnCancelTask.setVisible(false);
-  }
-
-  /*
-   * (non-Javadoc)
-   * 
-   * @see org.tinymediamanager.ui.TmmSwingWorker#cancel()
-   */
-  @Override
-  public void cancel() {
-    cancel = true;
-    // cancel(false);
-  }
-
-  @Override
-  public void callback(Object obj) {
-    startProgressBar((String) obj, getTaskcount(), getTaskdone());
   }
 }
