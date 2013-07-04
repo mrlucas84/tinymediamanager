@@ -33,6 +33,9 @@ import org.tinymediamanager.Globals;
 import org.tinymediamanager.core.MediaFile;
 import org.tinymediamanager.core.MediaFileSubtitle;
 import org.tinymediamanager.core.MediaFileType;
+import org.tinymediamanager.core.Message;
+import org.tinymediamanager.core.Message.MessageLevel;
+import org.tinymediamanager.core.MessageManager;
 import org.tinymediamanager.core.Utils;
 
 /**
@@ -96,23 +99,30 @@ public class MovieRenamer {
 
       File newFile = new File(m.getPath(), newSubName);
       try {
-        moveFile(sub.getFile(), newFile);
-        m.removeFromMediaFiles(sub);
-        MediaFile mf = new MediaFile(newFile);
-        MediaFileSubtitle mfs = new MediaFileSubtitle();
-        if (!lang.isEmpty()) {
-          mfs.setLanguage(lang);
+        boolean ok = moveFileSafe(sub.getFile(), newFile);
+        if (ok) {
+          m.removeFromMediaFiles(sub);
+          MediaFile mf = new MediaFile(newFile);
+          MediaFileSubtitle mfs = new MediaFileSubtitle();
+          if (!lang.isEmpty()) {
+            mfs.setLanguage(lang);
+          }
+          if (!forced.isEmpty()) {
+            mfs.setForced(true);
+          }
+          mfs.setCodec(sub.getExtension());
+          mf.setContainerFormat(sub.getExtension()); // set containerformat, so mediainfo deos not overwrite our new array
+          mf.addSubtitle(mfs);
+          m.addToMediaFiles(mf);
         }
-        if (!forced.isEmpty()) {
-          mfs.setForced(true);
+        else {
+          MessageManager.instance.pushMessage(new Message(MessageLevel.ERROR, sub.getFilename(), "message.renamer.failedrename"));
         }
-        mfs.setCodec(sub.getExtension());
-        mf.setContainerFormat(sub.getExtension()); // set containerformat, so mediainfo deos not overwrite our new array
-        mf.addSubtitle(mfs);
-        m.addToMediaFiles(mf);
       }
       catch (Exception e) {
         LOGGER.error("error moving subtitles", e);
+        MessageManager.instance.pushMessage(new Message(MessageLevel.ERROR, sub.getFilename(), "message.renamer.failedrename", new String[] { ":",
+            e.getLocalizedMessage() }));
       }
     } // end MF loop
     m.saveToDb();
@@ -164,6 +174,8 @@ public class MovieRenamer {
         }
         catch (Exception e) {
           LOGGER.error("error moving folder: ", e);
+          MessageManager.instance.pushMessage(new Message(MessageLevel.ERROR, srcDir.getPath(), "message.renamer.failedrename", new String[] { ":",
+              e.getLocalizedMessage() }));
         }
         if (!ok) {
           // FIXME: when we were not able to rename folder, display error msg
@@ -200,6 +212,15 @@ public class MovieRenamer {
     // ## rename VIDEO
     // ######################################################################
     for (MediaFile vid : movie.getMediaFiles(MediaFileType.VIDEO)) {
+      LOGGER.debug("testing file " + vid.getFile().getAbsolutePath());
+      File f = vid.getFile();
+      if (!f.renameTo(f)) { // haahaa, try to rename to itself :P
+        LOGGER.warn("File " + vid.getFile().getAbsolutePath() + " is not accessible!");
+        MessageManager.instance.pushMessage(new Message(MessageLevel.ERROR, vid.getFilename(), "message.renamer.failedrename"));
+        return;
+      }
+    }
+    for (MediaFile vid : movie.getMediaFiles(MediaFileType.VIDEO)) {
       LOGGER.info("rename file " + vid.getFile().getAbsolutePath());
 
       String newFilename = vid.getFilename();
@@ -226,15 +247,26 @@ public class MovieRenamer {
         MediaFile newMF = new MediaFile(vid);
         File newFile = new File(newPath, newFilename);
         try {
-          moveFile(vid.getFile(), newFile);
-          newMF.setPath(newPath);
-          newMF.setFilename(newFilename);
+          boolean ok = moveFileSafe(vid.getFile(), newFile);
+          if (ok) {
+            newMF.setPath(newPath);
+            newMF.setFilename(newFilename);
+          }
+          else {
+            return; // rename failed
+          }
         }
         catch (FileNotFoundException e) {
           LOGGER.error("error moving video file - file not found", e);
+          MessageManager.instance.pushMessage(new Message(MessageLevel.ERROR, vid.getFilename(), "message.renamer.failedrename", new String[] { ":",
+              e.getLocalizedMessage() }));
+          return; // rename failed
         }
         catch (Exception e) {
           LOGGER.error("error moving video file", e);
+          MessageManager.instance.pushMessage(new Message(MessageLevel.ERROR, vid.getFilename(), "message.renamer.failedrename", new String[] { ":",
+              e.getLocalizedMessage() }));
+          return; // rename failed
         }
         needed.add(newMF);
       }
@@ -270,6 +302,8 @@ public class MovieRenamer {
         }
         catch (Exception e) {
           LOGGER.error("error renaming Nfo", e);
+          MessageManager.instance.pushMessage(new Message(MessageLevel.ERROR, mf.getFilename(), "message.renamer.failedrename", new String[] { ":",
+              e.getLocalizedMessage() }));
         }
         needed.add(newMF);
       }
@@ -312,6 +346,8 @@ public class MovieRenamer {
         }
         catch (Exception e) {
           LOGGER.error("error renaming poster", e);
+          MessageManager.instance.pushMessage(new Message(MessageLevel.ERROR, mf.getFilename(), "message.renamer.failedrename", new String[] { ":",
+              e.getLocalizedMessage() }));
         }
         needed.add(newMF);
       }
@@ -354,6 +390,8 @@ public class MovieRenamer {
         }
         catch (Exception e) {
           LOGGER.error("error renaming fanart", e);
+          MessageManager.instance.pushMessage(new Message(MessageLevel.ERROR, mf.getFilename(), "message.renamer.failedrename", new String[] { ":",
+              e.getLocalizedMessage() }));
         }
         needed.add(newMF);
       }
@@ -373,12 +411,16 @@ public class MovieRenamer {
       MediaFile newMF = new MediaFile(mf);
       File newFile = new File(newPath, newFilename);
       try {
-        moveFile(mf.getFile(), newFile);
-        newMF.setPath(newPath);
-        newMF.setFilename(newFilename);
+        boolean ok = moveFileSafe(mf.getFile(), newFile);
+        if (ok) {
+          newMF.setPath(newPath);
+          newMF.setFilename(newFilename);
+        }
       }
       catch (Exception e) {
         LOGGER.error("error renaming trailer", e);
+        MessageManager.instance.pushMessage(new Message(MessageLevel.ERROR, mf.getFilename(), "message.renamer.failedrename", new String[] { ":",
+            e.getLocalizedMessage() }));
       }
       needed.add(newMF);
     }
@@ -496,12 +538,88 @@ public class MovieRenamer {
     if (!rename) {
       LOGGER.error("Failed to rename directory '" + srcDir + " to " + destDir.getPath());
       LOGGER.error("Movie renaming aborted.");
+      MessageManager.instance.pushMessage(new Message(MessageLevel.ERROR, srcDir.getPath(), "message.renamer.failedrename"));
       return false;
     }
     else {
       LOGGER.info("Successfully moved folder " + srcDir.getPath() + " to " + destDir.getPath());
       return true;
     }
+  }
+
+  /**
+   * modified version of commons-io FileUtils.moveFile();<br>
+   * since renameTo() might not work in first place, retry it up to 5 times.<br>
+   * (better wait 5 sec for success, than always copying a 50gig directory ;)<br>
+   * <b>And NO, we're NOT doing a copy+delete as fallback!</b>
+   * 
+   * @param srcFile
+   *          the file to be moved
+   * @param destFile
+   *          the destination file
+   * @throws NullPointerException
+   *           if source or destination is {@code null}
+   * @throws FileExistsException
+   *           if the destination file exists
+   * @throws IOException
+   *           if source or destination is invalid
+   * @throws IOException
+   *           if an IO error occurs moving the file
+   * @since 1.4
+   */
+  public static boolean moveFileSafe(final File srcFile, final File destFile) throws IOException {
+    if (srcFile == null) {
+      throw new NullPointerException("Source must not be null");
+    }
+    if (destFile == null) {
+      throw new NullPointerException("Destination must not be null");
+    }
+    if (!srcFile.equals(destFile)) {
+      LOGGER.debug("try to move file " + srcFile.getPath() + " to " + destFile.getPath());
+      if (!srcFile.exists()) {
+        throw new FileNotFoundException("Source '" + srcFile + "' does not exist");
+      }
+      if (srcFile.isDirectory()) {
+        throw new IOException("Source '" + srcFile + "' is a directory");
+      }
+      if (destFile.exists()) {
+        throw new FileExistsException("Destination '" + destFile + "' already exists");
+      }
+      if (destFile.isDirectory()) {
+        throw new IOException("Destination '" + destFile + "' is a directory");
+      }
+
+      // rename folder; try 5 times and wait a sec
+      boolean rename = false;
+      for (int i = 0; i < 5; i++) {
+        rename = srcFile.renameTo(destFile);
+        if (rename) {
+          break; // ok it worked, step out
+        }
+        try {
+          LOGGER.debug("rename did not work - sleep a while and try again...");
+          Thread.sleep(1000);
+        }
+        catch (InterruptedException e) {
+          LOGGER.warn("I'm so excited - could not sleep");
+        }
+      }
+
+      // ok, we tried it 5 times - it still seems to be locked somehow. Continue
+      // with copying as fallback
+      // NOOO - we don't like to have some files copied and some not.
+
+      if (!rename) {
+        LOGGER.error("Failed to rename file '" + srcFile + " to " + destFile.getPath());
+        MessageManager.instance.pushMessage(new Message(MessageLevel.ERROR, srcFile.getPath(), "message.renamer.failedrename"));
+        return false;
+      }
+      else {
+        LOGGER.info("Successfully moved folder " + srcFile.getPath() + " to " + destFile.getPath());
+        return true;
+      }
+    }
+    return true; // files are equal
   }
 
   /**
@@ -513,54 +631,54 @@ public class MovieRenamer {
    *          the movie
    * @return the string
    */
-  protected static String createDestination(String template, Movie movie) {
+  public static String createDestination(String template, Movie movie) {
     String newDestination = template;
 
     // replace token title ($T)
     if (newDestination.contains("$T")) {
-      newDestination = newDestination.replaceAll("\\$T", movie.getTitle());
+      newDestination = replaceToken(newDestination, "$T", movie.getTitle());
     }
 
     // replace token first letter of title ($1)
     if (newDestination.contains("$1")) {
-      newDestination = newDestination.replaceAll("\\$1", movie.getTitle().substring(0, 1));
+      newDestination = replaceToken(newDestination, "$1", StringUtils.isNotBlank(movie.getTitle()) ? movie.getTitle().substring(0, 1) : "");
     }
 
     // replace token year ($Y)
     if (newDestination.contains("$Y")) {
-      newDestination = newDestination.replaceAll("\\$Y", movie.getYear());
+      newDestination = replaceToken(newDestination, "$Y", movie.getYear());
     }
 
     // replace token orignal title ($O)
     if (newDestination.contains("$O")) {
-      newDestination = newDestination.replaceAll("\\$O", movie.getOriginalTitle());
+      newDestination = replaceToken(newDestination, "$O", movie.getOriginalTitle());
     }
 
     // replace token IMDBid ($I)
     if (newDestination.contains("$I")) {
-      newDestination = newDestination.replaceAll("\\$I", movie.getImdbId());
+      newDestination = replaceToken(newDestination, "$I", movie.getImdbId());
     }
 
     // replace token sort title ($E)
     if (newDestination.contains("$E")) {
-      newDestination = newDestination.replaceAll("\\$E", movie.getSortTitle());
+      newDestination = replaceToken(newDestination, "$E", movie.getSortTitle());
     }
 
     if (movie.getMediaFiles(MediaFileType.VIDEO).size() > 0) {
       MediaFile mf = movie.getMediaFiles(MediaFileType.VIDEO).get(0);
       // replace token resolution ($R)
       if (newDestination.contains("$R")) {
-        newDestination = newDestination.replaceAll("\\$R", mf.getVideoResolution());
+        newDestination = replaceToken(newDestination, "$R", mf.getVideoResolution());
       }
 
       // replace token audio codec + channels ($A)
       if (newDestination.contains("$A")) {
-        newDestination = newDestination.replaceAll("\\$A", mf.getAudioCodec() + (mf.getAudioCodec().isEmpty() ? "" : "-") + mf.getAudioChannels());
+        newDestination = replaceToken(newDestination, "$A", mf.getAudioCodec() + (mf.getAudioCodec().isEmpty() ? "" : "-") + mf.getAudioChannels());
       }
 
       // replace token video codec + channels ($V)
       if (newDestination.contains("$V")) {
-        newDestination = newDestination.replaceAll("\\$V", mf.getVideoCodec() + (mf.getVideoCodec().isEmpty() ? "" : "-") + mf.getVideoFormat());
+        newDestination = replaceToken(newDestination, "$V", mf.getVideoCodec() + (mf.getVideoCodec().isEmpty() ? "" : "-") + mf.getVideoFormat());
       }
     }
     else {
@@ -576,41 +694,20 @@ public class MovieRenamer {
     // movie.getMediaSource());
     // }
 
-    // replace illegal characters
-    // http://msdn.microsoft.com/en-us/library/windows/desktop/aa365247%28v=vs.85%29.aspx
-    newDestination = newDestination.replaceAll("([\"\\:<>|/?*])", "");
     // replace empty brackets
     newDestination = newDestination.replaceAll("\\(\\)", "");
 
     return newDestination.trim();
   }
 
-  /**
-   * Move file.
-   * 
-   * @param oldFilename
-   *          the old filename
-   * @param newFilename
-   *          the new filename
-   * @throws Exception
-   *           the exception
-   */
-  public static void moveFile(File oldFilename, File newFilename) throws Exception {
-    if (!oldFilename.equals(newFilename)) {
-      LOGGER.info("move file " + oldFilename + " to " + newFilename);
-      if (newFilename.exists()) {
-        // overwrite?
-        LOGGER.warn(newFilename + " exists - do nothing.");
-      }
-      else {
-        if (oldFilename.exists()) {
-          FileUtils.moveFile(oldFilename, newFilename);
-        }
-        else {
-          throw new FileNotFoundException(oldFilename.getAbsolutePath());
-        }
-      }
+  private static String replaceToken(String destination, String token, String replacement) {
+    String replacingCleaned = "";
+    if (StringUtils.isNotBlank(replacement)) {
+      // replace illegal characters
+      // http://msdn.microsoft.com/en-us/library/windows/desktop/aa365247%28v=vs.85%29.aspx
+      replacingCleaned = replacement.replaceAll("([\"\\:<>|/?*])", "");
     }
+    return destination.replaceAll("\\" + token, replacingCleaned);
   }
 
   /**

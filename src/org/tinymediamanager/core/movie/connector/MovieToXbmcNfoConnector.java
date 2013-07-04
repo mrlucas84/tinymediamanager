@@ -17,14 +17,17 @@ package org.tinymediamanager.core.movie.connector;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.io.StringWriter;
+import java.io.UnsupportedEncodingException;
 import java.io.Writer;
+import java.net.URLDecoder;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
@@ -46,6 +49,9 @@ import org.slf4j.LoggerFactory;
 import org.tinymediamanager.Globals;
 import org.tinymediamanager.core.MediaFile;
 import org.tinymediamanager.core.MediaFileType;
+import org.tinymediamanager.core.Message;
+import org.tinymediamanager.core.Message.MessageLevel;
+import org.tinymediamanager.core.MessageManager;
 import org.tinymediamanager.core.movie.Movie;
 import org.tinymediamanager.core.movie.MovieActor;
 import org.tinymediamanager.core.movie.MovieList;
@@ -67,138 +73,79 @@ import org.tinymediamanager.scraper.MediaTrailer;
     "runtime", "thumb", "mpaa", "certifications", "id", "tmdbId", "trailer", "country", "premiered", "status", "code", "aired", "fileinfo",
     "watched", "playcount", "genres", "studio", "credits", "director", "tags", "actors", "resume", "lastplayed", "dateadded" })
 public class MovieToXbmcNfoConnector {
-
-  /** The Constant logger. */
   private static final Logger LOGGER         = LoggerFactory.getLogger(MovieToXbmcNfoConnector.class);
+  private static JAXBContext  context        = initContext();
 
-  /** The title. */
   private String              title          = "";
-
-  /** The originaltitle. */
   private String              originaltitle  = "";
-
-  /** The rating. */
   private float               rating         = 0;
-
-  /** The votes. */
   private int                 votes          = 0;
-
-  /** The year. */
   private String              year           = "";
-
-  /** The outline. */
   private String              outline        = "";
-
-  /** The plot. */
   private String              plot           = "";
-
-  /** The tagline. */
   private String              tagline        = "";
-
-  /** The runtime. */
   private String              runtime        = "";
-
-  /** The thumb. */
   private String              thumb          = "";
-
-  /** The id. */
   private String              id             = "";
-
-  /** The tmdbid. */
   private int                 tmdbId         = 0;
+  private String              studio         = "";
+  private String              mpaa           = "";
+  private String              certifications = "";
+  private boolean             watched        = false;
+  private int                 playcount      = 0;
+  private String              trailer        = "";
+  private String              set            = "";
+  private String              sorttitle      = "";
+  private Fileinfo            fileinfo;
+
+  @XmlElement(name = "director")
+  private List<String>        director;
+
+  @XmlAnyElement(lax = true)
+  private List<Object>        actors;
+
+  @XmlElement(name = "genre")
+  private List<String>        genres;
+
+  @XmlElement(name = "credits")
+  private List<String>        credits;
+
+  @XmlElement(name = "tag")
+  private List<String>        tags;
 
   // /** The filenameandpath. */
   // private String filenameandpath;
 
-  /** The director. */
-  @XmlElement(name = "director")
-  private List<String>        director;
-
-  /** The sudio. */
-  private String              studio         = "";
-
-  /** The actors. */
-  @XmlAnyElement(lax = true)
-  private List<Object>        actors;
-
-  /** The genres. */
-  @XmlElement(name = "genre")
-  private List<String>        genres;
-
-  /** The mpaa certification. */
-  private String              mpaa           = "";
-
-  /** The certifications. */
-  private String              certifications = "";
-
-  /** the credits. */
-  @XmlElement(name = "credits")
-  private List<String>        credits;
-
-  /** The watched. */
-  private boolean             watched        = false;
-
-  /** The playcount. */
-  private int                 playcount      = 0;
-
-  /** The trailer. */
-  private String              trailer        = "";
-
-  /** The tags. */
-  @XmlElement(name = "tag")
-  private List<String>        tags;
-
-  /** The set. */
-  private String              set            = "";
-
-  /** The sorttitle. */
-  private String              sorttitle      = "";
-
-  /** The fileinfo. */
-  private Fileinfo            fileinfo;
-
   /** not supported tags, but used to retrain in NFO. */
-
   @XmlElement
   String                      epbookmark;
 
-  /** The top250. */
   @XmlElement
   String                      top250;
 
-  /** The lastplayed. */
   @XmlElement
   String                      lastplayed;
 
-  /** The country. */
   @XmlElement
   String                      country;
 
-  /** The status. */
   @XmlElement
   String                      status;
 
-  /** The code. */
   @XmlElement
   String                      code;
 
-  /** The aired. */
   @XmlElement
   String                      aired;
 
-  /** The premiered. */
   @XmlElement
   String                      premiered;
 
-  /** The resume. */
   @XmlElement
   Resume                      resume;
 
-  /** The dateadded. */
   @XmlElement
   String                      dateadded;
-
-  private static JAXBContext  context        = initContext();
 
   private static JAXBContext initContext() {
     try {
@@ -210,9 +157,6 @@ public class MovieToXbmcNfoConnector {
     return null;
   }
 
-  /**
-   * Instantiates a new movie to xbmc nfo connector.
-   */
   @SuppressWarnings({ "unchecked", "rawtypes" })
   public MovieToXbmcNfoConnector() {
     actors = new ArrayList();
@@ -231,6 +175,7 @@ public class MovieToXbmcNfoConnector {
    */
   public static String setData(Movie movie) {
     if (context == null) {
+      MessageManager.instance.pushMessage(new Message(MessageLevel.ERROR, movie, "message.nfo.writeerror", new String[] { ":", "Context is null" }));
       return "";
     }
 
@@ -344,7 +289,8 @@ public class MovieToXbmcNfoConnector {
 
     for (MediaTrailer trailer : movie.getTrailers()) {
       if (trailer.getInNfo()) {
-        xbmc.setTrailer(trailer.getUrl());
+        // parse trailer url for nfo
+        xbmc.setTrailer(prepareTrailerForXbmc(trailer));
         break;
       }
     }
@@ -409,11 +355,10 @@ public class MovieToXbmcNfoConnector {
         }
         FileUtils.write(new File(movie.getPath(), nfoFilename), sb, "UTF-8");
       }
-      catch (JAXBException e) {
-        LOGGER.error("setData", e);
-      }
-      catch (IOException e) {
-        LOGGER.error("setData", e);
+      catch (Exception e) {
+        LOGGER.error("setData", e.getMessage());
+        MessageManager.instance.pushMessage(new Message(MessageLevel.ERROR, movie, "message.nfo.writeerror", new String[] { ":",
+            e.getLocalizedMessage() }));
       }
     }
 
@@ -431,6 +376,7 @@ public class MovieToXbmcNfoConnector {
    */
   public static Movie getData(String nfoFilename) {
     if (context == null) {
+      MessageManager.instance.pushMessage(new Message(MessageLevel.ERROR, nfoFilename, "message.nfo.readerror"));
       return null;
     }
 
@@ -439,6 +385,7 @@ public class MovieToXbmcNfoConnector {
     try {
       Unmarshaller um = context.createUnmarshaller();
       if (um == null) {
+        MessageManager.instance.pushMessage(new Message(MessageLevel.ERROR, nfoFilename, "message.nfo.readerror"));
         return null;
       }
 
@@ -549,7 +496,9 @@ public class MovieToXbmcNfoConnector {
         trailer.setName("fromNFO");
         trailer.setProvider("from NFO");
         trailer.setQuality("unknown");
-        trailer.setUrl(xbmc.getTrailer());
+
+        trailer.setUrl(parseTrailerUrl(xbmc.getTrailer()));
+
         trailer.setInNfo(true);
         movie.addTrailer(trailer);
       }
@@ -563,15 +512,12 @@ public class MovieToXbmcNfoConnector {
     }
     catch (UnmarshalException e) {
       LOGGER.error("getData " + e.getMessage());
+      MessageManager.instance.pushMessage(new Message(MessageLevel.ERROR, nfoFilename, "message.nfo.readerror"));
       return null;
     }
-    catch (FileNotFoundException e) {
-      LOGGER.error("getData", e);
-      return null;
-    }
-
     catch (Exception e) {
       LOGGER.error("getData", e);
+      MessageManager.instance.pushMessage(new Message(MessageLevel.ERROR, nfoFilename, "message.nfo.readerror"));
       return null;
     }
 
@@ -1121,14 +1067,54 @@ public class MovieToXbmcNfoConnector {
     return fileinfo;
   }
 
-  /**
-   * Sets the fileinfo.
-   * 
-   * @param fileinfo
-   *          the new fileinfo
-   */
   public void setFileinfo(Fileinfo fileinfo) {
     this.fileinfo = fileinfo;
+  }
+
+  private static String prepareTrailerForXbmc(MediaTrailer trailer) {
+    // youtube trailer are stored in a special notation: plugin://plugin.video.youtube/?action=play_video&videoid=<ID>
+    // parse out the ID from the url and store it in the right notation
+    Pattern pattern = Pattern.compile("https{0,1}://.*youtube..*/watch\\?v=(.*)$");
+    Matcher matcher = pattern.matcher(trailer.getUrl());
+    if (matcher.matches()) {
+      return "plugin://plugin.video.youtube/?action=play_video&videoid=" + matcher.group(1);
+    }
+
+    // other urls are handled by the hd-trailers.net plugin
+    pattern = Pattern.compile("https{0,1}://.*(apple.com|yahoo-redir|yahoo.com|youtube.com|moviefone.com|ign.com|hd-trailers.net|aol.com).*");
+    matcher = pattern.matcher(trailer.getUrl());
+    if (matcher.matches()) {
+      try {
+        return "plugin://plugin.video.hdtrailers_net/video/" + matcher.group(1) + "/" + URLEncoder.encode(trailer.getUrl(), "UTF-8");
+      }
+      catch (Exception e) {
+        LOGGER.error("failed to escape " + trailer.getUrl());
+      }
+    }
+    // everything else is stored directly
+    return trailer.getUrl();
+  }
+
+  private static String parseTrailerUrl(String nfoTrailerUrl) {
+    // try to parse out youtube trailer plugin
+    Pattern pattern = Pattern.compile("plugin://plugin.video.youtube/?action=play_video&videoid=(.*)$");
+    Matcher matcher = pattern.matcher(nfoTrailerUrl);
+    if (matcher.matches()) {
+      return "http://www.youtube.com/watch?v=" + matcher.group(1);
+    }
+
+    pattern = Pattern.compile("plugin://plugin.video.hdtrailers_net/video/.*?/(.*)$");
+    matcher = pattern.matcher(nfoTrailerUrl);
+    if (matcher.matches()) {
+      try {
+        return URLDecoder.decode(matcher.group(1), "UTF-8");
+      }
+      catch (UnsupportedEncodingException e) {
+        LOGGER.error("failed to unescape " + nfoTrailerUrl);
+      }
+    }
+
+    return nfoTrailerUrl;
   }
 
   // inner class actor to represent actors

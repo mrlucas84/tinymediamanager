@@ -68,7 +68,6 @@ import org.tinymediamanager.scraper.MediaGenres;
 import org.tinymediamanager.scraper.MediaTrailer;
 import org.tinymediamanager.ui.EqualsLayout;
 import org.tinymediamanager.ui.MainWindow;
-import org.tinymediamanager.ui.TableColumnAdjuster;
 import org.tinymediamanager.ui.TmmWindowSaver;
 import org.tinymediamanager.ui.UTF8Control;
 import org.tinymediamanager.ui.components.AutocompleteComboBox;
@@ -724,7 +723,9 @@ public class MovieEditorDialog extends JDialog {
       }
 
       for (String tag : movieToEdit.getTags()) {
-        tags.add(tag);
+        if (StringUtils.isNotBlank(tag)) {
+          tags.add(tag);
+        }
       }
 
       extrathumbs.addAll(movieToEdit.getExtraThumbs());
@@ -742,13 +743,6 @@ public class MovieEditorDialog extends JDialog {
 
       toggleSorttitle();
     }
-
-    // adjust table columns
-    TableColumnAdjuster tableColumnAdjuster = new TableColumnAdjuster(tableTrailer);
-    tableColumnAdjuster.setColumnDataIncluded(true);
-    tableColumnAdjuster.setColumnHeaderIncluded(true);
-    tableColumnAdjuster.adjustColumns();
-
     // adjust columnn titles - we have to do it this way - thx to windowbuilder pro
     tableActors.getColumnModel().getColumn(0).setHeaderValue(BUNDLE.getString("metatag.name")); //$NON-NLS-1$
     tableActors.getColumnModel().getColumn(1).setHeaderValue(BUNDLE.getString("metatag.role")); //$NON-NLS-1$
@@ -758,6 +752,9 @@ public class MovieEditorDialog extends JDialog {
     tableTrailer.getColumnModel().getColumn(2).setHeaderValue(BUNDLE.getString("metatag.source")); //$NON-NLS-1$
     tableTrailer.getColumnModel().getColumn(3).setHeaderValue(BUNDLE.getString("metatag.quality")); //$NON-NLS-1$
     tableTrailer.getColumnModel().getColumn(4).setHeaderValue(BUNDLE.getString("metatag.url")); //$NON-NLS-1$
+
+    // adjust table columns
+    tableTrailer.getColumnModel().getColumn(0).setMaxWidth(55);
 
     // implement listener to simulate button group
     tableTrailer.getModel().addTableModelListener(new TableModelListener() {
@@ -991,8 +988,10 @@ public class MovieEditorDialog extends JDialog {
      */
     public void actionPerformed(ActionEvent e) {
       int row = tableActors.getSelectedRow();
-      row = tableActors.convertRowIndexToModel(row);
-      cast.remove(row);
+      if (row > -1) {
+        row = tableActors.convertRowIndexToModel(row);
+        cast.remove(row);
+      }
     }
   }
 
@@ -1130,8 +1129,10 @@ public class MovieEditorDialog extends JDialog {
      */
     public void actionPerformed(ActionEvent e) {
       int row = tableTrailer.getSelectedRow();
-      row = tableTrailer.convertRowIndexToModel(row);
-      trailers.remove(row);
+      if (row > -1) {
+        row = tableTrailer.convertRowIndexToModel(row);
+        trailers.remove(row);
+      }
     }
   }
 
@@ -1156,7 +1157,7 @@ public class MovieEditorDialog extends JDialog {
         tableTrailer);
     //
     BeanProperty<MediaTrailer, Boolean> trailerBeanProperty = BeanProperty.create("inNfo");
-    jTableBinding_1.addColumnBinding(trailerBeanProperty).setColumnClass(Boolean.class);
+    jTableBinding_1.addColumnBinding(trailerBeanProperty).setColumnClass(Boolean.class).setEditable(true);
     //
     BeanProperty<MediaTrailer, String> trailerBeanProperty_1 = BeanProperty.create("name");
     jTableBinding_1.addColumnBinding(trailerBeanProperty_1);
@@ -1218,6 +1219,11 @@ public class MovieEditorDialog extends JDialog {
     public void actionPerformed(ActionEvent e) {
       String newTag = (String) cbTags.getSelectedItem();
       boolean tagFound = false;
+
+      // do not continue with empty tags
+      if (StringUtils.isBlank(newTag)) {
+        return;
+      }
 
       // search if this tag already has been added
       for (String tag : tags) {

@@ -58,6 +58,9 @@ import org.tinymediamanager.core.MediaEntity;
 import org.tinymediamanager.core.MediaEntityImageFetcherTask;
 import org.tinymediamanager.core.MediaFile;
 import org.tinymediamanager.core.MediaFileType;
+import org.tinymediamanager.core.Message;
+import org.tinymediamanager.core.Message.MessageLevel;
+import org.tinymediamanager.core.MessageManager;
 import org.tinymediamanager.core.Utils;
 import org.tinymediamanager.core.tvshow.connector.TvShowToXbmcNfoConnector;
 import org.tinymediamanager.core.tvshow.tasks.TvShowEpisodeScrapeTask;
@@ -338,6 +341,7 @@ public class TvShow extends MediaEntity {
       synchronized (Globals.entityManager) {
         Globals.entityManager.getTransaction().begin();
         episodesObservable.remove(episode);
+        Globals.entityManager.remove(episode);
         Globals.entityManager.persist(this);
         Globals.entityManager.getTransaction().commit();
       }
@@ -1691,6 +1695,7 @@ public class TvShow extends MediaEntity {
       }
       catch (Exception e) {
         LOGGER.error("Thread crashed", e);
+        MessageManager.instance.pushMessage(new Message(MessageLevel.ERROR, this, "message.scrape.tvshowartworkfailed"));
       }
       finally {
         saveToDb();

@@ -394,7 +394,7 @@ public class Movie extends MediaEntity {
       // extension) and remove
       File trailer = new File(tfile + ext);
       FileUtils.deleteQuietly(trailer);
-      MovieRenamer.moveFile(new File(tfile + ext + ".tmp"), trailer);
+      boolean ok = MovieRenamer.moveFileSafe(new File(tfile + ext + ".tmp"), trailer);
     }
     catch (IOException e) {
       LOGGER.error("Error downloading trailer", e);
@@ -468,6 +468,8 @@ public class Movie extends MediaEntity {
       }
     }
 
+    Utils.removeEmptyStringsFromList(tagsObservable);
+
     firePropertyChange(TAG, null, tagsObservable);
     firePropertyChange(TAGS_AS_STRING, null, tagsObservable);
   }
@@ -477,7 +479,7 @@ public class Movie extends MediaEntity {
    * 
    * @return the tag as string
    */
-  public String getTagAsString() {
+  public String getTagsAsString() {
     StringBuilder sb = new StringBuilder();
     for (String tag : tags) {
       if (!StringUtils.isEmpty(sb)) {
@@ -1392,6 +1394,12 @@ public class Movie extends MediaEntity {
         break;
       case FILENAME_FANART_JPG:
         filename += mediafile + "-fanart.jpg";
+        break;
+      case FILENAME_FANART2_PNG:
+        filename += mediafile + ".fanart.png";
+        break;
+      case FILENAME_FANART2_JPG:
+        filename += mediafile + ".fanart.jpg";
         break;
       case FILENAME_FANART_TBN:
         filename += mediafile + "-fanart.tbn";
