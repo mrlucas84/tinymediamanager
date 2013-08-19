@@ -20,8 +20,10 @@ import static org.tinymediamanager.core.Constants.*;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 
 import javax.swing.event.TreeModelEvent;
@@ -42,20 +44,11 @@ import org.tinymediamanager.core.tvshow.TvShowSeason;
  * @author Manuel Laggner
  */
 public class TvShowTreeModel implements TreeModel {
-  /** The root. */
-  private TvShowRootTreeNode        root       = new TvShowRootTreeNode();
-
-  /** The listeners. */
-  private List<TreeModelListener>   listeners  = new ArrayList<TreeModelListener>();
-
-  /** The node map to store the node for Objects. */
-  private HashMap<Object, TreeNode> nodeMap    = new HashMap<Object, TreeNode>();
-
-  /** The property change listener. */
-  private PropertyChangeListener    propertyChangeListener;
-
-  /** The movie list. */
-  private TvShowList                tvShowList = TvShowList.getInstance();
+  private TvShowRootTreeNode      root       = new TvShowRootTreeNode();
+  private List<TreeModelListener> listeners  = new ArrayList<TreeModelListener>();
+  private Map<Object, TreeNode>   nodeMap    = Collections.synchronizedMap(new HashMap<Object, TreeNode>());
+  private PropertyChangeListener  propertyChangeListener;
+  private TvShowList              tvShowList = TvShowList.getInstance();
 
   /**
    * Instantiates a new tv show tree model.
@@ -106,8 +99,17 @@ public class TvShowTreeModel implements TreeModel {
           addTvShowEpisode(episode, episode.getTvShow().getSeasonForEpisode(episode));
         }
 
-        // update on changes of tv show or episode
-        if (evt.getSource() instanceof TvShow || evt.getSource() instanceof TvShowEpisode) {
+        // update on changes of tv show
+        if (evt.getSource() instanceof TvShow
+            && (TITLE.equals(evt.getPropertyName()) || HAS_NFO_FILE.equals(evt.getPropertyName()) || HAS_IMAGES.equals(evt.getPropertyName()))) {
+          // inform listeners (root - to update the sum)
+          TreeModelEvent event = new TreeModelEvent(this, root.getPath(), null, null);
+          for (TreeModelListener listener : listeners) {
+            listener.treeNodesChanged(event);
+          }
+        }
+        // update on changes of episode
+        if (evt.getSource() instanceof TvShowEpisode) {
           DefaultMutableTreeNode node = (DefaultMutableTreeNode) nodeMap.get(evt.getSource());
           if (node != null) {
             DefaultMutableTreeNode parent = (DefaultMutableTreeNode) node.getParent();
@@ -128,9 +130,6 @@ public class TvShowTreeModel implements TreeModel {
     for (TvShow tvShow : tvShows) {
       addTvShow(tvShow);
     }
-
-    // sort the root and all children
-    // root.sort();
   }
 
   /**
@@ -139,32 +138,34 @@ public class TvShowTreeModel implements TreeModel {
    * @param tvShow
    *          the tv show
    */
-  private synchronized void addTvShow(TvShow tvShow) {
-    DefaultMutableTreeNode tvShowNode = new TvShowTreeNode(tvShow);
-    nodeMap.put(tvShow, tvShowNode);
-    root.add(tvShowNode);
+  private void addTvShow(TvShow tvShow) {
+    synchronized (root) {
+      DefaultMutableTreeNode tvShowNode = new TvShowTreeNode(tvShow);
+      root.add(tvShowNode);
+      nodeMap.put(tvShow, tvShowNode);
 
-    for (TvShowSeason season : tvShow.getSeasons()) {
-      // check if there is a node for its season
-      TvShowSeasonTreeNode seasonNode = (TvShowSeasonTreeNode) nodeMap.get(season);
-      if (seasonNode == null) {
-        addTvShowSeason(season, tvShow);
+      for (TvShowSeason season : tvShow.getSeasons()) {
+        // check if there is a node for its season
+        TvShowSeasonTreeNode seasonNode = (TvShowSeasonTreeNode) nodeMap.get(season);
+        if (seasonNode == null) {
+          addTvShowSeason(season, tvShow);
+        }
+
+        for (TvShowEpisode episode : season.getEpisodes()) {
+          addTvShowEpisode(episode, season);
+        }
       }
 
-      for (TvShowEpisode episode : season.getEpisodes()) {
-        addTvShowEpisode(episode, season);
+      int index = root.getIndex(tvShowNode);
+
+      // inform listeners
+      TreeModelEvent event = new TreeModelEvent(this, root.getPath(), new int[] { index }, new Object[] { tvShow });
+
+      for (TreeModelListener listener : listeners) {
+        listener.treeNodesInserted(event);
       }
+
     }
-
-    int index = root.getIndex(tvShowNode);
-
-    // inform listeners
-    TreeModelEvent event = new TreeModelEvent(this, root.getPath(), new int[] { index }, new Object[] { tvShow });
-
-    for (TreeModelListener listener : listeners) {
-      listener.treeNodesInserted(event);
-    }
-
     tvShow.addPropertyChangeListener(propertyChangeListener);
   }
 
@@ -174,27 +175,29 @@ public class TvShowTreeModel implements TreeModel {
    * @param tvShow
    *          the tv show
    */
-  private synchronized void removeTvShow(TvShow tvShow) {
-    TvShowTreeNode child = (TvShowTreeNode) nodeMap.get(tvShow);
-    DefaultMutableTreeNode parent = root;
-    if (parent != null && child != null) {
-      int index = parent.getIndex(child);
+  private void removeTvShow(TvShow tvShow) {
+    synchronized (root) {
+      TvShowTreeNode child = (TvShowTreeNode) nodeMap.get(tvShow);
+      DefaultMutableTreeNode parent = root;
+      if (parent != null && child != null) {
+        int index = parent.getIndex(child);
 
-      nodeMap.remove(tvShow);
-      for (TvShowEpisode episode : tvShow.getEpisodes()) {
-        nodeMap.remove(episode);
-        episode.removePropertyChangeListener(propertyChangeListener);
-      }
+        nodeMap.remove(tvShow);
+        for (TvShowEpisode episode : tvShow.getEpisodes()) {
+          nodeMap.remove(episode);
+          episode.removePropertyChangeListener(propertyChangeListener);
+        }
 
-      tvShow.removePropertyChangeListener(propertyChangeListener);
+        tvShow.removePropertyChangeListener(propertyChangeListener);
 
-      child.removeAllChildren();
-      child.removeFromParent();
+        child.removeAllChildren();
+        child.removeFromParent();
 
-      // inform listeners
-      TreeModelEvent event = new TreeModelEvent(this, parent.getPath(), new int[] { index }, new Object[] { child });
-      for (TreeModelListener listener : listeners) {
-        listener.treeNodesRemoved(event);
+        // inform listeners
+        TreeModelEvent event = new TreeModelEvent(this, parent.getPath(), new int[] { index }, new Object[] { child });
+        for (TreeModelListener listener : listeners) {
+          listener.treeNodesRemoved(event);
+        }
       }
     }
   }
@@ -207,27 +210,28 @@ public class TvShowTreeModel implements TreeModel {
    * @param tvShow
    *          the tv show
    */
-  private synchronized void addTvShowSeason(TvShowSeason season, TvShow tvShow) {
-    // get the tv show node
-    TvShowTreeNode parent = (TvShowTreeNode) nodeMap.get(tvShow);
-    TvShowSeasonTreeNode child = new TvShowSeasonTreeNode(season);
-    if (parent != null) {
-      nodeMap.put(season, child);
-      parent.add(child);
+  private void addTvShowSeason(TvShowSeason season, TvShow tvShow) {
+    synchronized (root) {
+      // get the tv show node
+      TvShowTreeNode parent = (TvShowTreeNode) nodeMap.get(tvShow);
+      TvShowSeasonTreeNode child = new TvShowSeasonTreeNode(season);
+      if (parent != null) {
+        parent.add(child);
+        nodeMap.put(season, child);
 
-      int index = parent.getIndex(child);
+        int index = parent.getIndex(child);
 
-      // inform listeners (tv show)
-      TreeModelEvent event = new TreeModelEvent(this, parent.getPath(), new int[] { index }, new Object[] { child });
-      for (TreeModelListener listener : listeners) {
-        listener.treeNodesInserted(event);
-      }
+        // inform listeners (tv show)
+        TreeModelEvent event = new TreeModelEvent(this, parent.getPath(), new int[] { index }, new Object[] { child });
+        for (TreeModelListener listener : listeners) {
+          listener.treeNodesInserted(event);
+        }
 
-      // inform listeners (root - to update the sum)
-      index = root.getIndex(parent);
-      event = new TreeModelEvent(this, root.getPath(), new int[] { index }, new Object[] { parent });
-      for (TreeModelListener listener : listeners) {
-        listener.treeNodesChanged(event);
+        // inform listeners (root - to update the sum)
+        event = new TreeModelEvent(this, root.getPath(), null, null);
+        for (TreeModelListener listener : listeners) {
+          listener.treeNodesChanged(event);
+        }
       }
     }
   }
@@ -240,29 +244,31 @@ public class TvShowTreeModel implements TreeModel {
    * @param season
    *          the season
    */
-  private synchronized void addTvShowEpisode(TvShowEpisode episode, TvShowSeason season) {
-    // get the tv show season node
-    TvShowSeasonTreeNode parent = (TvShowSeasonTreeNode) nodeMap.get(season);
-    TvShowEpisodeTreeNode child = new TvShowEpisodeTreeNode(episode);
-    if (parent != null) {
-      nodeMap.put(episode, child);
-      parent.add(child);
-      int index = parent.getIndex(child);
+  private void addTvShowEpisode(TvShowEpisode episode, TvShowSeason season) {
+    synchronized (root) {
+      // get the tv show season node
+      TvShowSeasonTreeNode parent = (TvShowSeasonTreeNode) nodeMap.get(season);
+      TvShowEpisodeTreeNode child = new TvShowEpisodeTreeNode(episode);
+      if (parent != null) {
+        parent.add(child);
+        nodeMap.put(episode, child);
 
-      // inform listeners
-      TreeModelEvent event = new TreeModelEvent(this, parent.getPath(), new int[] { index }, new Object[] { child });
-      for (TreeModelListener listener : listeners) {
-        listener.treeNodesInserted(event);
+        int index = parent.getIndex(child);
+
+        // inform listeners
+        TreeModelEvent event = new TreeModelEvent(this, parent.getPath(), new int[] { index }, new Object[] { child });
+        for (TreeModelListener listener : listeners) {
+          listener.treeNodesInserted(event);
+        }
+
+        // inform listeners (root - to update the sum)
+        event = new TreeModelEvent(this, root.getPath(), null, null);
+        for (TreeModelListener listener : listeners) {
+          listener.treeNodesChanged(event);
+        }
       }
 
-      // inform listeners (root - to update the sum)
-      index = root.getIndex(parent.getParent());
-      event = new TreeModelEvent(this, root.getPath(), new int[] { index }, new Object[] { parent.getParent() });
-      for (TreeModelListener listener : listeners) {
-        listener.treeNodesChanged(event);
-      }
     }
-
     episode.addPropertyChangeListener(propertyChangeListener);
   }
 
@@ -274,36 +280,38 @@ public class TvShowTreeModel implements TreeModel {
    * @param season
    *          the season
    */
-  private synchronized void removeTvShowEpisode(TvShowEpisode episode) {
-    // get the tv show season node
-    TvShowEpisodeTreeNode child = (TvShowEpisodeTreeNode) nodeMap.get(episode);
-    TvShowSeasonTreeNode parent = null;
-    if (child != null) {
-      parent = (TvShowSeasonTreeNode) child.getParent();
-    }
-
-    if (parent != null && child != null) {
-      int index = parent.getIndex(child);
-      parent.remove(child);
-      nodeMap.remove(episode);
-      episode.removePropertyChangeListener(propertyChangeListener);
-
-      // inform listeners
-      TreeModelEvent event = new TreeModelEvent(this, parent.getPath(), new int[] { index }, new Object[] { child });
-      for (TreeModelListener listener : listeners) {
-        listener.treeNodesRemoved(event);
+  private void removeTvShowEpisode(TvShowEpisode episode) {
+    synchronized (root) {
+      // get the tv show season node
+      TvShowEpisodeTreeNode child = (TvShowEpisodeTreeNode) nodeMap.get(episode);
+      TvShowSeasonTreeNode parent = null;
+      if (child != null) {
+        parent = (TvShowSeasonTreeNode) child.getParent();
       }
 
-      // remove tv show if there is no more episode in it
-      if (parent.getChildCount() == 0) {
-        TvShowSeason season = null;
-        for (Entry<Object, TreeNode> entry : nodeMap.entrySet()) {
-          if (entry.getValue() == parent) {
-            season = (TvShowSeason) entry.getKey();
-          }
+      if (parent != null && child != null) {
+        int index = parent.getIndex(child);
+        parent.remove(child);
+        nodeMap.remove(episode);
+        episode.removePropertyChangeListener(propertyChangeListener);
+
+        // inform listeners
+        TreeModelEvent event = new TreeModelEvent(this, parent.getPath(), new int[] { index }, new Object[] { child });
+        for (TreeModelListener listener : listeners) {
+          listener.treeNodesRemoved(event);
         }
-        if (season != null) {
-          removeTvShowSeason(season);
+
+        // remove tv show if there is no more episode in it
+        if (parent.getChildCount() == 0) {
+          TvShowSeason season = null;
+          for (Entry<Object, TreeNode> entry : nodeMap.entrySet()) {
+            if (entry.getValue() == parent) {
+              season = (TvShowSeason) entry.getKey();
+            }
+          }
+          if (season != null) {
+            removeTvShowSeason(season);
+          }
         }
       }
     }
@@ -315,92 +323,43 @@ public class TvShowTreeModel implements TreeModel {
    * @param season
    *          the season
    */
-  private synchronized void removeTvShowSeason(TvShowSeason season) {
-    TvShowSeasonTreeNode child = (TvShowSeasonTreeNode) nodeMap.get(season);
-    TvShowTreeNode parent = null;
-    if (child != null) {
-      parent = (TvShowTreeNode) child.getParent();
-    }
+  private void removeTvShowSeason(TvShowSeason season) {
+    synchronized (root) {
+      TvShowSeasonTreeNode child = (TvShowSeasonTreeNode) nodeMap.get(season);
+      TvShowTreeNode parent = null;
+      if (child != null) {
+        parent = (TvShowTreeNode) child.getParent();
+      }
 
-    if (parent != null && child != null) {
-      int index = parent.getIndex(child);
-      parent.remove(child);
-      nodeMap.remove(season);
+      if (parent != null && child != null) {
+        int index = parent.getIndex(child);
+        parent.remove(child);
+        nodeMap.remove(season);
 
-      // inform listeners
-      TreeModelEvent event = new TreeModelEvent(this, parent.getPath(), new int[] { index }, new Object[] { child });
-      for (TreeModelListener listener : listeners) {
-        listener.treeNodesRemoved(event);
+        // inform listeners
+        TreeModelEvent event = new TreeModelEvent(this, parent.getPath(), new int[] { index }, new Object[] { child });
+        for (TreeModelListener listener : listeners) {
+          listener.treeNodesRemoved(event);
+        }
       }
     }
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see javax.swing.tree.TreeModel#addTreeModelListener(javax.swing.event.TreeModelListener)
-   */
-  /**
-   * Adds the tree model listener.
-   * 
-   * @param listener
-   *          the listener
-   */
   @Override
   public void addTreeModelListener(TreeModelListener listener) {
     listeners.add(listener);
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see javax.swing.tree.TreeModel#getChild(java.lang.Object, int)
-   */
-  /**
-   * Gets the child.
-   * 
-   * @param parent
-   *          the parent
-   * @param index
-   *          the index
-   * @return the child
-   */
   @Override
   public Object getChild(Object parent, int index) {
     return ((TreeNode) parent).getChildAt(index);
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see javax.swing.tree.TreeModel#getChildCount(java.lang.Object)
-   */
-  /**
-   * Gets the child count.
-   * 
-   * @param parent
-   *          the parent
-   * @return the child count
-   */
   @Override
   public int getChildCount(Object parent) {
     return ((TreeNode) parent).getChildCount();
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see javax.swing.tree.TreeModel#getIndexOfChild(java.lang.Object, java.lang.Object)
-   */
-  /**
-   * Gets the index of child.
-   * 
-   * @param parent
-   *          the parent
-   * @param child
-   *          the child
-   * @return the index of child
-   */
   @Override
   public int getIndexOfChild(Object parent, Object child) {
     TreeNode childNode = null;
@@ -413,33 +372,11 @@ public class TvShowTreeModel implements TreeModel {
     return ((TreeNode) parent).getIndex(childNode);
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see javax.swing.tree.TreeModel#getRoot()
-   */
-  /**
-   * Gets the root.
-   * 
-   * @return the root
-   */
   @Override
   public Object getRoot() {
     return root;
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see javax.swing.tree.TreeModel#isLeaf(java.lang.Object)
-   */
-  /**
-   * Checks if is leaf.
-   * 
-   * @param node
-   *          the node
-   * @return true, if is leaf
-   */
   @Override
   public boolean isLeaf(Object node) {
     // root is never a leaf
@@ -458,35 +395,11 @@ public class TvShowTreeModel implements TreeModel {
     return getChildCount(node) == 0;
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see javax.swing.tree.TreeModel#removeTreeModelListener(javax.swing.event.TreeModelListener)
-   */
-  /**
-   * Removes the tree model listener.
-   * 
-   * @param listener
-   *          the listener
-   */
   @Override
   public void removeTreeModelListener(TreeModelListener listener) {
     listeners.remove(listener);
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see javax.swing.tree.TreeModel#valueForPathChanged(javax.swing.tree.TreePath, java.lang.Object)
-   */
-  /**
-   * Value for path changed.
-   * 
-   * @param arg0
-   *          the arg0
-   * @param arg1
-   *          the arg1
-   */
   @Override
   public void valueForPathChanged(TreePath arg0, Object arg1) {
   }

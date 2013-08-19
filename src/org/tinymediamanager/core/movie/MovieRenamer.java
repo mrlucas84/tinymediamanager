@@ -17,19 +17,19 @@ package org.tinymediamanager.core.movie;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.commons.io.FileExistsException;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.SystemUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.tinymediamanager.Globals;
+import org.tinymediamanager.core.ImageCache;
 import org.tinymediamanager.core.MediaFile;
 import org.tinymediamanager.core.MediaFileSubtitle;
 import org.tinymediamanager.core.MediaFileType;
@@ -37,6 +37,7 @@ import org.tinymediamanager.core.Message;
 import org.tinymediamanager.core.Message.MessageLevel;
 import org.tinymediamanager.core.MessageManager;
 import org.tinymediamanager.core.Utils;
+import org.tinymediamanager.core.movie.connector.MovieConnectors;
 
 /**
  * The Class MovieRenamer.
@@ -62,7 +63,7 @@ public class MovieRenamer {
       if (sub.getFilename().toLowerCase().contains("forced")) {
         // add "forced" prior language
         forced = ".forced";
-        shortname = shortname.replaceAll("forced", "");
+        shortname = shortname.replace("forced", "");
       }
       shortname = shortname.replaceAll("\\p{Punct}", "").trim();
 
@@ -99,7 +100,7 @@ public class MovieRenamer {
 
       File newFile = new File(m.getPath(), newSubName);
       try {
-        boolean ok = moveFileSafe(sub.getFile(), newFile);
+        boolean ok = Utils.moveFileSafe(sub.getFile(), newFile);
         if (ok) {
           m.removeFromMediaFiles(sub);
           MediaFile mf = new MediaFile(newFile);
@@ -135,6 +136,8 @@ public class MovieRenamer {
    *          the movie
    */
   public static void renameMovie(Movie movie) {
+    boolean posterRenamed = false;
+    boolean fanartRenamed = false;
 
     // check if a datasource is set
     if (StringUtils.isEmpty(movie.getDataSource())) {
@@ -149,6 +152,9 @@ public class MovieRenamer {
     LOGGER.info("Renaming movie: " + movie.getTitle());
     LOGGER.debug("movie year: " + movie.getYear());
     LOGGER.debug("movie path: " + movie.getPath());
+    if (movie.getMovieSet() != null) {
+      LOGGER.debug("movieset: " + movie.getMovieSet().getTitle());
+    }
     LOGGER.debug("path expression: " + Globals.settings.getMovieSettings().getMovieRenamerPathname());
     LOGGER.debug("file expression: " + Globals.settings.getMovieSettings().getMovieRenamerFilename());
 
@@ -165,7 +171,7 @@ public class MovieRenamer {
         boolean ok = false;
         try {
           // FileUtils.moveDirectory(srcDir, destDir);
-          ok = moveDirectorySafe(srcDir, destDir);
+          ok = Utils.moveDirectorySafe(srcDir, destDir);
           if (ok) {
             movie.updateMediaFilePath(srcDir, destDir);
             movie.setPath(newPathname);
@@ -211,10 +217,25 @@ public class MovieRenamer {
     // ######################################################################
     // ## rename VIDEO
     // ######################################################################
+    String newMovieFilename = "";
     for (MediaFile vid : movie.getMediaFiles(MediaFileType.VIDEO)) {
       LOGGER.debug("testing file " + vid.getFile().getAbsolutePath());
       File f = vid.getFile();
-      if (!f.renameTo(f)) { // haahaa, try to rename to itself :P
+      boolean testRenameOk = false;
+      for (int i = 0; i < 5; i++) {
+        testRenameOk = f.renameTo(f); // haahaa, try to rename to itself :P
+        if (testRenameOk) {
+          break; // ok it worked, step out
+        }
+        try {
+          LOGGER.debug("rename did not work - sleep a while and try again...");
+          Thread.sleep(1000);
+        }
+        catch (InterruptedException e) {
+          LOGGER.warn("I'm so excited - could not sleep");
+        }
+      }
+      if (!testRenameOk) {
         LOGGER.warn("File " + vid.getFile().getAbsolutePath() + " is not accessible!");
         MessageManager.instance.pushMessage(new Message(MessageLevel.ERROR, vid.getFilename(), "message.renamer.failedrename"));
         return;
@@ -244,10 +265,15 @@ public class MovieRenamer {
           newFilename += "." + fileExtension;
         }
 
+        // save new movie filename for further operations
+        if (StringUtils.isBlank(newMovieFilename)) {
+          newMovieFilename = newFilename;
+        }
+
         MediaFile newMF = new MediaFile(vid);
         File newFile = new File(newPath, newFilename);
         try {
-          boolean ok = moveFileSafe(vid.getFile(), newFile);
+          boolean ok = Utils.moveFileSafe(vid.getFile(), newFile);
           if (ok) {
             newMF.setPath(newPath);
             newMF.setFilename(newFilename);
@@ -290,7 +316,7 @@ public class MovieRenamer {
 
       for (MovieNfoNaming name : Globals.settings.getMovieSettings().getMovieNfoFilenames()) {
         MediaFile newMF = new MediaFile(mf);
-        newFilename = movie.getNfoFilename(name);
+        newFilename = movie.getNfoFilename(name, newMovieFilename);
         File newFile = new File(newPath, newFilename);
         try {
           boolean ok = copyFile(mf.getFile(), newFile);
@@ -320,7 +346,7 @@ public class MovieRenamer {
       String newPath = movie.getPath() + File.separator;
 
       for (MoviePosterNaming name : Globals.settings.getMovieSettings().getMoviePosterFilenames()) {
-        newFilename = movie.getPosterFilename(name);
+        newFilename = movie.getPosterFilename(name, newMovieFilename);
         String curExt = mf.getExtension();
         if (curExt.equalsIgnoreCase("tbn")) {
           String cont = mf.getContainerFormat();
@@ -335,6 +361,8 @@ public class MovieRenamer {
           // match extension to not rename PNG to JPG and vice versa
           continue;
         }
+        posterRenamed = true;
+
         MediaFile newMF = new MediaFile(mf);
         File newFile = new File(newPath, newFilename);
         try {
@@ -360,11 +388,12 @@ public class MovieRenamer {
     if (mfl != null && mfl.size() > 0) {
       mf = mfl.get(0);
       cleanup.add(new MediaFile(mf)); // mark old file for cleanup (clone current)
+
       String newFilename = mf.getFilename();
       String newPath = movie.getPath() + File.separator;
 
       for (MovieFanartNaming name : Globals.settings.getMovieSettings().getMovieFanartFilenames()) {
-        newFilename = movie.getFanartFilename(name);
+        newFilename = movie.getFanartFilename(name, newMovieFilename);
         String curExt = mf.getExtension();
         if (curExt.equalsIgnoreCase("tbn")) {
           String cont = mf.getContainerFormat();
@@ -375,10 +404,12 @@ public class MovieRenamer {
             curExt = "jpg";
           }
         }
-        if (!mf.getExtension().equals(FilenameUtils.getExtension(newFilename))) {
+        if (!curExt.equals(FilenameUtils.getExtension(newFilename))) {
           // match extension to not rename PNG to JPG and vice versa
           continue;
         }
+        fanartRenamed = true;
+
         MediaFile newMF = new MediaFile(mf);
         File newFile = new File(newPath, newFilename);
         try {
@@ -411,7 +442,7 @@ public class MovieRenamer {
       MediaFile newMF = new MediaFile(mf);
       File newFile = new File(newPath, newFilename);
       try {
-        boolean ok = moveFileSafe(mf.getFile(), newFile);
+        boolean ok = Utils.moveFileSafe(mf.getFile(), newFile);
         if (ok) {
           newMF.setPath(newPath);
           newMF.setFilename(newFilename);
@@ -433,10 +464,33 @@ public class MovieRenamer {
     }
 
     // ######################################################################
+    // ## rename EXTRAFANART
+    // ######################################################################
+    for (MediaFile extra : movie.getMediaFiles(MediaFileType.EXTRAFANART)) {
+      needed.add(extra); // keep all unknown
+    }
+
+    // ######################################################################
     // ## rename UNKNOWN
     // ######################################################################
     for (MediaFile unk : movie.getMediaFiles(MediaFileType.UNKNOWN)) {
       needed.add(unk); // keep all unknown
+    }
+
+    // ######################################################################
+    // ## invalidade image cache
+    // ######################################################################
+    for (MediaFile all : movie.getMediaFiles()) {
+      switch (all.getType()) {
+        case BANNER:
+        case FANART:
+        case EXTRAFANART:
+        case GRAPHIC:
+        case POSTER:
+        case THUMB:
+        case UNKNOWN:
+          ImageCache.invalidateCachedImage(all.getPath() + File.separator + all.getFilename());
+      }
     }
 
     // remove duplicate MediaFiles
@@ -453,6 +507,11 @@ public class MovieRenamer {
 
     movie.gatherMediaFileInformation(false);
     movie.saveToDb();
+
+    // rewrite NFO if it's a MP NFO and there was a change with poster/fanart
+    if (Globals.settings.getMovieSettings().getMovieConnector() == MovieConnectors.MP && (posterRenamed || fanartRenamed)) {
+      movie.writeNFO();
+    }
 
     // ######################################################################
     // ## CLEANUP
@@ -474,152 +533,24 @@ public class MovieRenamer {
         }
       }
     }
-  }
 
-  /**
-   * modified version of commons-io FileUtils.moveDirectory();<br>
-   * since renameTo() might not work in first place, retry it up to 5 times.<br>
-   * (better wait 5 sec for success, than always copying a 50gig directory ;)<br>
-   * <b>And NO, we're NOT doing a copy+delete as fallback!</b>
-   * 
-   * @param srcDir
-   *          the directory to be moved
-   * @param destDir
-   *          the destination directory
-   * @return true, if successful
-   * @throws IOException
-   *           if an IO error occurs moving the file
-   * @author Myron Boyle
-   */
-  public static boolean moveDirectorySafe(File srcDir, File destDir) throws IOException {
-    // rip-off from
-    // http://svn.apache.org/repos/asf/commons/proper/io/trunk/src/main/java/org/apache/commons/io/FileUtils.java
-    if (srcDir == null) {
-      throw new NullPointerException("Source must not be null");
-    }
-    if (destDir == null) {
-      throw new NullPointerException("Destination must not be null");
-    }
-    LOGGER.debug("try to move folder " + srcDir.getPath() + " to " + destDir.getPath());
-    if (!srcDir.exists()) {
-      throw new FileNotFoundException("Source '" + srcDir + "' does not exist");
-    }
-    if (!srcDir.isDirectory()) {
-      throw new IOException("Source '" + srcDir + "' is not a directory");
-    }
-    if (destDir.exists()) {
-      throw new FileExistsException("Destination '" + destDir + "' already exists");
-    }
-    if (!destDir.getParentFile().exists()) {
-      // create parent folder structure, else renameTo does not work
-      destDir.getParentFile().mkdirs();
-    }
-
-    // rename folder; try 5 times and wait a sec
-    boolean rename = false;
-    for (int i = 0; i < 5; i++) {
-      rename = srcDir.renameTo(destDir);
-      if (rename) {
-        break; // ok it worked, step out
-      }
-      try {
-        LOGGER.debug("rename did not work - sleep a while and try again...");
-        Thread.sleep(1000);
-      }
-      catch (InterruptedException e) {
-        LOGGER.warn("I'm so excited - could not sleep");
-      }
-    }
-
-    // ok, we tried it 5 times - it still seems to be locked somehow. Continue
-    // with copying as fallback
-    // NOOO - we don't like to have some files copied and some not.
-
-    if (!rename) {
-      LOGGER.error("Failed to rename directory '" + srcDir + " to " + destDir.getPath());
-      LOGGER.error("Movie renaming aborted.");
-      MessageManager.instance.pushMessage(new Message(MessageLevel.ERROR, srcDir.getPath(), "message.renamer.failedrename"));
-      return false;
-    }
-    else {
-      LOGGER.info("Successfully moved folder " + srcDir.getPath() + " to " + destDir.getPath());
-      return true;
-    }
-  }
-
-  /**
-   * modified version of commons-io FileUtils.moveFile();<br>
-   * since renameTo() might not work in first place, retry it up to 5 times.<br>
-   * (better wait 5 sec for success, than always copying a 50gig directory ;)<br>
-   * <b>And NO, we're NOT doing a copy+delete as fallback!</b>
-   * 
-   * @param srcFile
-   *          the file to be moved
-   * @param destFile
-   *          the destination file
-   * @throws NullPointerException
-   *           if source or destination is {@code null}
-   * @throws FileExistsException
-   *           if the destination file exists
-   * @throws IOException
-   *           if source or destination is invalid
-   * @throws IOException
-   *           if an IO error occurs moving the file
-   * @since 1.4
-   */
-  public static boolean moveFileSafe(final File srcFile, final File destFile) throws IOException {
-    if (srcFile == null) {
-      throw new NullPointerException("Source must not be null");
-    }
-    if (destFile == null) {
-      throw new NullPointerException("Destination must not be null");
-    }
-    if (!srcFile.equals(destFile)) {
-      LOGGER.debug("try to move file " + srcFile.getPath() + " to " + destFile.getPath());
-      if (!srcFile.exists()) {
-        throw new FileNotFoundException("Source '" + srcFile + "' does not exist");
-      }
-      if (srcFile.isDirectory()) {
-        throw new IOException("Source '" + srcFile + "' is a directory");
-      }
-      if (destFile.exists()) {
-        throw new FileExistsException("Destination '" + destFile + "' already exists");
-      }
-      if (destFile.isDirectory()) {
-        throw new IOException("Destination '" + destFile + "' is a directory");
-      }
-
-      // rename folder; try 5 times and wait a sec
-      boolean rename = false;
-      for (int i = 0; i < 5; i++) {
-        rename = srcFile.renameTo(destFile);
-        if (rename) {
-          break; // ok it worked, step out
+    // clean all non tmm nfos
+    File[] content = new File(movie.getPath()).listFiles();
+    for (File file : content) {
+      if (file.isFile() && file.getName().toLowerCase().endsWith(".nfo")) {
+        // check if it's a tmm nfo
+        boolean supported = false;
+        for (MediaFile nfo : movie.getMediaFiles(MediaFileType.NFO)) {
+          if (nfo.getFilename().equals(file.getName())) {
+            supported = true;
+          }
         }
-        try {
-          LOGGER.debug("rename did not work - sleep a while and try again...");
-          Thread.sleep(1000);
-        }
-        catch (InterruptedException e) {
-          LOGGER.warn("I'm so excited - could not sleep");
+        if (!supported) {
+          LOGGER.debug("Deleting " + file.getName());
+          FileUtils.deleteQuietly(file);
         }
       }
-
-      // ok, we tried it 5 times - it still seems to be locked somehow. Continue
-      // with copying as fallback
-      // NOOO - we don't like to have some files copied and some not.
-
-      if (!rename) {
-        LOGGER.error("Failed to rename file '" + srcFile + " to " + destFile.getPath());
-        MessageManager.instance.pushMessage(new Message(MessageLevel.ERROR, srcFile.getPath(), "message.renamer.failedrename"));
-        return false;
-      }
-      else {
-        LOGGER.info("Successfully moved folder " + srcFile.getPath() + " to " + destFile.getPath());
-        return true;
-      }
     }
-    return true; // files are equal
   }
 
   /**
@@ -641,17 +572,39 @@ public class MovieRenamer {
 
     // replace token first letter of title ($1)
     if (newDestination.contains("$1")) {
-      newDestination = replaceToken(newDestination, "$1", StringUtils.isNotBlank(movie.getTitle()) ? movie.getTitle().substring(0, 1) : "");
+      newDestination = replaceToken(newDestination, "$1", StringUtils.isNotBlank(movie.getTitle()) ? movie.getTitle().substring(0, 1).toUpperCase()
+          : "");
+    }
+
+    // replace token first letter of sort title ($2)
+    if (newDestination.contains("$2")) {
+      newDestination = replaceToken(newDestination, "$2", StringUtils.isNotBlank(movie.getTitleSortable()) ? movie.getTitleSortable().substring(0, 1)
+          .toUpperCase() : "");
     }
 
     // replace token year ($Y)
     if (newDestination.contains("$Y")) {
-      newDestination = replaceToken(newDestination, "$Y", movie.getYear());
+      if (movie.getYear().equals("0")) {
+        newDestination = newDestination.replace("$Y", "");
+      }
+      else {
+        newDestination = replaceToken(newDestination, "$Y", movie.getYear());
+      }
     }
 
     // replace token orignal title ($O)
     if (newDestination.contains("$O")) {
       newDestination = replaceToken(newDestination, "$O", movie.getOriginalTitle());
+    }
+
+    // replace token Movie set title ($M)
+    if (newDestination.contains("$M")) {
+      if (movie.getMovieSet() != null) {
+        newDestination = replaceToken(newDestination, "$M", movie.getMovieSet().getTitleSortable());
+      }
+      else {
+        newDestination = newDestination.replace("$M", "");
+      }
     }
 
     // replace token IMDBid ($I)
@@ -661,7 +614,7 @@ public class MovieRenamer {
 
     // replace token sort title ($E)
     if (newDestination.contains("$E")) {
-      newDestination = replaceToken(newDestination, "$E", movie.getSortTitle());
+      newDestination = replaceToken(newDestination, "$E", movie.getTitleSortable());
     }
 
     if (movie.getMediaFiles(MediaFileType.VIDEO).size() > 0) {
@@ -683,9 +636,9 @@ public class MovieRenamer {
     }
     else {
       // no mediafiles; remove at least token (if available)
-      newDestination = newDestination.replaceAll("\\$R", "");
-      newDestination = newDestination.replaceAll("\\$A", "");
-      newDestination = newDestination.replaceAll("\\$V", "");
+      newDestination = newDestination.replace("$R", "");
+      newDestination = newDestination.replace("$A", "");
+      newDestination = newDestination.replace("$V", "");
     }
 
     // replace token media source (BluRay|DVD|TV|...) ($S)
@@ -697,6 +650,22 @@ public class MovieRenamer {
     // replace empty brackets
     newDestination = newDestination.replaceAll("\\(\\)", "");
 
+    // if there are multiple file separators in a row - strip them out
+    if (SystemUtils.IS_OS_WINDOWS) {
+      // we need to mask it in windows
+      newDestination = newDestination.replaceAll("\\\\{2,}", "\\\\");
+      newDestination = newDestination.replaceAll("^\\\\", "");
+    }
+    else {
+      newDestination = newDestination.replaceAll(File.separator + "{2,}", File.separator);
+      newDestination = newDestination.replaceAll("^" + File.separator, "");
+    }
+
+    // replace spaces with underscores if needed
+    if (Globals.settings.getMovieSettings().isMovieRenamerSpaceSubstitution()) {
+      newDestination = newDestination.replace(" ", "_");
+    }
+
     return newDestination.trim();
   }
 
@@ -707,7 +676,7 @@ public class MovieRenamer {
       // http://msdn.microsoft.com/en-us/library/windows/desktop/aa365247%28v=vs.85%29.aspx
       replacingCleaned = replacement.replaceAll("([\"\\:<>|/?*])", "");
     }
-    return destination.replaceAll("\\" + token, replacingCleaned);
+    return destination.replace(token, replacingCleaned);
   }
 
   /**

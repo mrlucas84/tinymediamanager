@@ -23,10 +23,11 @@ import java.util.ResourceBundle;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.tinymediamanager.Globals;
 import org.tinymediamanager.core.AbstractModelObject;
 import org.tinymediamanager.scraper.IMediaArtworkProvider;
-import org.tinymediamanager.scraper.IMediaMetadataProvider;
 import org.tinymediamanager.scraper.IMediaTrailerProvider;
+import org.tinymediamanager.scraper.ITvShowMetadataProvider;
 import org.tinymediamanager.scraper.MediaArtwork;
 import org.tinymediamanager.scraper.MediaArtwork.MediaArtworkType;
 import org.tinymediamanager.scraper.MediaMetadata;
@@ -40,53 +41,24 @@ import org.tinymediamanager.ui.UTF8Control;
  * @author Manuel Laggner
  */
 public class TvShowChooserModel extends AbstractModelObject {
-
-  /** The Constant BUNDLE. */
   private static final ResourceBundle    BUNDLE           = ResourceBundle.getBundle("messages", new UTF8Control()); //$NON-NLS-1$
-
-  /** The Constant logger. */
   private static final Logger            LOGGER           = LoggerFactory.getLogger(TvShowChooserModel.class);
-
-  /** The Constant emptyResult. */
   public static final TvShowChooserModel emptyResult      = new TvShowChooserModel();
 
-  /** The metadata provider. */
-  private IMediaMetadataProvider         metadataProvider = null;
-
-  /** The artwork provider. */
+  private ITvShowMetadataProvider        metadataProvider = null;
   private List<IMediaArtworkProvider>    artworkProviders = null;
-
-  /** The trailer provider. */
-  private List<IMediaTrailerProvider>    trailerProviders = null;
-
-  /** The result. */
   private MediaSearchResult              result           = null;
-
-  /** The metadata. */
   private MediaMetadata                  metadata         = null;
-
-  /** The name. */
   private String                         name             = "";
-
-  /** The overview. */
   private String                         overview         = "";
-
-  /** The year. */
   private String                         year             = "";
-
-  /** The combined name. */
   private String                         combinedName     = "";
-
-  /** The poster url. */
   private String                         posterUrl        = "";
-
-  /** The tagline. */
   private String                         tagline          = "";
-
-  /** The scraped. */
   private boolean                        scraped          = false;
 
-  /* new scraper logic */
+  // private List<IMediaTrailerProvider> trailerProviders = null;
+
   /**
    * Instantiates a new tv show chooser model.
    * 
@@ -99,11 +71,11 @@ public class TvShowChooserModel extends AbstractModelObject {
    * @param result
    *          the result
    */
-  public TvShowChooserModel(IMediaMetadataProvider metadataProvider, List<IMediaArtworkProvider> artworkProviders,
+  public TvShowChooserModel(ITvShowMetadataProvider metadataProvider, List<IMediaArtworkProvider> artworkProviders,
       List<IMediaTrailerProvider> trailerProviders, MediaSearchResult result) {
     this.metadataProvider = metadataProvider;
     this.artworkProviders = artworkProviders;
-    this.trailerProviders = trailerProviders;
+    // this.trailerProviders = trailerProviders;
     this.result = result;
 
     // name
@@ -234,8 +206,10 @@ public class TvShowChooserModel extends AbstractModelObject {
 
       MediaScrapeOptions options = new MediaScrapeOptions();
       options.setResult(result);
+      options.setLanguage(Globals.settings.getMovieSettings().getScraperLanguage());
+      options.setCountry(Globals.settings.getMovieSettings().getCertificationCountry());
       options.setType(MediaType.TV_SHOW);
-      metadata = metadataProvider.getMetadata(options);
+      metadata = metadataProvider.getTvShowMetadata(options);
       setOverview(metadata.getPlot());
       setTagline(metadata.getTagline());
 
@@ -266,6 +240,8 @@ public class TvShowChooserModel extends AbstractModelObject {
     options.setArtworkType(MediaArtworkType.ALL);
     options.setMetadata(metadata);
     options.setImdbId(metadata.getImdbId());
+    options.setLanguage(Globals.settings.getMovieSettings().getScraperLanguage());
+    options.setCountry(Globals.settings.getMovieSettings().getCertificationCountry());
 
     // scrape providers till one artwork has been found
     for (IMediaArtworkProvider artworkProvider : artworkProviders) {

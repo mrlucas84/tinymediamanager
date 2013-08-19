@@ -23,6 +23,7 @@ import java.util.concurrent.Executors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.tinymediamanager.Globals;
 import org.tinymediamanager.core.Message;
 import org.tinymediamanager.core.Message.MessageLevel;
 import org.tinymediamanager.core.MessageManager;
@@ -146,30 +147,6 @@ public class MovieScrapeTask extends TmmSwingWorker {
   }
 
   /**
-   * Start progress bar.
-   * 
-   * @param description
-   *          the description
-   * @param value
-   *          the value
-   */
-  private void startProgressBar(String description, int value) {
-    lblProgressAction.setText(description);
-    progressBar.setVisible(true);
-    progressBar.setValue(value);
-    btnCancelTask.setVisible(true);
-  }
-
-  /**
-   * Stop progress bar.
-   */
-  private void stopProgressBar() {
-    lblProgressAction.setText("");
-    progressBar.setVisible(false);
-    btnCancelTask.setVisible(false);
-  }
-
-  /**
    * The Class Worker.
    */
   private class Worker implements Runnable {
@@ -226,6 +203,7 @@ public class MovieScrapeTask extends TmmSwingWorker {
                 // if both results have 100% score - do not take any result
                 if (result1.getScore() == 1 && result2.getScore() == 1) {
                   LOGGER.info("two 100% results, can't decide whitch to take - ignore result");
+                  MessageManager.instance.pushMessage(new Message(MessageLevel.ERROR, movie, "movie.scrape.nomatchfound"));
                   continue;
                 }
               }
@@ -233,11 +211,13 @@ public class MovieScrapeTask extends TmmSwingWorker {
               // create a treshold of 0.75 - to minimize false positives
               if (result1.getScore() < 0.75) {
                 LOGGER.info("score is lower than 0.75 (" + result1.getScore() + ") - ignore result");
+                MessageManager.instance.pushMessage(new Message(MessageLevel.ERROR, movie, "movie.scrape.nomatchfound"));
                 continue;
               }
             }
             else {
               LOGGER.info("no result found for " + movie.getTitle());
+              MessageManager.instance.pushMessage(new Message(MessageLevel.ERROR, movie, "movie.scrape.nomatchfound"));
             }
           }
 
@@ -246,6 +226,8 @@ public class MovieScrapeTask extends TmmSwingWorker {
             try {
               MediaScrapeOptions options = new MediaScrapeOptions();
               options.setResult(result1);
+              options.setLanguage(Globals.settings.getMovieSettings().getScraperLanguage());
+              options.setCountry(Globals.settings.getMovieSettings().getCertificationCountry());
 
               // we didn't do a search - pass imdbid and tmdbid from movie
               // object
@@ -263,12 +245,12 @@ public class MovieScrapeTask extends TmmSwingWorker {
                   || scraperMetadataConfig.isRuntime() || scraperMetadataConfig.isTagline() || scraperMetadataConfig.isTitle()
                   || scraperMetadataConfig.isYear()) {
                 md = mediaMetadataProvider.getMetadata(options);
-                movie.setMetadata(md);
+                movie.setMetadata(md, scraperMetadataConfig);
               }
 
               // scrape artwork if wanted
               if (scraperMetadataConfig.isArtwork()) {
-                movie.setArtwork(getArtwork(movie, md, artworkProviders));
+                movie.setArtwork(getArtwork(movie, md, artworkProviders), scraperMetadataConfig);
               }
 
               // scrape trailer if wanted
@@ -309,6 +291,8 @@ public class MovieScrapeTask extends TmmSwingWorker {
       options.setMetadata(metadata);
       options.setImdbId(movie.getImdbId());
       options.setTmdbId(movie.getTmdbId());
+      options.setLanguage(Globals.settings.getMovieSettings().getScraperLanguage());
+      options.setCountry(Globals.settings.getMovieSettings().getCertificationCountry());
 
       // scrape providers till one artwork has been found
       for (IMediaArtworkProvider artworkProvider : artworkProviders) {
@@ -352,6 +336,8 @@ public class MovieScrapeTask extends TmmSwingWorker {
       options.setMetadata(metadata);
       options.setImdbId(movie.getImdbId());
       options.setTmdbId(movie.getTmdbId());
+      options.setLanguage(Globals.settings.getMovieSettings().getScraperLanguage());
+      options.setCountry(Globals.settings.getMovieSettings().getCertificationCountry());
 
       // scrape trailers
       for (IMediaTrailerProvider trailerProvider : trailerProviders) {

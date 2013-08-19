@@ -31,6 +31,11 @@ import org.tinymediamanager.ui.dialogs.AboutDialog;
 public class AboutAction extends AbstractAction {
   private static final long serialVersionUID = -6578562721885387890L;
 
+  /*
+   * (non-Javadoc)
+   * 
+   * @see java.awt.event.ActionListener#actionPerformed(java.awt.event.ActionEvent)
+   */
   @Override
   public void actionPerformed(ActionEvent e) {
     Dialog aboutDialog = new AboutDialog();

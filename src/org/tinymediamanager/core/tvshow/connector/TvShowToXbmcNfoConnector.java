@@ -19,6 +19,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.io.StringReader;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.util.ArrayList;
@@ -37,11 +38,12 @@ import javax.xml.bind.annotation.XmlType;
 import javax.xml.bind.annotation.XmlValue;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.SystemUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.tinymediamanager.core.MediaFile;
+import org.tinymediamanager.core.MediaFileType;
 import org.tinymediamanager.core.Message;
 import org.tinymediamanager.core.Message.MessageLevel;
 import org.tinymediamanager.core.MessageManager;
@@ -56,47 +58,28 @@ import org.tinymediamanager.scraper.MediaGenres;
  * @author Manuel Laggner
  */
 @XmlRootElement(name = "tvshow")
-@XmlType(propOrder = { "title", "year", "rating", "votes", "plot", "mpaa", "id", "genres", "premiered", "status", "studio", "thumb", "actors" })
+@XmlType(propOrder = { "title", "sorttitle", "year", "rating", "votes", "plot", "mpaa", "id", "genres", "premiered", "status", "studio", "thumb",
+    "actors" })
 public class TvShowToXbmcNfoConnector {
 
-  /** The Constant logger. */
   private static final Logger LOGGER    = LoggerFactory.getLogger(TvShowToXbmcNfoConnector.class);
+  private static JAXBContext  context   = initContext();
 
-  /** The id. */
   private String              id        = "";
-
-  /** The title. */
   private String              title     = "";
-
-  /** The rating. */
+  private String              sorttitle = "";
   private float               rating    = 0;
-
-  /** The votes. */
   private int                 votes     = 0;
-
-  /** The year. */
   private String              year      = "";
-
-  /** The plot. */
   private String              plot      = "";
-
-  /** The mpaa. */
   private String              mpaa      = "";
-
-  /** The premiered. */
   private String              premiered = "";
-
-  /** The studio. */
   private String              studio    = "";
-
-  /** The status. */
   private String              status    = "";
 
-  /** The actors. */
   @XmlAnyElement(lax = true)
   private List<Object>        actors;
 
-  /** The genres. */
   @XmlElement(name = "genre")
   private List<String>        genres;
 
@@ -104,8 +87,6 @@ public class TvShowToXbmcNfoConnector {
 
   @XmlElement
   List<Thumb>                 thumb;
-
-  private static JAXBContext  context   = initContext();
 
   private static JAXBContext initContext() {
     try {
@@ -130,12 +111,11 @@ public class TvShowToXbmcNfoConnector {
    * 
    * @param tvShow
    *          the tv show
-   * @return the string
    */
-  public static String setData(TvShow tvShow) {
+  public static void setData(TvShow tvShow) {
     if (context == null) {
       MessageManager.instance.pushMessage(new Message(MessageLevel.ERROR, tvShow, "message.nfo.writeerror", new String[] { ":", "Context is null" }));
-      return "";
+      return;
     }
 
     TvShowToXbmcNfoConnector xbmc = null;
@@ -164,6 +144,7 @@ public class TvShowToXbmcNfoConnector {
       xbmc.setId(tvShow.getId("tvdb").toString());
     }
     xbmc.setTitle(tvShow.getTitle());
+    xbmc.setSorttitle(tvShow.getSortTitle());
     xbmc.setRating(tvShow.getRating());
     xbmc.setVotes(tvShow.getVotes());
     xbmc.setPlot(tvShow.getPlot());
@@ -200,26 +181,26 @@ public class TvShowToXbmcNfoConnector {
       if (SystemUtils.IS_OS_WINDOWS) {
         sb = new StringBuilder(sb.toString().replaceAll("(?<!\r)\n", "\r\n"));
       }
+
       FileUtils.write(nfoFile, sb, "UTF-8");
+      tvShow.removeAllMediaFiles(MediaFileType.NFO);
+      tvShow.addToMediaFiles(new MediaFile(nfoFile));
     }
     catch (Exception e) {
       LOGGER.error(nfoFilename + " " + e.getMessage());
       MessageManager.instance.pushMessage(new Message(MessageLevel.ERROR, tvShow, "message.nfo.writeerror", new String[] { ":",
           e.getLocalizedMessage() }));
     }
-
-    // return only the name w/o path
-    return nfoFilename;
   }
 
   /**
    * Gets the data.
    * 
-   * @param nfoFilename
+   * @param nfo
    *          the nfo filename
    * @return the data
    */
-  public static TvShow getData(String nfoFilename) {
+  public static TvShow getData(File nfo) {
     if (context == null) {
       return null;
     }
@@ -227,18 +208,13 @@ public class TvShowToXbmcNfoConnector {
     // try to parse XML
     TvShow tvShow = null;
     try {
-      Unmarshaller um = context.createUnmarshaller();
-      if (um == null) {
-        return null;
-      }
-
-      Reader in = new InputStreamReader(new FileInputStream(nfoFilename), "UTF-8");
-      TvShowToXbmcNfoConnector xbmc = (TvShowToXbmcNfoConnector) um.unmarshal(in);
+      TvShowToXbmcNfoConnector xbmc = parseNFO(nfo);
       tvShow = new TvShow();
       if (StringUtils.isNotBlank(xbmc.getId())) {
         tvShow.setId("tvdb", xbmc.getId());
       }
       tvShow.setTitle(xbmc.getTitle());
+      tvShow.setSortTitle(xbmc.getSorttitle());
       tvShow.setRating(xbmc.getRating());
       tvShow.setVotes(xbmc.getVotes());
       tvShow.setYear(xbmc.getYear());
@@ -264,16 +240,16 @@ public class TvShowToXbmcNfoConnector {
         tvShow.addActor(tvShowActor);
       }
 
-      tvShow.setNfoFilename(FilenameUtils.getName(nfoFilename));
+      tvShow.addToMediaFiles(new MediaFile(nfo, MediaFileType.NFO));
     }
     catch (UnmarshalException e) {
-      LOGGER.error("failed to parse " + nfoFilename + " " + e.getMessage());
-      MessageManager.instance.pushMessage(new Message(MessageLevel.ERROR, nfoFilename, "message.nfo.readerror"));
+      LOGGER.error("failed to parse " + nfo + " " + e.getMessage());
+      // MessageManager.instance.pushMessage(new Message(MessageLevel.ERROR, nfoFilename, "message.nfo.readerror"));
       return null;
     }
     catch (Exception e) {
-      LOGGER.error(nfoFilename + " " + e.getMessage());
-      MessageManager.instance.pushMessage(new Message(MessageLevel.ERROR, nfoFilename, "message.nfo.readerror"));
+      LOGGER.error(nfo + " " + e.getMessage());
+      // MessageManager.instance.pushMessage(new Message(MessageLevel.ERROR, nfoFilename, "message.nfo.readerror"));
       return null;
     }
 
@@ -282,6 +258,27 @@ public class TvShowToXbmcNfoConnector {
       return null;
     }
     return tvShow;
+  }
+
+  private static TvShowToXbmcNfoConnector parseNFO(File nfoFile) throws Exception {
+    Unmarshaller um = context.createUnmarshaller();
+    if (um == null) {
+      MessageManager.instance.pushMessage(new Message(MessageLevel.ERROR, nfoFile, "message.nfo.readerror"));
+      throw new Exception("could not create unmarshaller");
+    }
+
+    try {
+      Reader in = new InputStreamReader(new FileInputStream(nfoFile), "UTF-8");
+      return (TvShowToXbmcNfoConnector) um.unmarshal(in);
+    }
+    catch (UnmarshalException e) {
+      LOGGER.error("tried to unmarshal; now trying to clean xml stream");
+    }
+
+    // now trying to parse it via string
+    String completeNFO = FileUtils.readFileToString(nfoFile, "UTF-8").trim().replaceFirst("^([\\W]+)<", "<");
+    Reader in = new StringReader(completeNFO);
+    return (TvShowToXbmcNfoConnector) um.unmarshal(in);
   }
 
   /**
@@ -302,6 +299,15 @@ public class TvShowToXbmcNfoConnector {
    */
   public void setTitle(String title) {
     this.title = title;
+  }
+
+  @XmlElement(name = "sorttitle")
+  public String getSorttitle() {
+    return sorttitle;
+  }
+
+  public void setSorttitle(String sorttitle) {
+    this.sorttitle = sorttitle;
   }
 
   /**

@@ -1,8 +1,6 @@
 # The URL from which the client is downloaded
 appbase = http://tinymediamanager.googlecode.com/svn/dist
 
-#version = %SVNREV%
-
 # UI Configuration
 ui.name = tinyMediaManager
 ui.background_image = splashscreen.png
@@ -52,6 +50,7 @@ code = lib/Scaling-bin.jar
 code = lib/slf4j-api.jar
 code = lib/themoviedbapi.jar
 code = lib/thetvdbapi.jar
+code = lib/xmlrpc-client.jar
 
 # strings added to classpath
 plugin = lib/swt.jar
@@ -71,6 +70,9 @@ resource = objectdb.conf
 
 # translations
 resource = locale/messages_de.properties
+resource = locale/messages_fr.properties
+resource = locale/messages_nl.properties
+#resource = locale/messages_.properties
 
 # mediainfo native libs
 resource = [linux-amd64] native/linux-amd64/libmediainfo.so
@@ -89,21 +91,13 @@ resource = [windows-x86] native/windows-x86/mingwm10.dll
 
 # templates
 resource = templates/readme.txt
-resource = templates/DetailExample2Html/detail.jmte  
-resource = templates/DetailExample2Html/list.jmte  
-resource = templates/DetailExample2Html/main.html  
-resource = templates/DetailExample2Html/nopicture.gif  
-resource = templates/DetailExample2Html/template.conf
-resource = templates/DetailExampleHtml/detail.jmte  
-resource = templates/DetailExampleHtml/list.jmte  
-resource = templates/DetailExampleHtml/nopicture.gif  
-resource = templates/DetailExampleHtml/template.conf
-resource = templates/ListExampleCsv/list.jmte  
-resource = templates/ListExampleCsv/template.conf
-resource = templates/ListExampleHtml/list.jmte  
-resource = templates/ListExampleHtml/template.conf
-resource = templates/ListExampleXml/list.jmte  
-resource = templates/ListExampleXml/template.conf
+uresource = templates/DetailExampleHtml.jar
+uresource = templates/DetailExample2Html.jar
+uresource = templates/ListExampleCsv.jar
+uresource = templates/ListExampleHtml.jar
+uresource = templates/ListExampleXml.jar
+uresource = templates/jQueryliscious.jar
+uresource = templates/SimpleConfluence.jar
 
 # The main entry point for the application
 class = org.tinymediamanager.TinyMediaManager

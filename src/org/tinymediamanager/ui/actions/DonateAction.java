@@ -15,15 +15,17 @@
  */
 package org.tinymediamanager.ui.actions;
 
-import java.awt.Desktop;
 import java.awt.event.ActionEvent;
-import java.net.URI;
 
 import javax.swing.AbstractAction;
 
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.tinymediamanager.core.Message;
+import org.tinymediamanager.core.Message.MessageLevel;
+import org.tinymediamanager.core.MessageManager;
+import org.tinymediamanager.ui.TmmUIHelper;
 
 /**
  * The DonateAction to redirect to the donate page
@@ -34,15 +36,22 @@ public class DonateAction extends AbstractAction {
   private static final long   serialVersionUID = 1668251251156765161L;
   private static final Logger LOGGER           = LoggerFactory.getLogger(DonateAction.class);
 
+  /*
+   * (non-Javadoc)
+   * 
+   * @see java.awt.event.ActionListener#actionPerformed(java.awt.event.ActionEvent)
+   */
   @Override
   public void actionPerformed(ActionEvent e) {
+    String url = StringEscapeUtils
+        .unescapeHtml4("https://www.paypal.com/cgi-bin/webscr?cmd=_donations&amp;business=manuel%2elaggner%40gmail%2ecom&amp;lc=GB&amp;item_name=tinyMediaManager&amp;currency_code=EUR&amp;bn=PP%2dDonationsBF%3abtn_donate_LG%2egif%3aNonHosted");
     try {
-      String url = StringEscapeUtils
-          .unescapeHtml4("https://www.paypal.com/cgi-bin/webscr?cmd=_donations&amp;business=manuel%2elaggner%40gmail%2ecom&amp;lc=GB&amp;item_name=tinyMediaManager&amp;currency_code=EUR&amp;bn=PP%2dDonationsBF%3abtn_donate_LG%2egif%3aNonHosted");
-      Desktop.getDesktop().browse(new URI(url));
+      TmmUIHelper.browseUrl(url);
     }
     catch (Exception e1) {
       LOGGER.error("Donate", e1);
+      MessageManager.instance
+          .pushMessage(new Message(MessageLevel.ERROR, url, "message.erroropenurl", new String[] { ":", e1.getLocalizedMessage() }));
     }
   }
 }

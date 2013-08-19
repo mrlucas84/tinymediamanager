@@ -21,9 +21,10 @@ import java.util.Map.Entry;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.tinymediamanager.Globals;
 import org.tinymediamanager.core.tvshow.TvShowEpisode;
 import org.tinymediamanager.core.tvshow.TvShowList;
-import org.tinymediamanager.scraper.IMediaMetadataProvider;
+import org.tinymediamanager.scraper.ITvShowMetadataProvider;
 import org.tinymediamanager.scraper.MediaMetadata;
 import org.tinymediamanager.scraper.MediaScrapeOptions;
 import org.tinymediamanager.scraper.MediaType;
@@ -34,15 +35,10 @@ import org.tinymediamanager.scraper.MediaType;
  * @author Manuel Laggner
  */
 public class TvShowEpisodeScrapeTask implements Runnable {
+  private static final Logger           LOGGER           = LoggerFactory.getLogger(TvShowEpisodeScrapeTask.class);
 
-  /** The Constant LOGGER. */
-  private static final Logger          LOGGER           = LoggerFactory.getLogger(TvShowEpisodeScrapeTask.class);
-
-  /** The episodes. */
-  private final List<TvShowEpisode>    episodes;
-
-  /** The metadata provider. */
-  private final IMediaMetadataProvider metadataProvider = TvShowList.getInstance().getMetadataProvider();
+  private final List<TvShowEpisode>     episodes;
+  private final ITvShowMetadataProvider metadataProvider = TvShowList.getInstance().getMetadataProvider();
 
   /**
    * Instantiates a new tv show episode scrape task.
@@ -62,7 +58,16 @@ public class TvShowEpisodeScrapeTask implements Runnable {
   @Override
   public void run() {
     for (TvShowEpisode episode : episodes) {
+      // only scrape if at least one ID is available
+      if (episode.getTvShow().getIds().size() == 0) {
+        LOGGER.info("we cannot scrape (no ID): " + episode.getTvShow().getTitle() + " - " + episode.getTitle());
+        continue;
+      }
+
       MediaScrapeOptions options = new MediaScrapeOptions();
+      options.setLanguage(Globals.settings.getMovieSettings().getScraperLanguage());
+      options.setCountry(Globals.settings.getMovieSettings().getCertificationCountry());
+
       for (Entry<String, Object> entry : episode.getTvShow().getIds().entrySet()) {
         options.setId(entry.getKey(), entry.getValue().toString());
       }
@@ -72,7 +77,7 @@ public class TvShowEpisodeScrapeTask implements Runnable {
       options.setId("episodeNr", String.valueOf(episode.getEpisode()));
 
       try {
-        MediaMetadata metadata = metadataProvider.getMetadata(options);
+        MediaMetadata metadata = metadataProvider.getEpisodeMetadata(options);
         if (StringUtils.isNotBlank(metadata.getTitle())) {
           episode.setMetadata(metadata);
         }

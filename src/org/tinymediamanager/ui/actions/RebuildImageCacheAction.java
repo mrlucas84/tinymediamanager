@@ -47,6 +47,11 @@ public class RebuildImageCacheAction extends AbstractAction {
     putValue(SHORT_DESCRIPTION, BUNDLE.getString("tmm.rebuildimagecache")); //$NON-NLS-1$
   }
 
+  /*
+   * (non-Javadoc)
+   * 
+   * @see java.awt.event.ActionListener#actionPerformed(java.awt.event.ActionEvent)
+   */
   @Override
   public void actionPerformed(ActionEvent arg0) {
     if (!Globals.settings.isImageCache()) {

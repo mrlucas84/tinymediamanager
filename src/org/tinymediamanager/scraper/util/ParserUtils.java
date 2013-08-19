@@ -20,6 +20,7 @@ import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.tinymediamanager.core.Utils;
 
 /**
  * The Class ParserUtils.
@@ -61,7 +62,7 @@ public class ParserUtils {
 
     // remove extension (if found) and split
     String fname = filename.replaceFirst("\\.\\w{2,4}$", "");
-    String[] s = fname.split("[()\\[\\]_ -.]");
+    String[] s = fname.split("[\\(\\)\\[\\]_ \\-\\.]");
     int firstFoundStopwordPosition = s.length;
 
     // iterate over all splitted items
@@ -76,6 +77,9 @@ public class ParserUtils {
               firstFoundStopwordPosition = i;
             }
           }
+        }
+        if (Utils.isValidImdbId(s[i])) {
+          s[i] = ""; // delete imdbId from name
         }
       }
     }

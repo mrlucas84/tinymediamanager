@@ -38,11 +38,11 @@ import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.SystemUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.tinymediamanager.core.MediaFile;
 import org.tinymediamanager.core.MediaFileType;
 import org.tinymediamanager.core.Message;
 import org.tinymediamanager.core.Message.MessageLevel;
@@ -59,72 +59,42 @@ import org.tinymediamanager.core.tvshow.TvShowEpisode;
 @XmlType(propOrder = { "title", "showtitle", "rating", "votes", "season", "episode", "uniqueid", "plot", "thumb", "mpaa", "playcount", "lastplayed",
     "credits", "director", "aired", "premiered", "studio", "actors" })
 public class TvShowEpisodeToXbmcNfoConnector {
-
-  /** The Constant logger. */
   private static final Logger LOGGER    = LoggerFactory.getLogger(TvShowEpisodeToXbmcNfoConnector.class);
+  private static JAXBContext  context   = initContext();
 
-  /** The season. */
   private String              season    = "";
-
-  /** The episode. */
   private String              episode   = "";
-
-  /** The uniqueid. */
   private String              uniqueid  = "";
-
-  /** The title. */
   private String              title     = "";
-
-  /** The showtitle. */
   private String              showtitle = "";
-
-  /** The rating. */
   private float               rating    = 0;
-
-  /** The votes. */
   private int                 votes     = 0;
-
-  /** The plot. */
   private String              plot      = "";
-
-  /** The studio. */
   private String              studio    = "";
-
-  /** The mpaa. */
   private String              mpaa      = "";
 
-  /** The actors. */
   @XmlAnyElement(lax = true)
   private List<Object>        actors;
 
-  /** the credits. */
   @XmlElement(name = "credits")
   private List<String>        credits;
 
-  /** The director. */
   @XmlElement(name = "director")
   private List<String>        director;
 
-  /** The aired. */
   private String              aired     = "";
 
-  /** The premiered. */
   private String              premiered = "";
 
   /** not supported tags, but used to retrain in NFO. */
-
   @XmlElement
   String                      thumb;
 
-  /** The playcount. */
   @XmlElement
   String                      playcount;
 
-  /** The lastplayed. */
   @XmlElement
   String                      lastplayed;
-
-  private static JAXBContext  context   = initContext();
 
   private static JAXBContext initContext() {
     try {
@@ -150,17 +120,20 @@ public class TvShowEpisodeToXbmcNfoConnector {
    * 
    * @param tvShowEpisodes
    *          the tv show episodes
-   * @return the string
    */
-  public static String setData(List<TvShowEpisode> tvShowEpisodes) {
+  public static void setData(List<TvShowEpisode> tvShowEpisodes) {
     if (context == null) {
       MessageManager.instance.pushMessage(new Message(MessageLevel.ERROR, tvShowEpisodes.get(0), "message.nfo.writeerror", new String[] { ":",
           "Context is null" }));
-      return "";
+      return;
+    }
+
+    if (tvShowEpisodes.size() == 0) {
+      return;
     }
 
     TvShowEpisode episode = tvShowEpisodes.get(0);
-    String nfoFilename = FilenameUtils.getBaseName(episode.getMediaFiles(MediaFileType.VIDEO).get(0).getFilename()) + ".nfo";
+    String nfoFilename = episode.getMediaFiles(MediaFileType.VIDEO).get(0).getBasename() + ".nfo";
     File nfoFile = new File(episode.getPath(), nfoFilename);
 
     // parse out all episodes from the nfo
@@ -261,24 +234,26 @@ public class TvShowEpisodeToXbmcNfoConnector {
 
     try {
       FileUtils.write(nfoFile, outputXml, "UTF-8");
+      for (TvShowEpisode e : tvShowEpisodes) {
+        e.removeAllMediaFiles(MediaFileType.NFO);
+        e.addToMediaFiles(new MediaFile(nfoFile));
+      }
     }
     catch (Exception e) {
       LOGGER.error("setData", e.getMessage());
       MessageManager.instance.pushMessage(new Message(MessageLevel.ERROR, tvShowEpisodes.get(0), "message.nfo.writeerror", new String[] { ":",
           e.getLocalizedMessage() }));
     }
-
-    return nfoFilename;
   }
 
   /**
    * Gets the data.
    * 
-   * @param nfoFilename
-   *          the nfo filename
+   * @param nfo
+   *          the nfo file
    * @return the data
    */
-  public static List<TvShowEpisode> getData(String nfoFilename) {
+  public static List<TvShowEpisode> getData(File nfo) {
     // try to parse XML
     List<TvShowEpisode> episodes = new ArrayList<TvShowEpisode>(1);
 
@@ -287,8 +262,7 @@ public class TvShowEpisodeToXbmcNfoConnector {
     }
 
     // parse out all episodes from the nfo
-    File nfoFile = new File(nfoFilename);
-    List<TvShowEpisodeToXbmcNfoConnector> xbmcConnectors = parseNfo(nfoFile);
+    List<TvShowEpisodeToXbmcNfoConnector> xbmcConnectors = parseNfo(nfo);
 
     for (TvShowEpisodeToXbmcNfoConnector xbmc : xbmcConnectors) {
       // only continue, if there is a title in the nfo
@@ -345,9 +319,7 @@ public class TvShowEpisodeToXbmcNfoConnector {
         episode.addActor(cast);
       }
 
-      // set only the name w/o path
-      episode.setNfoFilename(FilenameUtils.getName(nfoFilename));
-
+      episode.addToMediaFiles(new MediaFile(nfo, MediaFileType.NFO));
       episodes.add(episode);
     }
 
@@ -802,18 +774,18 @@ public class TvShowEpisodeToXbmcNfoConnector {
           }
           catch (UnmarshalException e) {
             LOGGER.error("failed to parse " + nfoFile.getName());
-            MessageManager.instance.pushMessage(new Message(MessageLevel.ERROR, nfoFile.getPath(), "message.nfo.readerror"));
+            // MessageManager.instance.pushMessage(new Message(MessageLevel.ERROR, nfoFile.getPath(), "message.nfo.readerror"));
             return null;
           }
           catch (Exception e) {
             LOGGER.error("failed to parse " + nfoFile.getName(), e);
-            MessageManager.instance.pushMessage(new Message(MessageLevel.ERROR, nfoFile.getPath(), "message.nfo.readerror"));
+            // MessageManager.instance.pushMessage(new Message(MessageLevel.ERROR, nfoFile.getPath(), "message.nfo.readerror"));
           }
 
         }
       }
       catch (IOException e) {
-        MessageManager.instance.pushMessage(new Message(MessageLevel.ERROR, nfoFile.getPath(), "message.nfo.readerror"));
+        // MessageManager.instance.pushMessage(new Message(MessageLevel.ERROR, nfoFile.getPath(), "message.nfo.readerror"));
       }
     }
 

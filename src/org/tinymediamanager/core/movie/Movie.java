@@ -22,8 +22,13 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URISyntaxException;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map.Entry;
 
 import javax.persistence.CascadeType;
@@ -63,9 +68,13 @@ import org.tinymediamanager.scraper.MediaArtwork.MediaArtworkType;
 import org.tinymediamanager.scraper.MediaCastMember;
 import org.tinymediamanager.scraper.MediaGenres;
 import org.tinymediamanager.scraper.MediaMetadata;
+import org.tinymediamanager.scraper.MediaScrapeOptions;
 import org.tinymediamanager.scraper.MediaTrailer;
+import org.tinymediamanager.scraper.tmdb.TmdbMetadataProvider;
 import org.tinymediamanager.scraper.util.CachedUrl;
 import org.tinymediamanager.scraper.util.UrlUtil;
+
+import com.omertron.themoviedbapi.model.CollectionInfo;
 
 /**
  * The main class for movies.
@@ -75,101 +84,78 @@ import org.tinymediamanager.scraper.util.UrlUtil;
 @Entity
 @Inheritance(strategy = javax.persistence.InheritanceType.JOINED)
 public class Movie extends MediaEntity {
-  /** The Constant logger. */
   @XmlTransient
   private static final Logger LOGGER            = LoggerFactory.getLogger(Movie.class);
 
-  /** The title sortable. */
-  @Transient
-  private String              titleSortable     = "";
-
-  /** The sorttitle. */
   private String              sortTitle         = "";
-
-  /** The tagline. */
   private String              tagline           = "";
-
-  /** The votes. */
   private int                 votes             = 0;
-
-  /** The runtime. */
   private int                 runtime           = 0;
-
-  /** The nfo filename. */
-  private String              nfoFilename       = "";
-
-  /** The director. */
   private String              director          = "";
-
-  /** The writer. */
   private String              writer            = "";
+  private String              dataSource        = "";
+  private boolean             watched           = false;
+  private MovieSet            movieSet;
+  private boolean             isDisc            = false;
+  private String              spokenLanguages   = "";
+  private boolean             subtitles         = false;
+  private String              country           = "";
+  private Date                releaseDate       = null;
 
-  /** The certification. */
+  private List<String>        genres            = new ArrayList<String>();
+  private List<String>        tags              = new ArrayList<String>();
+  private List<String>        extraThumbs       = new ArrayList<String>();
+  private List<String>        extraFanarts      = new ArrayList<String>();
+
   @Enumerated(EnumType.STRING)
   private Certification       certification     = Certification.NOT_RATED;
 
-  /** The data source. */
-  private String              dataSource        = "";
-
-  /** The watched. */
-  private boolean             watched           = false;
-
-  /** The new genres based on an enum like class. */
-  private List<String>        genres            = new ArrayList<String>();
-
-  /** The genres for access. */
-  @Transient
-  private List<MediaGenres>   genresForAccess   = new ArrayList<MediaGenres>();
-
-  /** The actors. */
   @OneToMany(cascade = CascadeType.ALL)
   private List<MovieActor>    actors            = new ArrayList<MovieActor>();
 
-  /** The actors observables. */
-  @Transient
-  private List<MovieActor>    actorsObservables = ObservableCollections.observableList(actors);
-
-  /** The trailer. */
   @OneToMany(cascade = CascadeType.ALL)
   private List<MediaTrailer>  trailer           = new ArrayList<MediaTrailer>();
 
-  /** The trailer observable. */
   @Transient
-  private List<MediaTrailer>  trailerObservable = ObservableCollections.observableList(trailer);
+  private String              titleSortable     = "";
 
-  /** The tags. */
-  private List<String>        tags              = new ArrayList<String>();
-
-  /** The tags observable. */
-  @Transient
-  private List<String>        tagsObservable    = ObservableCollections.observableList(tags);
-
-  /** The extra thumbs. */
-  private List<String>        extraThumbs       = new ArrayList<String>();
-
-  /** The extra fanarts. */
-  private List<String>        extraFanarts      = new ArrayList<String>();
-
-  /** The movie set. */
-  private MovieSet            movieSet;
-
-  /** is this a disc movie folder (video_ts / bdmv)?. */
-  private boolean             isDisc            = false;
-
-  /** is this movie new in our list? */
   @Transient
   private boolean             newlyAdded        = false;
 
-  /** The spoken languages. */
-  private String              spokenLanguages   = "";
+  @Transient
+  private List<MediaGenres>   genresForAccess   = new ArrayList<MediaGenres>();
 
-  /** Subtitles of movie (either from local or from mediafiles) */
-  private boolean             subtitles         = false;
+  @Transient
+  private List<MovieActor>    actorsObservables = ObservableCollections.observableList(actors);
+
+  @Transient
+  private List<MediaTrailer>  trailerObservable = ObservableCollections.observableList(trailer);
+
+  @Transient
+  private List<String>        tagsObservable    = ObservableCollections.observableList(tags);
 
   /**
    * Instantiates a new movie. To initialize the propertychangesupport after loading
    */
   public Movie() {
+  }
+
+  /**
+   * checks if this movie has been scraped.<br>
+   * On a fresh DB, just reading local files, everything is again "unscraped". <br>
+   * detect minimum of filled values as "scraped"
+   * 
+   * @return isScraped
+   */
+  @Override
+  public boolean isScraped() {
+    if (!scraped) {
+      if (!plot.isEmpty() && !(year.isEmpty() || year.equals("0")) && !(genres == null || genres.size() == 0)
+          && !(actors == null || actors.size() == 0)) {
+        setScraped(true);
+      }
+    }
+    return scraped;
   }
 
   /**
@@ -198,7 +184,8 @@ public class Movie extends MediaEntity {
    */
   public void setSortTitleFromMovieSet() {
     if (movieSet != null) {
-      setSortTitle(movieSet.getTitle() + (movieSet.getMovieIndex(this) + 1));
+      int index = movieSet.getMovieIndex(this) + 1;
+      setSortTitle(movieSet.getTitle() + String.format("%02d", index));
     }
   }
 
@@ -215,13 +202,8 @@ public class Movie extends MediaEntity {
     return titleSortable;
   }
 
-  /**
-   * Gets the nfo filename.
-   * 
-   * @return the nfo filename
-   */
-  public String getNfoFilename() {
-    return nfoFilename;
+  public void clearTitleSortable() {
+    titleSortable = "";
   }
 
   /**
@@ -230,9 +212,11 @@ public class Movie extends MediaEntity {
    * @return the checks for nfo file
    */
   public Boolean getHasNfoFile() {
-    if (!StringUtils.isEmpty(nfoFilename)) {
+    List<MediaFile> mf = getMediaFiles(MediaFileType.NFO);
+    if (mf != null && mf.size() > 0) {
       return true;
     }
+
     return false;
   }
 
@@ -258,33 +242,6 @@ public class Movie extends MediaEntity {
       return true;
     }
     return false;
-  }
-
-  /**
-   * Sets the nfo filename.
-   * 
-   * @param newValue
-   *          the new nfo filename
-   */
-  public void setNfoFilename(String newValue) {
-    String oldValue = this.nfoFilename;
-    this.nfoFilename = newValue;
-    setNFO(new File(path, nfoFilename));
-    firePropertyChange(NFO_FILENAME, oldValue, newValue);
-    firePropertyChange(HAS_NFO_FILE, false, true);
-  }
-
-  private void setNFO(File file) {
-    List<MediaFile> nfos = getMediaFiles(MediaFileType.NFO);
-    MediaFile mediaFile = null;
-    if (nfos.size() > 0) {
-      mediaFile = nfos.get(0);
-      mediaFile.setFile(file);
-    }
-    else {
-      mediaFile = new MediaFile(file, MediaFileType.NFO);
-      addToMediaFiles(mediaFile);
-    }
   }
 
   /**
@@ -394,7 +351,7 @@ public class Movie extends MediaEntity {
       // extension) and remove
       File trailer = new File(tfile + ext);
       FileUtils.deleteQuietly(trailer);
-      boolean ok = MovieRenamer.moveFileSafe(new File(tfile + ext + ".tmp"), trailer);
+      boolean ok = Utils.moveFileSafe(new File(tfile + ext + ".tmp"), trailer);
     }
     catch (IOException e) {
       LOGGER.error("Error downloading trailer", e);
@@ -736,6 +693,7 @@ public class Movie extends MediaEntity {
       File folder = new File(path);
       if (folder.exists()) {
         FileUtils.deleteDirectory(folder);
+        removeAllMediaFiles(MediaFileType.THUMB);
       }
 
       folder.mkdirs();
@@ -747,8 +705,10 @@ public class Movie extends MediaEntity {
 
         FileOutputStream outputStream = null;
         InputStream is = null;
+        File file = null;
         if (Globals.settings.getMovieSettings().isImageExtraThumbsResize() && Globals.settings.getMovieSettings().getImageExtraThumbsSize() > 0) {
-          outputStream = new FileOutputStream(path + File.separator + "thumb" + (i + 1) + ".jpg");
+          file = new File(path, "thumb" + (i + 1) + ".jpg");
+          outputStream = new FileOutputStream(file);
           try {
             is = ImageCache.scaleImage(url, Globals.settings.getMovieSettings().getImageExtraThumbsSize());
           }
@@ -758,7 +718,8 @@ public class Movie extends MediaEntity {
           }
         }
         else {
-          outputStream = new FileOutputStream(path + File.separator + "thumb" + (i + 1) + "." + providedFiletype);
+          file = new File(path, "thumb" + (i + 1) + "." + providedFiletype);
+          outputStream = new FileOutputStream(file);
           CachedUrl cachedUrl = new CachedUrl(url);
           is = cachedUrl.getInputStream();
         }
@@ -766,6 +727,7 @@ public class Movie extends MediaEntity {
         IOUtils.copy(is, outputStream);
         outputStream.close();
         is.close();
+        addToMediaFiles(new MediaFile(file, MediaFileType.THUMB));
       }
     }
     catch (IOException e) {
@@ -815,6 +777,7 @@ public class Movie extends MediaEntity {
       File folder = new File(path);
       if (folder.exists()) {
         FileUtils.deleteDirectory(folder);
+        removeAllMediaFiles(MediaFileType.EXTRAFANART);
       }
 
       folder.mkdirs();
@@ -824,11 +787,13 @@ public class Movie extends MediaEntity {
         String url = fanarts.get(i);
         String providedFiletype = FilenameUtils.getExtension(url);
         CachedUrl cachedUrl = new CachedUrl(url);
-        FileOutputStream outputStream = new FileOutputStream(path + File.separator + "fanart" + (i + 1) + "." + providedFiletype);
+        File file = new File(path, "fanart" + (i + 1) + "." + providedFiletype);
+        FileOutputStream outputStream = new FileOutputStream(file);
         InputStream is = cachedUrl.getInputStream();
         IOUtils.copy(is, outputStream);
         outputStream.close();
         is.close();
+        addToMediaFiles(new MediaFile(file, MediaFileType.EXTRAFANART));
       }
     }
     catch (IOException e) {
@@ -860,16 +825,6 @@ public class Movie extends MediaEntity {
     String oldValue = getImdbId();
     ids.put("imdbId", newValue);
     firePropertyChange("imdbId", oldValue, newValue);
-  }
-
-  /**
-   * Sets the metadata.
-   * 
-   * @param md
-   *          the new metadata
-   */
-  public void setMetadata(MediaMetadata md) {
-    setMetadata(md, Globals.settings.getMovieScraperMetadataConfig());
   }
 
   /**
@@ -912,6 +867,12 @@ public class Movie extends MediaEntity {
 
     if (config.isYear()) {
       setYear(metadata.getYear());
+      try {
+        setReleaseDate(metadata.getReleaseDate());
+      }
+      catch (ParseException e) {
+        LOGGER.warn(e.getMessage());
+      }
     }
 
     if (config.isRating()) {
@@ -924,6 +885,7 @@ public class Movie extends MediaEntity {
     }
 
     setSpokenLanguages(metadata.getSpokenLanguages());
+    setCountry(metadata.getCountry());
 
     // certifications
     if (config.isCertification()) {
@@ -987,19 +949,40 @@ public class Movie extends MediaEntity {
     if (config.isCollection()) {
       int col = metadata.getTmdbIdSet();
       if (col != 0) {
-        MovieSet movieSet = MovieList.getInstance().findMovieSet(metadata.getCollectionName());
-        // no one found - create it
-        if (movieSet == null) {
-          movieSet = new MovieSet(metadata.getCollectionName());
+        MovieSet movieSet = MovieList.getInstance().getMovieSet(metadata.getCollectionName(), metadata.getTmdbIdSet());
+        if (movieSet.getTmdbId() == 0) {
           movieSet.setTmdbId(col);
-          movieSet.saveToDb();
-          MovieList.getInstance().addMovieSet(movieSet);
+          // get movieset metadata
+          try {
+            TmdbMetadataProvider mp = new TmdbMetadataProvider();
+            MediaScrapeOptions options = new MediaScrapeOptions();
+            options.setTmdbId(col);
+            options.setLanguage(Globals.settings.getMovieSettings().getScraperLanguage());
+            options.setCountry(Globals.settings.getMovieSettings().getCertificationCountry());
+
+            CollectionInfo info = mp.getMovieSetMetadata(options);
+            if (info != null) {
+              movieSet.setTitle(info.getName());
+              movieSet.setPlot(info.getOverview());
+              movieSet.setPosterUrl(info.getPosterPath());
+              movieSet.setFanartUrl(info.getBackdropPath());
+            }
+          }
+          catch (Exception e) {
+          }
         }
+
         // add movie to movieset
         if (movieSet != null) {
-          movieSet.addMovie(this);
+          // first remove from "old" movieset
+          setMovieSet(null);
+
+          // add to new movieset
+          // movieSet.addMovie(this);
           setMovieSet(movieSet);
-          saveToDb();
+          movieSet.insertMovie(this);
+          movieSet.updateMovieSorttitle();
+          // saveToDb();
         }
       }
     }
@@ -1057,32 +1040,12 @@ public class Movie extends MediaEntity {
    * Sets the artwork.
    * 
    * @param md
-   *          the new artwork
-   */
-  public void setArtwork(MediaMetadata md) {
-    setArtwork(md, Globals.settings.getMovieScraperMetadataConfig());
-  }
-
-  /**
-   * Sets the artwork.
-   * 
-   * @param md
    *          the md
    * @param config
    *          the config
    */
   public void setArtwork(MediaMetadata md, MovieScraperMetadataConfig config) {
     setArtwork(md.getMediaArt(MediaArtworkType.ALL), config);
-  }
-
-  /**
-   * Sets the artwork.
-   * 
-   * @param artwork
-   *          the new artwork
-   */
-  public void setArtwork(List<MediaArtwork> artwork) {
-    setArtwork(artwork, Globals.settings.getMovieScraperMetadataConfig());
   }
 
   /**
@@ -1303,8 +1266,12 @@ public class Movie extends MediaEntity {
    * @return the poster filename
    */
   public String getPosterFilename(MoviePosterNaming poster) {
+    return getPosterFilename(poster, getMediaFiles(MediaFileType.VIDEO).get(0).getFilename());
+  }
+
+  public String getPosterFilename(MoviePosterNaming poster, String newMovieFilename) {
     String filename = "";
-    String mediafile = Utils.cleanStackingMarkers(FilenameUtils.getBaseName(getMediaFiles(MediaFileType.VIDEO).get(0).getFilename()));
+    String mediafile = Utils.cleanStackingMarkers(FilenameUtils.getBaseName(newMovieFilename));
 
     switch (poster) {
       case MOVIENAME_POSTER_PNG:
@@ -1376,8 +1343,12 @@ public class Movie extends MediaEntity {
    * @return the fanart filename
    */
   public String getFanartFilename(MovieFanartNaming fanart) {
+    return getFanartFilename(fanart, getMediaFiles(MediaFileType.VIDEO).get(0).getFilename());
+  }
+
+  public String getFanartFilename(MovieFanartNaming fanart, String newMovieFilename) {
     String filename = "";
-    String mediafile = Utils.cleanStackingMarkers(FilenameUtils.getBaseName(getMediaFiles(MediaFileType.VIDEO).get(0).getFilename()));
+    String mediafile = Utils.cleanStackingMarkers(FilenameUtils.getBaseName(newMovieFilename));
 
     switch (fanart) {
       case FANART_PNG:
@@ -1428,12 +1399,25 @@ public class Movie extends MediaEntity {
    * @return the nfo filename
    */
   public String getNfoFilename(MovieNfoNaming nfo) {
+    return getNfoFilename(nfo, getMediaFiles(MediaFileType.VIDEO).get(0).getFilename());
+  }
+
+  /**
+   * all XBMC supported NFO names. (without path!)
+   * 
+   * @param nfo
+   *          the nfo filenaming
+   * @param newMovieFilename
+   *          the new/desired movie filename
+   * @return the nfo filename
+   */
+  public String getNfoFilename(MovieNfoNaming nfo, String newMovieFilename) {
     String filename = "";
 
     switch (nfo) {
       case FILENAME_NFO:
-        String mediafile = FilenameUtils.getBaseName(getMediaFiles(MediaFileType.VIDEO).get(0).getFilename());
-        filename += Utils.cleanStackingMarkers(mediafile) + ".nfo"; // w/o stacking information
+        String movieFilename = FilenameUtils.getBaseName(newMovieFilename);
+        filename += Utils.cleanStackingMarkers(movieFilename) + ".nfo"; // w/o stacking information
         break;
       case MOVIE_NFO:
         filename += "movie.nfo";
@@ -1524,11 +1508,12 @@ public class Movie extends MediaEntity {
    */
   public void writeNFO() {
     if (Globals.settings.getMovieSettings().getMovieConnector() == MovieConnectors.MP) {
-      setNfoFilename(MovieToMpNfoConnector.setData(this));
+      MovieToMpNfoConnector.setData(this);
     }
     else {
-      setNfoFilename(MovieToXbmcNfoConnector.setData(this));
+      MovieToXbmcNfoConnector.setData(this);
     }
+    firePropertyChange(HAS_NFO_FILE, false, true);
   }
 
   /**
@@ -1735,6 +1720,18 @@ public class Movie extends MediaEntity {
     }
 
     firePropertyChange(MOVIESET, oldValue, newValue);
+    firePropertyChange(MOVIESET_TITLE, oldValue, newValue);
+  }
+
+  public void movieSetTitleChanged() {
+    firePropertyChange(MOVIESET_TITLE, null, "");
+  }
+
+  public String getMovieSetTitle() {
+    if (movieSet != null) {
+      return movieSet.getTitle();
+    }
+    return "";
   }
 
   /**
@@ -1792,7 +1789,7 @@ public class Movie extends MediaEntity {
    */
   public String getMediaInfoVideoFormat() {
     if (mediaFiles.size() > 0) {
-      MediaFile mediaFile = mediaFiles.get(0);
+      MediaFile mediaFile = getMediaFiles(MediaFileType.VIDEO).get(0);
       return mediaFile.getVideoFormat();
     }
 
@@ -1806,7 +1803,7 @@ public class Movie extends MediaEntity {
    */
   public String getMediaInfoVideoCodec() {
     if (mediaFiles.size() > 0) {
-      MediaFile mediaFile = mediaFiles.get(0);
+      MediaFile mediaFile = getMediaFiles(MediaFileType.VIDEO).get(0);
       return mediaFile.getVideoCodec();
     }
 
@@ -1820,7 +1817,7 @@ public class Movie extends MediaEntity {
    */
   public String getMediaInfoAudioCodecAndChannels() {
     if (mediaFiles.size() > 0) {
-      MediaFile mediaFile = mediaFiles.get(0);
+      MediaFile mediaFile = getMediaFiles(MediaFileType.VIDEO).get(0);
       return mediaFile.getAudioCodec() + "_" + mediaFile.getAudioChannels();
     }
 
@@ -1832,25 +1829,24 @@ public class Movie extends MediaEntity {
     return "";
   }
 
-  /**
-   * Sets the spoken languages.
-   * 
-   * @param newValue
-   *          the new spoken languages
-   */
   public void setSpokenLanguages(String newValue) {
     String oldValue = this.spokenLanguages;
     this.spokenLanguages = newValue;
     firePropertyChange(SPOKEN_LANGUAGES, oldValue, newValue);
   }
 
-  /**
-   * Gets the spoken languages.
-   * 
-   * @return the spoken languages
-   */
   public String getSpokenLanguages() {
     return this.spokenLanguages;
+  }
+
+  public String getCountry() {
+    return country;
+  }
+
+  public void setCountry(String newValue) {
+    String oldValue = this.country;
+    this.country = newValue;
+    firePropertyChange(COUNTRY, oldValue, newValue);
   }
 
   /**
@@ -1911,5 +1907,67 @@ public class Movie extends MediaEntity {
     }
 
     return mediaFilesWithSubtitles;
+  }
+
+  public int getRuntimeFromMediaFiles() {
+    int runtime = 0;
+    for (MediaFile mf : getMediaFiles(MediaFileType.VIDEO)) {
+      runtime += mf.getDuration();
+    }
+    return runtime;
+  }
+
+  public int getRuntimeFromMediaFilesInMinutes() {
+    return getRuntimeFromMediaFiles() / 60;
+  }
+
+  public Date getReleaseDate() {
+    return releaseDate;
+  }
+
+  public void setReleaseDate(Date newValue) {
+    Date oldValue = this.releaseDate;
+    this.releaseDate = newValue;
+    firePropertyChange(RELEASE_DATE, oldValue, newValue);
+    firePropertyChange(RELEASE_DATE_AS_STRING, oldValue, newValue);
+  }
+
+  /**
+   * release date as yyyy-mm-dd<br>
+   * https://xkcd.com/1179/ :P
+   */
+  public String getReleaseDateFormatted() {
+    if (this.releaseDate == null) {
+      return "";
+    }
+    return new SimpleDateFormat("yyyy-MM-dd").format(this.releaseDate);
+  }
+
+  /**
+   * Gets the first aired as a string, formatted in the system locale.
+   */
+  public String getReleaseDateAsString() {
+    if (this.releaseDate == null) {
+      return "";
+    }
+    return SimpleDateFormat.getDateInstance(DateFormat.MEDIUM, Locale.getDefault()).format(releaseDate);
+  }
+
+  /**
+   * convenient method to set the release date (parsed from string).
+   */
+  public void setReleaseDate(String dateAsString) throws ParseException {
+    setReleaseDate(org.tinymediamanager.scraper.util.StrgUtils.parseDate(dateAsString));
+  }
+
+  @Override
+  public synchronized void callbackForWrittenArtwork(MediaArtworkType type) {
+    if (Globals.settings.getMovieSettings().getMovieConnector() == MovieConnectors.MP) {
+      writeNFO();
+    }
+  }
+
+  public List<MediaFile> getVideoFiles() {
+    return getMediaFiles(MediaFileType.VIDEO);
   }
 }

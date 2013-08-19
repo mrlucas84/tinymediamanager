@@ -17,7 +17,9 @@ package org.tinymediamanager.scraper.imdb;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.Callable;
@@ -133,20 +135,20 @@ public class ImdbMetadataProvider implements IMediaMetadataProvider {
     sb.append("title/");
     sb.append(imdbId);
     sb.append("/combined");
-    Callable<Document> worker = new ImdbWorker(sb.toString());
+    Callable<Document> worker = new ImdbWorker(sb.toString(), options.getLanguage().name(), options.getCountry().getAlpha2());
     Future<Document> futureCombined = compSvcImdb.submit(worker);
 
     // worker for imdb request (/plotsummary) (from chosen site)
     Future<Document> futurePlotsummary = null;
-    if (!Globals.settings.getMovieSettings().isImdbScrapeForeignLanguage()) {
-      sb = new StringBuilder(imdbSite.getSite());
-      sb.append("title/");
-      sb.append(imdbId);
-      sb.append("/plotsummary");
+    // if (!Globals.settings.getMovieSettings().isImdbScrapeForeignLanguage()) {
+    sb = new StringBuilder(imdbSite.getSite());
+    sb.append("title/");
+    sb.append(imdbId);
+    sb.append("/plotsummary");
 
-      worker = new ImdbWorker(sb.toString());
-      futurePlotsummary = compSvcImdb.submit(worker);
-    }
+    worker = new ImdbWorker(sb.toString(), options.getLanguage().name(), options.getCountry().getAlpha2());
+    futurePlotsummary = compSvcImdb.submit(worker);
+    // }
 
     // worker for tmdb request
     Future<MediaMetadata> futureTmdb = null;
@@ -218,8 +220,8 @@ public class ImdbMetadataProvider implements IMediaMetadataProvider {
     Element poster = doc.getElementById("primary-poster");
     if (poster != null) {
       String posterUrl = poster.attr("src");
-      posterUrl = posterUrl.replaceAll("SX[0-9]{2,4}_", "SX195_");
-      posterUrl = posterUrl.replaceAll("SY[0-9]{2,4}_", "SY195_");
+      posterUrl = posterUrl.replaceAll("SX[0-9]{2,4}_", "SX400_");
+      posterUrl = posterUrl.replaceAll("SY[0-9]{2,4}_", "SY400_");
       processMediaArt(md, MediaArtworkType.POSTER, "Poster", posterUrl);
     }
 
@@ -304,6 +306,33 @@ public class ImdbMetadataProvider implements IMediaMetadataProvider {
         Element firstH5 = h5.first();
         String h5Title = firstH5.text();
 
+        // release date
+        /*
+         * <div class="info"><h5>Release Date:</h5><div class="info-content">5 January 1996 (USA)<a class="tn15more inline"
+         * href="/title/tt0114746/releaseinfo"
+         * onclick="(new Image()).src='/rg/title-tease/releasedates/images/b.gif?link=/title/tt0114746/releaseinfo';"> See more</a>&nbsp;</div></div>
+         */
+        if (h5Title.matches("(?i)" + ImdbSiteDefinition.IMDB_COM.getReleaseDate() + ".*")) {
+          Elements div = element.getElementsByClass("info-content");
+          if (div.size() > 0) {
+            Element releaseDateElement = div.first();
+            String releaseDate = cleanString(releaseDateElement.ownText().replaceAll("»", ""));
+            Pattern pattern = Pattern.compile("(.*)\\(.*\\)");
+            Matcher matcher = pattern.matcher(releaseDate);
+            if (matcher.find()) {
+              try {
+                SimpleDateFormat sdf = new SimpleDateFormat("d MMM yyyy");
+                Date parsedDate = sdf.parse(matcher.group(1));
+                sdf = new SimpleDateFormat("dd-MM-yyyy");
+                md.setReleaseDate(sdf.format(parsedDate));
+              }
+              catch (Exception e) {
+                md.setReleaseDate("");
+              }
+            }
+          }
+        }
+
         /*
          * <div class="info"><h5>Tagline:</h5><div class="info-content"> (7) To Defend Us... <a class="tn15more inline"
          * href="/title/tt0472033/taglines" onClick= "(new Image()).src='/rg/title-tease/taglines/images/b.gif?link=/title/tt0472033/taglines';" >See
@@ -371,6 +400,28 @@ public class ImdbMetadataProvider implements IMediaMetadataProvider {
             }
             md.setRuntime(runtime);
           }
+        }
+
+        /*
+         * <div class="info"><h5>Country:</h5><div class="info-content"><a href="/country/fr">France</a> | <a href="/country/es">Spain</a> | <a
+         * href="/country/it">Italy</a> | <a href="/country/hu">Hungary</a></div></div>
+         */
+        // country
+        if (h5Title.matches("(?i)Country.*")) {
+          Elements a = element.getElementsByTag("a");
+          String countries = "";
+          for (Element anchor : a) {
+            Pattern pattern = Pattern.compile("/country/(.*)");
+            Matcher matcher = pattern.matcher(anchor.attr("href"));
+            if (matcher.matches()) {
+              String country = matcher.group(1);
+              if (StringUtils.isNotEmpty(countries)) {
+                countries += ", ";
+              }
+              countries += country.toUpperCase();
+            }
+          }
+          md.setCountry(countries);
         }
 
         /*
@@ -497,8 +548,8 @@ public class ImdbMetadataProvider implements IMediaMetadataProvider {
                 cm.setImageUrl("");
               }
               else {
-                thumbUrl = thumbUrl.replaceAll("SX[0-9]{2,4}_", "SX100_");
-                thumbUrl = thumbUrl.replaceAll("SY[0-9]{2,4}_", "SY125_");
+                thumbUrl = thumbUrl.replaceAll("SX[0-9]{2,4}_", "SX400_");
+                thumbUrl = thumbUrl.replaceAll("SY[0-9]{2,4}_", "");
                 cm.setImageUrl(thumbUrl);
               }
             }
@@ -542,53 +593,56 @@ public class ImdbMetadataProvider implements IMediaMetadataProvider {
      * plot from /plotsummary
      */
     // build the url
-    if (!Globals.settings.getMovieSettings().isImdbScrapeForeignLanguage()) {
-      doc = null;
-      doc = futurePlotsummary.get();
+    // if (!Globals.settings.getMovieSettings().isImdbScrapeForeignLanguage()) {
+    doc = null;
+    doc = futurePlotsummary.get();
 
-      // imdb.com has another site structure
-      if (imdbSite == ImdbSiteDefinition.IMDB_COM) {
-        Elements plotpar = doc.getElementsByClass("plotpar");
-        if (plotpar.size() > 0) {
-          String plot = cleanString(plotpar.get(0).ownText());
-          md.setPlot(plot);
-        }
-      }
-      else {
-        Element wiki = doc.getElementById("swiki.2.1");
-        if (wiki != null) {
-          String plot = cleanString(wiki.ownText());
-          md.setPlot(plot);
-        }
-      }
-
-      // title also from chosen site if we are not scraping akas.imdb.com
-      if (imdbSite != ImdbSiteDefinition.IMDB_COM) {
-        title = doc.getElementById("tn15title");
-        if (title != null) {
-          Element element = null;
-          // title
-          elements = title.getElementsByClass("main");
-          if (elements.size() > 0) {
-            element = elements.first();
-            String movieTitle = cleanString(element.ownText());
-            md.setTitle(movieTitle);
-          }
-        }
-        md.setTagline("");
+    // imdb.com has another site structure
+    if (imdbSite == ImdbSiteDefinition.IMDB_COM) {
+      Elements plotpar = doc.getElementsByClass("plotpar");
+      if (plotpar.size() > 0) {
+        String plot = cleanString(plotpar.get(0).ownText());
+        md.setPlot(plot);
       }
     }
+    else {
+      Element wiki = doc.getElementById("swiki.2.1");
+      if (wiki != null) {
+        String plot = cleanString(wiki.ownText());
+        md.setPlot(plot);
+      }
+    }
+
+    // title also from chosen site if we are not scraping akas.imdb.com
+    if (imdbSite != ImdbSiteDefinition.IMDB_COM) {
+      title = doc.getElementById("tn15title");
+      if (title != null) {
+        Element element = null;
+        // title
+        elements = title.getElementsByClass("main");
+        if (elements.size() > 0) {
+          element = elements.first();
+          String movieTitle = cleanString(element.ownText());
+          md.setTitle(movieTitle);
+        }
+      }
+      md.setTagline("");
+    }
+    // }
 
     // get data from tmdb?
     if (Globals.settings.getMovieSettings().isImdbScrapeForeignLanguage()) {
       MediaMetadata tmdbMd = futureTmdb.get();
-      if (tmdbMd != null) {
+      if (tmdbMd != null && StringUtils.isNotBlank(tmdbMd.getPlot())) {
         // title
         md.setTitle(tmdbMd.getTitle());
         // tagline
         md.setTagline(tmdbMd.getTagline());
         // plot
         md.setPlot(tmdbMd.getPlot());
+        // collection info
+        md.setCollectionName(tmdbMd.getCollectionName());
+        md.setTmdbIdSet(tmdbMd.getTmdbIdSet());
       }
     }
 
@@ -647,6 +701,10 @@ public class ImdbMetadataProvider implements IMediaMetadataProvider {
       return result;
     }
 
+    // parse out language and coutry from the scraper options
+    String language = query.get(SearchParam.LANGUAGE);
+    String country = ""; // we do not have a country in the search params
+
     searchTerm = MetadataUtil.removeNonSearchCharacters(searchTerm);
 
     StringBuilder sb = new StringBuilder(imdbSite.getSite());
@@ -667,7 +725,7 @@ public class ImdbMetadataProvider implements IMediaMetadataProvider {
     Document doc;
     try {
       CachedUrl url = new CachedUrl(sb.toString());
-      url.addHeader("Accept-Language", getAcceptLanguage());
+      url.addHeader("Accept-Language", getAcceptLanguage(language, country));
       doc = Jsoup.parse(url.getInputStream(), "UTF-8", "");
     }
     catch (Exception e) {
@@ -695,6 +753,8 @@ public class ImdbMetadataProvider implements IMediaMetadataProvider {
       if (!StringUtils.isEmpty(movieId)) {
         MediaScrapeOptions options = new MediaScrapeOptions();
         options.setImdbId(movieId);
+        options.setLanguage(Globals.settings.getMovieSettings().getScraperLanguage());
+        options.setCountry(Globals.settings.getMovieSettings().getCertificationCountry());
         md = getMetadata(options);
         if (!StringUtils.isEmpty(md.getTitle())) {
           movieName = md.getTitle();
@@ -717,7 +777,8 @@ public class ImdbMetadataProvider implements IMediaMetadataProvider {
           Elements imgs = td.getElementsByTag("img");
           for (Element img : imgs) {
             posterUrl = img.attr("src");
-            posterUrl = posterUrl.replaceAll("SX[0-9]{2,4}_", "SY195_");
+            posterUrl = posterUrl.replaceAll("SX[0-9]{2,4}_", "SX400_");
+            posterUrl = posterUrl.replaceAll("SY[0-9]{2,4}_", "SY400_");
             posterUrl = posterUrl.replaceAll("CR[0-9]{1,3},[0-9]{1,3},[0-9]{1,3},[0-9]{1,3}_", "");
           }
         }
@@ -806,7 +867,8 @@ public class ImdbMetadataProvider implements IMediaMetadataProvider {
         Elements imgs = element.getElementsByTag("img");
         for (Element img : imgs) {
           posterUrl = img.attr("src");
-          posterUrl = posterUrl.replaceAll("SX[0-9]{2,4}_", "SY195_");
+          posterUrl = posterUrl.replaceAll("SX[0-9]{2,4}_", "SX400_");
+          posterUrl = posterUrl.replaceAll("SY[0-9]{2,4}_", "SY400_");
           posterUrl = posterUrl.replaceAll("CR[0-9]{1,3},[0-9]{1,3},[0-9]{1,3},[0-9]{1,3}_", "");
         }
       }
@@ -850,25 +912,51 @@ public class ImdbMetadataProvider implements IMediaMetadataProvider {
    * 
    * @return the header to set
    */
-  private String getAcceptLanguage() {
-    // build a http header for the preferred language
-    StringBuilder languages = new StringBuilder();
+  public static String getAcceptLanguage(String language, String country) {
+    List<String> languageString = new ArrayList<String>();
 
-    Locale jreLocale = Locale.getDefault();
-
-    languages.append(jreLocale.getLanguage());
-    languages.append("-");
-    languages.append(jreLocale.getCountry());
-    languages.append(",");
-
-    languages.append(jreLocale.getLanguage());
-    languages.append(";q=0.8");
-
-    if (!"en".equalsIgnoreCase(jreLocale.getLanguage())) {
-      languages.append(",en;q=0.5");
+    // first: take the preferred language from settings
+    if (StringUtils.isNotBlank(language) && StringUtils.isNotBlank(country)) {
+      String combined = language + "-" + country;
+      languageString.add(combined.toLowerCase());
     }
 
-    return languages.toString();
+    if (StringUtils.isNotBlank(language)) {
+      languageString.add(language.toLowerCase());
+    }
+
+    // second: the JRE language
+    Locale jreLocale = Locale.getDefault();
+    String combined = (jreLocale.getLanguage() + "-" + jreLocale.getCountry()).toLowerCase();
+    if (!languageString.contains(combined)) {
+      languageString.add(combined);
+    }
+
+    if (!languageString.contains(jreLocale.getLanguage().toLowerCase())) {
+      languageString.add(jreLocale.getLanguage().toLowerCase());
+    }
+
+    // third: fallback to en
+    if (!languageString.contains("en")) {
+      languageString.add("en");
+    }
+
+    // build a http header for the preferred language
+    StringBuilder languages = new StringBuilder();
+    float qualifier = 1f;
+
+    for (String line : languageString) {
+      if (languages.length() > 0) {
+        languages.append(",");
+      }
+      languages.append(line);
+      if (qualifier < 1) {
+        languages.append(String.format(Locale.US, ";q=%1.1f", qualifier));
+      }
+      qualifier -= 0.1;
+    }
+
+    return languages.toString().toLowerCase();
   }
 
   /**
@@ -915,10 +1003,9 @@ public class ImdbMetadataProvider implements IMediaMetadataProvider {
    */
   private class ImdbWorker implements Callable<Document> {
 
-    /** The url. */
     private String   url;
-
-    /** The doc. */
+    private String   language;
+    private String   country;
     private Document doc = null;
 
     /**
@@ -927,8 +1014,10 @@ public class ImdbMetadataProvider implements IMediaMetadataProvider {
      * @param url
      *          the url
      */
-    public ImdbWorker(String url) {
+    public ImdbWorker(String url, String language, String country) {
       this.url = url;
+      this.language = language;
+      this.country = country;
     }
 
     /*
@@ -941,7 +1030,7 @@ public class ImdbMetadataProvider implements IMediaMetadataProvider {
       doc = null;
       try {
         CachedUrl cachedUrl = new CachedUrl(url);
-        cachedUrl.addHeader("Accept-Language", getAcceptLanguage());
+        cachedUrl.addHeader("Accept-Language", getAcceptLanguage(language, country));
         doc = Jsoup.parse(cachedUrl.getInputStream(), imdbSite.getCharset().displayName(), "");
       }
       catch (Exception e) {
@@ -981,8 +1070,11 @@ public class ImdbMetadataProvider implements IMediaMetadataProvider {
       try {
         TmdbMetadataProvider tmdb = new TmdbMetadataProvider();
         MediaScrapeOptions options = new MediaScrapeOptions();
+        options.setLanguage(Globals.settings.getMovieSettings().getScraperLanguage());
+        options.setCountry(Globals.settings.getMovieSettings().getCertificationCountry());
         options.setImdbId(imdbId);
-        return tmdb.getMetadata(options);
+        // return tmdb.getMetadata(options);
+        return tmdb.getLocalizedContent(options, null);
       }
       catch (Exception e) {
         return null;

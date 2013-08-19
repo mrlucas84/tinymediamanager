@@ -40,6 +40,7 @@ import org.tinymediamanager.Globals;
 import org.tinymediamanager.core.ImageCache;
 import org.tinymediamanager.core.MediaEntity;
 import org.tinymediamanager.core.Utils;
+import org.tinymediamanager.scraper.MediaArtwork.MediaArtworkType;
 import org.tinymediamanager.scraper.util.CachedUrl;
 
 /**
@@ -50,18 +51,28 @@ import org.tinymediamanager.scraper.util.CachedUrl;
 @Entity
 public class MovieSet extends MediaEntity {
 
-  private static final Logger LOGGER           = LoggerFactory.getLogger(MovieSet.class);
+  private static final Logger            LOGGER               = LoggerFactory.getLogger(MovieSet.class);
+  private static final Comparator<Movie> MOVIE_SET_COMPARATOR = new MovieInMovieSetComparator();
 
-  private List<Movie>         movies           = new ArrayList<Movie>();
+  private List<Movie>                    movies               = new ArrayList<Movie>();
   @Transient
-  private List<Movie>         moviesObservable = ObservableCollections.observableList(movies);
+  private List<Movie>                    moviesObservable     = ObservableCollections.observableList(movies);
   @Transient
-  private String              titleSortable    = "";
+  private String                         titleSortable        = "";
 
   /**
    * Instantiates a new movieset. To initialize the propertychangesupport after loading
    */
   public MovieSet() {
+  }
+
+  @Override
+  public void setTitle(String newValue) {
+    super.setTitle(newValue);
+
+    for (Movie movie : moviesObservable) {
+      movie.movieSetTitleChanged();
+    }
   }
 
   /**
@@ -128,6 +139,7 @@ public class MovieSet extends MediaEntity {
    * @param newValue
    *          the new poster url
    */
+  @Override
   public void setPosterUrl(String newValue) {
     super.setPosterUrl(newValue);
     boolean written = false;
@@ -135,6 +147,9 @@ public class MovieSet extends MediaEntity {
 
     // write new poster
     writeImageToMovieFolder(moviesObservable, posterFilename, posterUrl);
+    if (moviesObservable.size() > 0) {
+      written = true;
+    }
 
     // write to artwork folder
     if (Globals.settings.getMovieSettings().isEnableMovieSetArtworkFolder()
@@ -162,6 +177,7 @@ public class MovieSet extends MediaEntity {
    * @param newValue
    *          the new fanart url
    */
+  @Override
   public void setFanartUrl(String newValue) {
     super.setFanartUrl(newValue);
     boolean written = false;
@@ -169,6 +185,9 @@ public class MovieSet extends MediaEntity {
 
     // write new fanart
     writeImageToMovieFolder(moviesObservable, fanartFilename, fanartUrl);
+    if (moviesObservable.size() > 0) {
+      written = true;
+    }
 
     // write to artwork folder
     if (Globals.settings.getMovieSettings().isEnableMovieSetArtworkFolder()
@@ -194,6 +213,7 @@ public class MovieSet extends MediaEntity {
    * 
    * @return the fanart
    */
+  @Override
   public String getFanart() {
     String fanart = "";
 
@@ -229,6 +249,7 @@ public class MovieSet extends MediaEntity {
    * 
    * @return the poster
    */
+  @Override
   public String getPoster() {
     String poster = "";
 
@@ -242,7 +263,8 @@ public class MovieSet extends MediaEntity {
     }
 
     // try to get a fanart from one movie
-    for (Movie movie : moviesObservable) {
+    List<Movie> movies = new ArrayList<Movie>(moviesObservable);
+    for (Movie movie : movies) {
       String filename = movie.getPath() + File.separator + "movieset-poster.jpg";
       File posterFile = new File(filename);
       if (posterFile.exists()) {
@@ -260,12 +282,15 @@ public class MovieSet extends MediaEntity {
   }
 
   /**
-   * Adds the movie.
+   * Adds the movie to the end of the list
    * 
    * @param movie
    *          the movie
    */
   public void addMovie(Movie movie) {
+    if (moviesObservable.contains(movie)) {
+      return;
+    }
     moviesObservable.add(movie);
     saveToDb();
 
@@ -280,8 +305,43 @@ public class MovieSet extends MediaEntity {
     writeImageToMovieFolder(movies, "movieset-fanart.jpg", fanartUrl);
     writeImageToMovieFolder(movies, "movieset-poster.jpg", posterUrl);
 
-    firePropertyChange("movies", null, moviesObservable);
     firePropertyChange("addedMovie", null, movie);
+    firePropertyChange("movies", null, moviesObservable);
+  }
+
+  /**
+   * Inserts the movie into the right position of the list
+   * 
+   * @param movie
+   */
+  public void insertMovie(Movie movie) {
+    if (moviesObservable.contains(movie)) {
+      return;
+    }
+
+    int index = Collections.binarySearch(moviesObservable, movie, MOVIE_SET_COMPARATOR);
+    if (index < 0) {
+      moviesObservable.add(-index - 1, movie);
+    }
+    else if (index >= 0) {
+      moviesObservable.add(index, movie);
+    }
+
+    saveToDb();
+
+    // // look for an tmdbid if no one available
+    // if (tmdbId == 0) {
+    // searchTmdbId();
+    // }
+
+    // write images
+    List<Movie> movies = new ArrayList<Movie>(1);
+    movies.add(movie);
+    writeImageToMovieFolder(movies, "movieset-fanart.jpg", fanartUrl);
+    writeImageToMovieFolder(movies, "movieset-poster.jpg", posterUrl);
+
+    firePropertyChange("addedMovie", null, movie);
+    firePropertyChange("movies", null, moviesObservable);
   }
 
   /**
@@ -299,6 +359,10 @@ public class MovieSet extends MediaEntity {
     imageFile = new File(movie.getPath() + File.separator + "movieset-poster.jpg");
     if (imageFile.exists()) {
       imageFile.delete();
+    }
+    if (movie.getMovieSet() != null) {
+      movie.setMovieSet(null);
+      movie.saveToDb();
     }
 
     moviesObservable.remove(movie);
@@ -321,7 +385,7 @@ public class MovieSet extends MediaEntity {
    * Sort movies.
    */
   public void sortMovies() {
-    Collections.sort(moviesObservable, new MovieInMovieSetComparator());
+    Collections.sort(moviesObservable, MOVIE_SET_COMPARATOR);
     firePropertyChange("movies", null, moviesObservable);
   }
 
@@ -338,6 +402,11 @@ public class MovieSet extends MediaEntity {
       imageFile = new File(movie.getPath() + File.separator + "movieset-poster.jpg");
       if (imageFile.exists()) {
         imageFile.delete();
+      }
+
+      if (movie.getMovieSet() != null) {
+        movie.setMovieSet(null);
+        movie.saveToDb();
       }
     }
 
@@ -483,6 +552,8 @@ public class MovieSet extends MediaEntity {
     IOUtils.copy(is, outputStream);
     outputStream.close();
     is.close();
+
+    ImageCache.invalidateCachedImage(pathAndFilename);
   }
 
   // /**
@@ -553,7 +624,8 @@ public class MovieSet extends MediaEntity {
         IOUtils.copy(is, outputStream);
         outputStream.close();
         is.close();
-        firePropertyChange(propertyName, "", filename);
+
+        firePropertyChange(propertyName, "", outputFile);
       }
       catch (IOException e) {
         LOGGER.warn("error in image fetcher", e);
@@ -566,7 +638,7 @@ public class MovieSet extends MediaEntity {
    * 
    * @author Manuel Laggner
    */
-  private class MovieInMovieSetComparator implements Comparator<Movie> {
+  private static class MovieInMovieSetComparator implements Comparator<Movie> {
 
     /*
      * (non-Javadoc)
@@ -581,9 +653,30 @@ public class MovieSet extends MediaEntity {
         return 0;
       }
 
-      collator = Collator.getInstance();
-      return collator.compare(o1.getSortTitle(), o2.getSortTitle());
-      // return o1.getSortTitle().compareTo(o2.getSortTitle());
+      // sort with sorttitle if available
+      if (StringUtils.isNotBlank(o1.getSortTitle()) && StringUtils.isNotBlank(o2.getSortTitle())) {
+        collator = Collator.getInstance();
+        return collator.compare(o1.getSortTitle(), o2.getSortTitle());
+      }
+
+      // sort with release date if available
+      if (o1.getReleaseDate() != null && o2.getReleaseDate() != null) {
+        return o1.getReleaseDate().compareTo(o2.getReleaseDate());
+      }
+
+      // sort with year if available
+      if (StringUtils.isNotBlank(o1.getYear()) && StringUtils.isNotBlank(o2.getYear())) {
+        try {
+          int year1 = Integer.parseInt(o1.getYear());
+          int year2 = Integer.parseInt(o2.getYear());
+          return year1 - year2;
+        }
+        catch (Exception e) {
+        }
+      }
+
+      // fallback
+      return 0;
     }
 
   }
@@ -618,5 +711,20 @@ public class MovieSet extends MediaEntity {
     }
 
     return filesToCache;
+  }
+
+  @Override
+  public synchronized void callbackForWrittenArtwork(MediaArtworkType type) {
+  }
+
+  /**
+   * recalculate all movie sorttitles
+   */
+  public void updateMovieSorttitle() {
+    for (Movie movie : new ArrayList<Movie>(moviesObservable)) {
+      movie.setSortTitleFromMovieSet();
+      movie.saveToDb();
+      movie.writeNFO();
+    }
   }
 }

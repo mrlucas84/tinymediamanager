@@ -39,6 +39,7 @@ import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.JTextPane;
 import javax.swing.ListSelectionModel;
+import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
@@ -60,8 +61,8 @@ import org.tinymediamanager.core.tvshow.TvShowList;
 import org.tinymediamanager.core.tvshow.TvShowScraperMetadataConfig;
 import org.tinymediamanager.core.tvshow.TvShowScrapers;
 import org.tinymediamanager.scraper.IMediaArtworkProvider;
-import org.tinymediamanager.scraper.IMediaMetadataProvider;
 import org.tinymediamanager.scraper.IMediaTrailerProvider;
+import org.tinymediamanager.scraper.ITvShowMetadataProvider;
 import org.tinymediamanager.scraper.MediaArtwork;
 import org.tinymediamanager.scraper.MediaMetadata;
 import org.tinymediamanager.scraper.MediaSearchResult;
@@ -136,7 +137,7 @@ public class TvShowChooserDialog extends JDialog implements ActionListener {
   private TvShowScraperMetadataConfig scraperMetadataConfig = new TvShowScraperMetadataConfig();
 
   /** The metadata provider. */
-  private IMediaMetadataProvider      metadataProvider;
+  private ITvShowMetadataProvider     metadataProvider;
 
   /** The artwork providers. */
   private List<IMediaArtworkProvider> artworkProviders;
@@ -402,7 +403,7 @@ public class TvShowChooserDialog extends JDialog implements ActionListener {
           }
 
           // set scraped metadata
-          tvShowToScrape.setMetadata(md);
+          tvShowToScrape.setMetadata(md, scraperMetadataConfig);
 
           setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
 
@@ -440,11 +441,16 @@ public class TvShowChooserDialog extends JDialog implements ActionListener {
                 tvShowToScrape.setBannerUrl(lblImage.getImageUrl());
                 tvShowToScrape.writeBannerImage();
               }
+
+              // season posters
+              {
+                // FIXME
+              }
             }
             else {
               // get artwork directly from provider
               List<MediaArtwork> artwork = model.getArtwork();
-              tvShowToScrape.setArtwork(artwork);
+              tvShowToScrape.setArtwork(artwork, scraperMetadataConfig);
             }
           }
 
@@ -503,19 +509,29 @@ public class TvShowChooserDialog extends JDialog implements ActionListener {
    * @param description
    *          the description
    */
-  private void startProgressBar(String description) {
-    lblProgressAction.setText(description);
-    progressBar.setVisible(true);
-    progressBar.setIndeterminate(true);
+  private void startProgressBar(final String description) {
+    SwingUtilities.invokeLater(new Runnable() {
+      @Override
+      public void run() {
+        lblProgressAction.setText(description);
+        progressBar.setVisible(true);
+        progressBar.setIndeterminate(true);
+      }
+    });
   }
 
   /**
    * Stop progress bar.
    */
   private void stopProgressBar() {
-    lblProgressAction.setText("");
-    progressBar.setVisible(false);
-    progressBar.setIndeterminate(false);
+    SwingUtilities.invokeLater(new Runnable() {
+      @Override
+      public void run() {
+        lblProgressAction.setText("");
+        progressBar.setVisible(false);
+        progressBar.setIndeterminate(false);
+      }
+    });
   }
 
   /**

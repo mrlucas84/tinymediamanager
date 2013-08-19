@@ -52,6 +52,7 @@ import javax.swing.JSeparator;
 import javax.swing.JToggleButton;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 import javax.swing.filechooser.FileFilter;
 
@@ -498,7 +499,7 @@ public class ImageChooserDialog extends JDialog {
    *          the tmdb artwork
    */
   private void addImage(BufferedImage originalImage, MediaArtwork artwork) {
-    int imageType = originalImage.getType() == 0 ? BufferedImage.TYPE_INT_ARGB : originalImage.getType();
+    // int imageType = originalImage.getType() == 0 ? BufferedImage.TYPE_INT_ARGB : originalImage.getType();
     Point size = null;
 
     GridBagLayout gbl = new GridBagLayout();
@@ -673,7 +674,12 @@ public class ImageChooserDialog extends JDialog {
         return null;
       }
 
-      startProgressBar(BUNDLE.getString("image.download.progress")); //$NON-NLS-1$
+      SwingUtilities.invokeLater(new Runnable() {
+        @Override
+        public void run() {
+          startProgressBar(BUNDLE.getString("image.download.progress")); //$NON-NLS-1$
+        }
+      });
 
       try {
         if (artworkProviders == null || artworkProviders.size() == 0) {
@@ -683,6 +689,8 @@ public class ImageChooserDialog extends JDialog {
         // get images from all artworkproviders
         for (IMediaArtworkProvider artworkProvider : artworkProviders) {
           MediaScrapeOptions options = new MediaScrapeOptions();
+          options.setLanguage(Globals.settings.getMovieSettings().getScraperLanguage());
+          options.setCountry(Globals.settings.getMovieSettings().getCertificationCountry());
           switch (type) {
             case POSTER:
               options.setArtworkType(MediaArtworkType.POSTER);
@@ -754,7 +762,12 @@ public class ImageChooserDialog extends JDialog {
      */
     @Override
     public void done() {
-      stopProgressBar();
+      SwingUtilities.invokeLater(new Runnable() {
+        @Override
+        public void run() {
+          stopProgressBar();
+        }
+      });
     }
   }
 
@@ -791,44 +804,6 @@ public class ImageChooserDialog extends JDialog {
         dispose();
       }
 
-    }
-
-    /**
-     * The Class ImageFileFilter.
-     * 
-     * @author Manuel Laggner
-     */
-    public class ImageFileFilter extends FileFilter {
-
-      /** The ok file extensions. */
-      private final String[] okFileExtensions = new String[] { "jpg", "png" };
-
-      /*
-       * (non-Javadoc)
-       * 
-       * @see javax.swing.filechooser.FileFilter#accept(java.io.File)
-       */
-      public boolean accept(File file) {
-        if (file.isDirectory())
-          return true;
-
-        for (String extension : okFileExtensions) {
-          if (file.getName().toLowerCase().endsWith(extension)) {
-            return true;
-          }
-        }
-        return false;
-      }
-
-      /*
-       * (non-Javadoc)
-       * 
-       * @see javax.swing.filechooser.FileFilter#getDescription()
-       */
-      @Override
-      public String getDescription() {
-        return "image files (.jpg; .png)";
-      }
     }
   }
 }
