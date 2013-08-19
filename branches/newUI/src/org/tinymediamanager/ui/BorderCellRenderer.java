@@ -68,8 +68,11 @@ public class BorderCellRenderer extends DefaultTableCellRenderer {
         setFont(getFont().deriveFont(Font.BOLD));
       }
     }
-    else {
+    else if (value != null) {
       setValue(value.toString());
+    }
+    else {
+      setValue("");
     }
 
     return this;

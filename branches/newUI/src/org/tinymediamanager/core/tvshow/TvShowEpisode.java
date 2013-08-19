@@ -58,47 +58,25 @@ import org.tinymediamanager.scraper.MediaMetadata;
 @Entity
 @Inheritance(strategy = javax.persistence.InheritanceType.JOINED)
 public class TvShowEpisode extends MediaEntity implements Comparable<TvShowEpisode> {
-
-  /** The Constant LOGGER. */
   private static final Logger LOGGER            = LoggerFactory.getLogger(TvShowEpisode.class);
 
-  /** The tv show. */
   private TvShow              tvShow            = null;
-
-  /** The episode. */
   private int                 episode           = 0;
-
-  /** The season. */
   private int                 season            = -1;
-
-  /** the first aired date. */
   private Date                firstAired        = null;
-
-  /** The director. */
   private String              director          = "";
-
-  /** The writer. */
   private String              writer            = "";
-
-  /** is this episode in a disc folder structure?. */
   private boolean             disc              = false;
-
-  /** The nfo filename. */
-  private String              nfoFilename       = "";
-
-  /** The watched. */
   private boolean             watched           = false;
-
-  /** The votes. */
   private int                 votes             = 0;
-
   private boolean             subtitles         = false;
 
-  /** The actors. */
+  @Transient
+  private boolean             newlyAdded        = false;
+
   @OneToMany(cascade = CascadeType.ALL)
   private List<TvShowActor>   actors            = new ArrayList<TvShowActor>();
 
-  /** The actors observables. */
   @Transient
   private List<TvShowActor>   actorsObservables = ObservableCollections.observableList(actors);
 
@@ -135,11 +113,12 @@ public class TvShowEpisode extends MediaEntity implements Comparable<TvShowEpiso
 
     episode = source.episode;
     season = source.season;
-    firstAired = new Date(source.firstAired.getTime());
+    if (source.firstAired != null) {
+      firstAired = new Date(source.firstAired.getTime());
+    }
     director = new String(source.director);
     writer = new String(source.writer);
     disc = source.disc;
-    nfoFilename = new String(source.nfoFilename);
     watched = source.watched;
     votes = source.votes;
     subtitles = source.subtitles;
@@ -363,8 +342,10 @@ public class TvShowEpisode extends MediaEntity implements Comparable<TvShowEpiso
     if (StringUtils.isNotEmpty(getThumbUrl())) {
       boolean firstImage = true;
       // create correct filename
-      MediaFile mf = getMediaFiles().get(0);
+
+      MediaFile mf = getMediaFiles(MediaFileType.VIDEO).get(0);
       String filename = FilenameUtils.getBaseName(mf.getFilename()) + "-thumb." + FilenameUtils.getExtension(getThumbUrl());
+
       // get image in thread
       MediaEntityImageFetcherTask task = new MediaEntityImageFetcherTask(this, getThumbUrl(), MediaArtworkType.THUMB, filename, firstImage);
       Globals.executor.execute(task);
@@ -454,9 +435,8 @@ public class TvShowEpisode extends MediaEntity implements Comparable<TvShowEpiso
       episodesInNfo.addAll(TvShowList.getInstance().getTvEpisodesByFile(mf.getFile()));
     }
 
-    String nfoFilename = TvShowEpisodeToXbmcNfoConnector.setData(episodesInNfo);
+    TvShowEpisodeToXbmcNfoConnector.setData(episodesInNfo);
     for (TvShowEpisode episode : episodesInNfo) {
-      episode.setNfoFilename(nfoFilename);
       episode.saveToDb();
     }
   }
@@ -467,37 +447,11 @@ public class TvShowEpisode extends MediaEntity implements Comparable<TvShowEpiso
    * @return the checks for nfo file
    */
   public Boolean getHasNfoFile() {
-    if (!StringUtils.isEmpty(nfoFilename)) {
+    List<MediaFile> nfos = getMediaFiles(MediaFileType.NFO);
+    if (nfos != null && nfos.size() > 0) {
       return true;
     }
     return false;
-  }
-
-  /**
-   * Sets the nfo filename.
-   * 
-   * @param newValue
-   *          the new nfo filename
-   */
-  public void setNfoFilename(String newValue) {
-    String oldValue = this.nfoFilename;
-    this.nfoFilename = newValue;
-    setNFO(new File(path, nfoFilename));
-    firePropertyChange(NFO_FILENAME, oldValue, newValue);
-    firePropertyChange(HAS_NFO_FILE, false, true);
-  }
-
-  private void setNFO(File file) {
-    List<MediaFile> nfos = getMediaFiles(MediaFileType.NFO);
-    MediaFile mediaFile = null;
-    if (nfos.size() > 0) {
-      mediaFile = nfos.get(0);
-      mediaFile.setFile(file);
-    }
-    else {
-      mediaFile = new MediaFile(file, MediaFileType.NFO);
-      addToMediaFiles(mediaFile);
-    }
   }
 
   /**
@@ -649,71 +603,71 @@ public class TvShowEpisode extends MediaEntity implements Comparable<TvShowEpiso
     List<TvShowEpisode> episodes = new ArrayList<TvShowEpisode>(1);
 
     String filename = episodeFile.getParent() + File.separator + FilenameUtils.getBaseName(episodeFile.getName()) + ".nfo";
-    episodes.addAll(TvShowEpisodeToXbmcNfoConnector.getData(filename));
+    episodes.addAll(TvShowEpisodeToXbmcNfoConnector.getData(new File(filename)));
 
     return episodes;
   }
 
-  /**
-   * Find images.
-   */
-  public void findImages() {
-    // find thumb
-    findThumb();
-  }
-
-  /**
-   * Find thumb.
-   */
-  private void findThumb() {
-    boolean found = false;
-    // there are 2 possible filenames for thumbs
-
-    // a) episodename-thumb.jpg/png (as described in the xbmc wiki http://wiki.xbmc.org/index.php?title=Frodo_FAQ#Local_images)
-    Pattern pattern = Pattern.compile("(?i)" + Pattern.quote(getTitle()) + "-thumb\\..{2,4}");
-    File[] files = new File(path).listFiles();
-    for (File file : files) {
-      Matcher matcher = pattern.matcher(file.getName());
-      if (matcher.matches()) {
-        setFanart(file);
-        LOGGER.debug("found thumb " + file.getPath());
-        found = true;
-        break;
-      }
-    }
-
-    // b) filename-thumb/fanart.jpg/png
-    if (!found) {
-      String mediafile = "";
-      try {
-        mediafile = FilenameUtils.getBaseName(getMediaFiles(MediaFileType.VIDEO).get(0).getFilename());
-      }
-      catch (Exception e) {
-        System.out.println(path);
-      }
-      pattern = Pattern.compile("(?i)" + Pattern.quote(mediafile) + "-(thumb|fanart)\\..{2,4}");
-      for (File file : files) {
-        Matcher matcher = pattern.matcher(file.getName());
-        if (matcher.matches()) {
-          setFanart(file);
-          LOGGER.debug("found thumb " + file.getPath());
-          found = true;
-          break;
-        }
-      }
-    }
-
-    // if we did not find anything, try to download it
-    if (!found && StringUtils.isNotEmpty(thumbUrl)) {
-      writeThumbImage();
-      found = true;
-      LOGGER.debug("got thumb url: " + thumbUrl + " ; try to download this");
-    }
-
-    if (!found) {
-      LOGGER.debug("Sorry, could not find a thumb.");
-    }
-  }
+  // /**
+  // * Find images.
+  // */
+  // public void findImages() {
+  // // find thumb
+  // findThumb();
+  // }
+  //
+  // /**
+  // * Find thumb.
+  // */
+  // private void findThumb() {
+  // boolean found = false;
+  // // there are 2 possible filenames for thumbs
+  //
+  // // a) episodename-thumb.jpg/png (as described in the xbmc wiki http://wiki.xbmc.org/index.php?title=Frodo_FAQ#Local_images)
+  // Pattern pattern = Pattern.compile("(?i)" + Pattern.quote(getTitle()) + "-thumb\\..{2,4}");
+  // File[] files = new File(path).listFiles();
+  // for (File file : files) {
+  // Matcher matcher = pattern.matcher(file.getName());
+  // if (matcher.matches()) {
+  // setFanart(file);
+  // LOGGER.debug("found thumb " + file.getPath());
+  // found = true;
+  // break;
+  // }
+  // }
+  //
+  // // b) filename-thumb/fanart.jpg/png
+  // if (!found) {
+  // String mediafile = "";
+  // try {
+  // mediafile = FilenameUtils.getBaseName(getMediaFiles(MediaFileType.VIDEO).get(0).getFilename());
+  // }
+  // catch (Exception e) {
+  // System.out.println(path);
+  // }
+  // pattern = Pattern.compile("(?i)" + Pattern.quote(mediafile) + "-(thumb|fanart)\\..{2,4}");
+  // for (File file : files) {
+  // Matcher matcher = pattern.matcher(file.getName());
+  // if (matcher.matches()) {
+  // setFanart(file);
+  // LOGGER.debug("found thumb " + file.getPath());
+  // found = true;
+  // break;
+  // }
+  // }
+  // }
+  //
+  // // if we did not find anything, try to download it
+  // if (!found && StringUtils.isNotEmpty(thumbUrl)) {
+  // writeThumbImage();
+  // found = true;
+  // LOGGER.debug("got thumb url: " + thumbUrl + " ; try to download this");
+  // }
+  //
+  // if (!found) {
+  // LOGGER.debug("Sorry, could not find a thumb.");
+  // }
+  // }
 
   /**
    * Gets the media info video format (i.e. 720p).
@@ -722,7 +676,7 @@ public class TvShowEpisode extends MediaEntity implements Comparable<TvShowEpiso
    */
   public String getMediaInfoVideoFormat() {
     if (mediaFiles.size() > 0) {
-      MediaFile mediaFile = mediaFiles.get(0);
+      MediaFile mediaFile = getMediaFiles(MediaFileType.VIDEO).get(0);
       return mediaFile.getVideoFormat();
     }
 
@@ -736,7 +690,7 @@ public class TvShowEpisode extends MediaEntity implements Comparable<TvShowEpiso
    */
   public String getMediaInfoVideoCodec() {
     if (mediaFiles.size() > 0) {
-      MediaFile mediaFile = mediaFiles.get(0);
+      MediaFile mediaFile = getMediaFiles(MediaFileType.VIDEO).get(0);
       return mediaFile.getVideoCodec();
     }
 
@@ -750,7 +704,7 @@ public class TvShowEpisode extends MediaEntity implements Comparable<TvShowEpiso
    */
   public String getMediaInfoAudioCodecAndChannels() {
     if (mediaFiles.size() > 0) {
-      MediaFile mediaFile = mediaFiles.get(0);
+      MediaFile mediaFile = getMediaFiles(MediaFileType.VIDEO).get(0);
       return mediaFile.getAudioCodec() + "_" + mediaFile.getAudioChannels();
     }
 
@@ -868,5 +822,17 @@ public class TvShowEpisode extends MediaEntity implements Comparable<TvShowEpiso
 
   public void setSubtitles(boolean sub) {
     this.subtitles = sub;
+  }
+
+  @Override
+  public synchronized void callbackForWrittenArtwork(MediaArtworkType type) {
+  }
+
+  public boolean isNewlyAdded() {
+    return this.newlyAdded;
+  }
+
+  public void setNewlyAdded(boolean newlyAdded) {
+    this.newlyAdded = newlyAdded;
   }
 }

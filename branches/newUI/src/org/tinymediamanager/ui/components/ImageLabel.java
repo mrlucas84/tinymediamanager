@@ -26,8 +26,6 @@ import java.awt.Toolkit;
 import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.util.ResourceBundle;
 
 import javax.swing.JLabel;
@@ -36,7 +34,6 @@ import javax.swing.SwingWorker;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.tinymediamanager.Globals;
 import org.tinymediamanager.core.ImageCache;
 import org.tinymediamanager.scraper.util.CachedUrl;
 import org.tinymediamanager.ui.UTF8Control;
@@ -53,19 +50,19 @@ public class ImageLabel extends JLabel {
     TOP_LEFT, TOP_RIGHT, BOTTOM_LEFT, BOTTOM_RIGHT
   }
 
-  private static final long                serialVersionUID = -2524445544386464158L;
-  private static final ResourceBundle      BUNDLE           = ResourceBundle.getBundle("messages", new UTF8Control()); //$NON-NLS-1$
-  private static final Logger              LOGGER           = LoggerFactory.getLogger(ImageLabel.class);
+  private static final long                  serialVersionUID = -2524445544386464158L;
+  protected static final ResourceBundle      BUNDLE           = ResourceBundle.getBundle("messages", new UTF8Control()); //$NON-NLS-1$
+  private static final Logger                LOGGER           = LoggerFactory.getLogger(ImageLabel.class);
 
-  private BufferedImage                    originalImage;
-  private String                           imageUrl;
-  private String                           imagePath;
-  private Position                         position         = Position.TOP_LEFT;
-  private String                           alternativeText  = null;
-  private boolean                          drawBorder;
-  private boolean                          drawFullWidth;
+  protected BufferedImage                    originalImage;
+  protected String                           imageUrl;
+  protected String                           imagePath;
+  protected Position                         position         = Position.TOP_LEFT;
+  protected String                           alternativeText  = null;
+  protected boolean                          drawBorder;
+  protected boolean                          drawFullWidth;
 
-  private SwingWorker<BufferedImage, Void> worker           = null;
+  protected SwingWorker<BufferedImage, Void> worker           = null;
 
   /**
    * Instantiates a new image label.
@@ -127,6 +124,12 @@ public class ImageLabel extends JLabel {
     this.imagePath = newValue;
     firePropertyChange("imagePath", oldValue, newValue);
 
+    if (StringUtils.isBlank(newValue)) {
+      originalImage = null;
+      this.repaint();
+      return;
+    }
+
     // stop previous worker
     if (worker != null && !worker.isDone()) {
       worker.cancel(true);
@@ -135,6 +138,13 @@ public class ImageLabel extends JLabel {
     // load image in separate worker -> performance
     worker = new ImageLoader(this.imagePath);
     worker.execute();
+  }
+
+  public void clearImage() {
+    imagePath = "";
+    imageUrl = "";
+    originalImage = null;
+    this.repaint();
   }
 
   /**
@@ -181,6 +191,7 @@ public class ImageLabel extends JLabel {
   @Override
   protected void paintComponent(Graphics g) {
     super.paintComponent(g);
+
     if (originalImage != null) {
       int originalWidth = originalImage.getWidth(null);
       int originalHeight = originalImage.getHeight(null);
@@ -332,49 +343,11 @@ public class ImageLabel extends JLabel {
   }
 
   /**
-   * Gets the cached file.
-   * 
-   * @param path
-   *          the path
-   * @return the cached file
-   */
-  private synchronized File getCachedFile(String path) {
-    if (StringUtils.isEmpty(path)) {
-      return null;
-    }
-
-    // is the image cache activated?
-    if (!Globals.settings.isImageCache()) {
-      return new File(path);
-    }
-
-    // is the path in the cache dir?
-    if (path.startsWith(ImageCache.CACHE_DIR)) {
-      return new File(path);
-    }
-
-    try {
-      File originalFile = new File(path);
-      return ImageCache.cacheImage(originalFile);
-
-    }
-    catch (FileNotFoundException e) {
-      LOGGER.warn(e.getMessage());
-    }
-    catch (Exception e) {
-      LOGGER.warn("problem caching file: ", e);
-    }
-
-    // fallback
-    return new File(path);
-  }
-
-  /**
    * The Class ImageFetcher.
    * 
    * @author Manuel Laggner
    */
-  private class ImageFetcher extends SwingWorker<BufferedImage, Void> {
+  protected class ImageFetcher extends SwingWorker<BufferedImage, Void> {
 
     /*
      * (non-Javadoc)
@@ -389,7 +362,8 @@ public class ImageLabel extends JLabel {
         return com.bric.image.ImageLoader.createImage(image);
 
       }
-      catch (IOException e) {
+      catch (Exception e) {
+        imageUrl = "";
         return null;
       }
     }
@@ -415,7 +389,7 @@ public class ImageLabel extends JLabel {
   /**
    * The Class ImageLoader.
    */
-  private class ImageLoader extends SwingWorker<BufferedImage, Void> {
+  protected class ImageLoader extends SwingWorker<BufferedImage, Void> {
 
     /** The image path. */
     private String imagePath;
@@ -437,7 +411,7 @@ public class ImageLabel extends JLabel {
      */
     @Override
     protected BufferedImage doInBackground() throws Exception {
-      File file = getCachedFile(imagePath);
+      File file = ImageCache.getCachedFile(imagePath);
       if (file != null && file.exists()) {
         try {
           return com.bric.image.ImageLoader.createImage(file);

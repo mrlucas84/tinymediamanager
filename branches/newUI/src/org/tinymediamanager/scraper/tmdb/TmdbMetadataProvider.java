@@ -24,6 +24,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.tinymediamanager.Globals;
+import org.tinymediamanager.core.Utils;
 import org.tinymediamanager.scraper.Certification;
 import org.tinymediamanager.scraper.IMediaArtworkProvider;
 import org.tinymediamanager.scraper.IMediaMetadataProvider;
@@ -35,6 +36,7 @@ import org.tinymediamanager.scraper.MediaArtwork.MediaArtworkType;
 import org.tinymediamanager.scraper.MediaArtwork.PosterSizes;
 import org.tinymediamanager.scraper.MediaCastMember;
 import org.tinymediamanager.scraper.MediaGenres;
+import org.tinymediamanager.scraper.MediaLanguages;
 import org.tinymediamanager.scraper.MediaMetadata;
 import org.tinymediamanager.scraper.MediaProviderInfo;
 import org.tinymediamanager.scraper.MediaScrapeOptions;
@@ -57,6 +59,7 @@ import com.omertron.themoviedbapi.model.MovieDb;
 import com.omertron.themoviedbapi.model.Person;
 import com.omertron.themoviedbapi.model.PersonType;
 import com.omertron.themoviedbapi.model.ProductionCompany;
+import com.omertron.themoviedbapi.model.ProductionCountry;
 import com.omertron.themoviedbapi.model.ReleaseInfo;
 import com.omertron.themoviedbapi.model.Trailer;
 
@@ -124,7 +127,7 @@ public class TmdbMetadataProvider implements IMediaMetadataProvider, IMediaArtwo
     LOGGER.debug("search() " + query.toString());
     List<MediaSearchResult> resultList = new ArrayList<MediaSearchResult>();
     String searchString = "";
-    String baseUrl = "";
+    String baseUrl = tmdb.getConfiguration().getBaseUrl();
     int year = 0;
 
     // check type
@@ -171,7 +174,7 @@ public class TmdbMetadataProvider implements IMediaMetadataProvider, IMediaArtwo
         trackConnections();
         // if we have already an ID, get this result and do not search
         tmdbId = Integer.valueOf(query.get(MediaSearchOptions.SearchParam.TMDBID));
-        moviesFound.add(tmdb.getMovieInfo(tmdbId, Globals.settings.getMovieSettings().getScraperLanguage().name()));
+        moviesFound.add(tmdb.getMovieInfo(tmdbId, query.get(MediaSearchOptions.SearchParam.LANGUAGE)));
         LOGGER.debug("found " + moviesFound.size() + " results with TMDB id");
       }
 
@@ -179,15 +182,14 @@ public class TmdbMetadataProvider implements IMediaMetadataProvider, IMediaArtwo
       if (moviesFound.size() == 0 && StringUtils.isNotEmpty(query.get(MediaSearchOptions.SearchParam.IMDBID))) {
         trackConnections();
         imdbId = query.get(MediaSearchOptions.SearchParam.IMDBID);
-        moviesFound.add(tmdb.getMovieInfoImdb(imdbId, Globals.settings.getMovieSettings().getScraperLanguage().name()));
+        moviesFound.add(tmdb.getMovieInfoImdb(imdbId, query.get(MediaSearchOptions.SearchParam.LANGUAGE)));
         LOGGER.debug("found " + moviesFound.size() + " results with IMDB id");
       }
 
       // 3. try with search string and year
       if (moviesFound.size() == 0) {
         trackConnections();
-        moviesFound = tmdb.searchMovie(searchString, year, Globals.settings.getMovieSettings().getScraperLanguage().name(), false, 0);
-        baseUrl = tmdb.getConfiguration().getBaseUrl();
+        moviesFound = tmdb.searchMovie(searchString, year, query.get(MediaSearchOptions.SearchParam.LANGUAGE), false, 0);
         LOGGER.debug("found " + moviesFound.size() + " results with search string");
       }
 
@@ -195,7 +197,7 @@ public class TmdbMetadataProvider implements IMediaMetadataProvider, IMediaArtwo
       if (searchString.matches(".*\\s\\d{4}$") && (moviesFound == null || moviesFound.size() == 0)) {
         // nada found & last part seems to be date; strip off and try again
         searchString = searchString.replaceFirst("\\s\\d{4}$", "");
-        moviesFound = tmdb.searchMovie(searchString, year, Globals.settings.getMovieSettings().getScraperLanguage().name(), false, 0);
+        moviesFound = tmdb.searchMovie(searchString, year, query.get(MediaSearchOptions.SearchParam.LANGUAGE), false, 0);
         LOGGER.debug("found " + moviesFound.size() + " results with search string removed year");
       }
 
@@ -272,42 +274,66 @@ public class TmdbMetadataProvider implements IMediaMetadataProvider, IMediaArtwo
       tmdbId = options.getTmdbId();
     }
 
-    // tmdbId via imdbId
+    // imdbId from option
     String imdbId = options.getImdbId();
-    if (tmdbId == 0 && StringUtils.isNotEmpty(imdbId)) {
-      // try to get tmdbId via imdbId
-      tmdbId = getTmdbIdFromImdbId(imdbId);
-    }
-
-    if (tmdbId == 0) {
-      LOGGER.warn("not possible to scrape from TMDB - no tmdbId found");
+    if (tmdbId == 0 && !Utils.isValidImdbId(imdbId)) {
+      LOGGER.warn("not possible to scrape from TMDB - no tmdbId/imdbId found");
       return md;
     }
 
     // scrape
-    LOGGER.debug("TMDB: getMetadata(tmdbId): " + tmdbId);
+    LOGGER.debug("TMDB: getMetadata: tmdbId = " + tmdbId + "; imdbId = " + imdbId);
     MovieDb movie = null;
     String baseUrl = null;
     synchronized (tmdb) {
       trackConnections();
-      movie = tmdb.getMovieInfo(tmdbId, Globals.settings.getMovieSettings().getScraperLanguage().name());
+      if (tmdbId == 0 && Utils.isValidImdbId(imdbId)) {
+        movie = tmdb.getMovieInfoImdb(imdbId, options.getLanguage().name());
+      }
+      if (movie == null && tmdbId != 0) {
+        movie = tmdb.getMovieInfo(tmdbId, options.getLanguage().name());
+      }
+
+      if (movie == null) {
+        LOGGER.warn("no result found");
+        return md;
+      }
+
       baseUrl = tmdb.getConfiguration().getBaseUrl();
+
+      if (movie.getBelongsToCollection() != null) {
+        md.setTmdbIdSet(movie.getBelongsToCollection().getId());
+        md.setCollectionName(movie.getBelongsToCollection().getName());
+        // CollectionInfo info = tmdb.getCollectionInfo(md.getTmdbIdSet(), options.getLanguage().name());
+        // if (info != null) {
+        // md.setCollectionName(info.getName());
+        // }
+      }
+    }
+
+    // check if there was translateable content
+    if (StringUtils.isBlank(movie.getOverview())) {
+      // plot was empty - scrape in english
+      MediaLanguages oldLang = options.getLanguage();
+      try {
+        options.setLanguage(MediaLanguages.en);
+        md = getLocalizedContent(options, md);
+      }
+      catch (Exception e) {
+      }
+      finally {
+        options.setLanguage(oldLang);
+      }
     }
 
     md.setTmdbId(movie.getId());
-    if (movie.getBelongsToCollection() != null) {
-      md.setTmdbIdSet(movie.getBelongsToCollection().getId());
-      CollectionInfo info = tmdb.getCollectionInfo(md.getTmdbIdSet(), Globals.settings.getMovieSettings().getScraperLanguage().name());
-      if (info != null) {
-        md.setCollectionName(info.getName());
-      }
-    }
     md.setPlot(movie.getOverview());
     md.setTitle(movie.getTitle());
     md.setOriginalTitle(movie.getOriginalTitle());
+    md.setTagline(movie.getTagline());
+
     md.setRating(movie.getVoteAverage());
     md.setRuntime(movie.getRuntime());
-    md.setTagline(movie.getTagline());
     md.setVoteCount(movie.getVoteCount());
 
     String spokenLanguages = "";
@@ -319,6 +345,15 @@ public class TmdbMetadataProvider implements IMediaMetadataProvider, IMediaArtwo
       spokenLanguages += lang.getIsoCode();
     }
     md.setSpokenLanguages(spokenLanguages);
+
+    String countries = "";
+    for (ProductionCountry country : movie.getProductionCountries()) {
+      if (StringUtils.isNotBlank(countries)) {
+        countries += ", ";
+      }
+      countries += country.getIsoCode();
+    }
+    md.setCountry(countries);
 
     if (movie.getImdbID() != null && MetadataUtil.isValidImdbId(movie.getImdbID())) {
       md.setImdbId(movie.getImdbID());
@@ -346,7 +381,7 @@ public class TmdbMetadataProvider implements IMediaMetadataProvider, IMediaArtwo
     List<ReleaseInfo> releaseInfo = null;
     synchronized (tmdb) {
       trackConnections();
-      releaseInfo = tmdb.getMovieReleaseInfo(tmdbId, Globals.settings.getMovieSettings().getScraperLanguage().name());
+      releaseInfo = tmdb.getMovieReleaseInfo(tmdbId, options.getLanguage().name());
     }
 
     for (ReleaseInfo info : releaseInfo) {
@@ -357,8 +392,7 @@ public class TmdbMetadataProvider implements IMediaMetadataProvider, IMediaArtwo
 
       // only use the certification of the desired country (if any country has
       // been chosen)
-      if (Globals.settings.getMovieSettings().getCertificationCountry() == null
-          || Globals.settings.getMovieSettings().getCertificationCountry().getAlpha2().compareToIgnoreCase(info.getCountry()) == 0) {
+      if (options.getCountry() == null || options.getCountry().getAlpha2().compareToIgnoreCase(info.getCountry()) == 0) {
 
         // Certification certification = new Certification(info.getCountry(),
         // info.getCertification());
@@ -413,6 +447,74 @@ public class TmdbMetadataProvider implements IMediaMetadataProvider, IMediaArtwo
     List<Genre> MediaGenres2 = movie.getGenres();
     for (Genre genre : MediaGenres2) {
       addGenre(genre, md);
+    }
+
+    return md;
+  }
+
+  public MediaMetadata getLocalizedContent(MediaScrapeOptions options, MediaMetadata md) throws Exception {
+    LOGGER.debug("getMetadata() " + options.toString());
+    // check if there is a md in the result
+    if (options.getResult() != null && options.getResult().getMetadata() != null) {
+      LOGGER.debug("TMDB: getMetadata from cache: " + options.getResult());
+      return options.getResult().getMetadata();
+    }
+
+    if (md == null) {
+      md = new MediaMetadata(providerInfo.getId());
+    }
+
+    int tmdbId = 0;
+
+    // tmdbId from searchResult
+    if (options.getResult() != null) {
+      tmdbId = Integer.parseInt(options.getResult().getId());
+    }
+
+    // tmdbId from option
+    if (tmdbId == 0) {
+      tmdbId = options.getTmdbId();
+    }
+
+    // imdbId from option
+    String imdbId = options.getImdbId();
+    if (tmdbId == 0 && !Utils.isValidImdbId(imdbId)) {
+      LOGGER.warn("not possible to scrape from TMDB - no tmdbId/imdbId found");
+      return md;
+    }
+
+    // scrape
+    LOGGER.debug("TMDB: getMetadata: tmdbId = " + tmdbId + "; imdbId = " + imdbId);
+    MovieDb movie = null;
+
+    synchronized (tmdb) {
+      trackConnections();
+      if (tmdbId == 0 && Utils.isValidImdbId(imdbId)) {
+        movie = tmdb.getMovieInfoImdb(imdbId, options.getLanguage().name());
+      }
+      if (movie == null && tmdbId != 0) {
+        movie = tmdb.getMovieInfo(tmdbId, options.getLanguage().name());
+      }
+    }
+
+    if (movie == null) {
+      LOGGER.warn("no result found");
+      return md;
+    }
+
+    md.setTmdbId(movie.getId());
+    md.setPlot(movie.getOverview());
+    md.setTitle(movie.getTitle());
+    md.setOriginalTitle(movie.getOriginalTitle());
+    md.setTagline(movie.getTagline());
+
+    if (movie.getBelongsToCollection() != null) {
+      md.setTmdbIdSet(movie.getBelongsToCollection().getId());
+      md.setCollectionName(movie.getBelongsToCollection().getName());
+      // CollectionInfo info = tmdb.getCollectionInfo(md.getTmdbIdSet(), options.getLanguage().name());
+      // if (info != null) {
+      // md.setCollectionName(info.getName());
+      // }
     }
 
     return md;
@@ -486,20 +588,24 @@ public class TmdbMetadataProvider implements IMediaMetadataProvider, IMediaArtwo
       synchronized (tmdb) {
         trackConnections();
         // get trailers from tmdb (with specified langu and without)
-        List<Trailer> tmdbTrailers = tmdb.getMovieTrailers(tmdbId, Globals.settings.getMovieSettings().getScraperLanguage().name());
+        List<Trailer> tmdbTrailers = tmdb.getMovieTrailers(tmdbId, options.getLanguage().name());
         List<Trailer> tmdbTrailersWoLang = tmdb.getMovieTrailers(tmdbId, "");
         tmdbTrailers.addAll(tmdbTrailersWoLang);
 
         for (Trailer tmdbTrailer : tmdbTrailers) {
-          boolean addTrailer = true;
+          if (tmdbTrailer.getSource() == null) {
+            // no url somehow...?
+            continue;
+          }
+
+          MediaTrailer trailer = new MediaTrailer();
+          trailer.setName(tmdbTrailer.getName());
+          trailer.setQuality(tmdbTrailer.getSize());
+          trailer.setProvider(tmdbTrailer.getWebsite());
+          trailer.setUrl(tmdbTrailer.getSource());
 
           // youtube support
           if ("youtube".equalsIgnoreCase(tmdbTrailer.getWebsite())) {
-            MediaTrailer trailer = new MediaTrailer();
-            trailer.setName(tmdbTrailer.getName());
-            trailer.setQuality(tmdbTrailer.getSize());
-            trailer.setProvider(tmdbTrailer.getWebsite());
-
             // build url for youtube trailer
             StringBuilder sb = new StringBuilder();
             sb.append("http://www.youtube.com/watch?v=");
@@ -508,18 +614,10 @@ public class TmdbMetadataProvider implements IMediaMetadataProvider, IMediaArtwo
               sb.append("&hd=1");
             }
             trailer.setUrl(sb.toString());
+          }
 
-            // check for duplicates
-            for (MediaTrailer addedTrailer : trailers) {
-              if (addedTrailer.getUrl().equals(trailer.getUrl())) {
-                addTrailer = false;
-                break;
-              }
-            }
-
-            if (addTrailer) {
-              trailers.add(trailer);
-            }
+          if (!trailers.contains(trailer)) {
+            trailers.add(trailer);
           }
         }
       }
@@ -545,7 +643,7 @@ public class TmdbMetadataProvider implements IMediaMetadataProvider, IMediaArtwo
     MovieDb movieInfo = null;
     synchronized (tmdb) {
       trackConnections();
-      movieInfo = tmdb.getMovieInfoImdb(imdbId, Globals.settings.getMovieSettings().getScraperLanguage().name());
+      movieInfo = tmdb.getMovieInfoImdb(imdbId, "en");
     }
 
     if (movieInfo != null) {
@@ -808,7 +906,14 @@ public class TmdbMetadataProvider implements IMediaMetadataProvider, IMediaArtwo
       return info;
     }
 
-    info = tmdb.getCollectionInfo(tmdbId, Globals.settings.getMovieSettings().getScraperLanguage().name());
+    synchronized (tmdb) {
+      trackConnections();
+      info = tmdb.getCollectionInfo(tmdbId, Globals.settings.getMovieSettings().getScraperLanguage().name());
+      if (StringUtils.isBlank(info.getOverview())) {
+        // fallback to en
+        info = tmdb.getCollectionInfo(tmdbId, "en");
+      }
+    }
     String baseUrl = tmdb.getConfiguration().getBaseUrl();
 
     info.setPosterPath(baseUrl + "w342" + info.getPosterPath());

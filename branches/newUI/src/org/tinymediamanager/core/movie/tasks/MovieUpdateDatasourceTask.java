@@ -18,6 +18,7 @@ package org.tinymediamanager.core.movie.tasks;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
@@ -25,7 +26,6 @@ import java.util.concurrent.Callable;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.tinymediamanager.Globals;
@@ -53,10 +53,13 @@ import org.tinymediamanager.scraper.util.StrgUtils;
 
 public class MovieUpdateDatasourceTask extends TmmThreadPool {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(MovieUpdateDatasourceTask.class);
+  private static final Logger       LOGGER      = LoggerFactory.getLogger(MovieUpdateDatasourceTask.class);
 
-  private List<String>        dataSources;
-  private MovieList           movieList;
+  // skip well-known, but unneeded BD & DVD folders
+  private static final List<String> skipFolders = Arrays.asList("CERTIFICATE", "BACKUP", "PLAYLIST", "CLPINF", "AUXDATA", "AUDIO_TS");
+
+  private List<String>              dataSources;
+  private MovieList                 movieList;
 
   /**
    * Instantiates a new scrape task.
@@ -65,7 +68,12 @@ public class MovieUpdateDatasourceTask extends TmmThreadPool {
   public MovieUpdateDatasourceTask() {
     movieList = MovieList.getInstance();
     dataSources = new ArrayList<String>(Globals.settings.getMovieSettings().getMovieDataSource());
-    initThreadPool(3, "update");
+  }
+
+  public MovieUpdateDatasourceTask(String datasource) {
+    movieList = MovieList.getInstance();
+    dataSources = new ArrayList<String>(1);
+    dataSources.add(datasource);
   }
 
   /*
@@ -76,56 +84,65 @@ public class MovieUpdateDatasourceTask extends TmmThreadPool {
   @Override
   public Void doInBackground() {
     try {
-      startProgressBar("prepare scan...");
       for (String ds : dataSources) {
+
+        startProgressBar("prepare scan '" + ds + "'");
+        initThreadPool(3, "update");
         File[] dirs = new File(ds).listFiles();
         if (dirs == null) {
+          // error - continue with next datasource
+          MessageManager.instance.pushMessage(new Message(MessageLevel.ERROR, "update.datasource", "update.datasource.unavailable",
+              new String[] { ds }));
           continue;
         }
         for (File file : dirs) {
-          if (file.isDirectory()) {
+          if (file.isDirectory() && !cancel) {
             submitTask(new FindMovieTask(file, ds));
           }
         }
-      }
-
-      waitForCompletionOrCancel();
-
-      LOGGER.info("removing orphaned movies/files...");
-      startProgressBar("cleanup...");
-      for (int i = movieList.getMovies().size() - 1; i >= 0; i--) {
+        waitForCompletionOrCancel();
         if (cancel) {
           break;
         }
-        Movie movie = movieList.getMovies().get(i);
-        File movieDir = new File(movie.getPath());
-        if (!movieDir.exists()) {
-          movieList.removeMovie(movie);
-        }
-        else {
-          // check and delete all not found MediaFiles
-          List<MediaFile> mediaFiles = new ArrayList<MediaFile>(movie.getMediaFiles());
-          for (MediaFile mf : mediaFiles) {
-            if (!mf.getFile().exists()) {
-              movie.removeFromMediaFiles(mf);
-            }
+
+        startProgressBar("getting Mediainfo & cleanup...");
+        initThreadPool(1, "mediainfo");
+        LOGGER.info("removing orphaned movies/files...");
+        for (int i = movieList.getMovies().size() - 1; i >= 0; i--) {
+          if (cancel) {
+            break;
           }
-          movie.saveToDb();
+          Movie movie = movieList.getMovies().get(i);
+          if (!ds.equals(movie.getDataSource())) {
+            // check only movies matching datasource
+            continue;
+          }
+
+          File movieDir = new File(movie.getPath());
+          if (!movieDir.exists()) {
+            LOGGER.debug("movie directory '" + movieDir + "' not found, removing...");
+            movieList.removeMovie(movie);
+          }
+          else {
+            // check and delete all not found MediaFiles
+            List<MediaFile> mediaFiles = new ArrayList<MediaFile>(movie.getMediaFiles());
+            for (MediaFile mf : mediaFiles) {
+              if (!mf.getFile().exists()) {
+                movie.removeFromMediaFiles(mf);
+              }
+            }
+            movie.saveToDb();
+            submitTask(new MediaFileInformationFetcherTask(movie.getMediaFiles(), movie));
+          }
+        } // end movie loop
+        waitForCompletionOrCancel();
+        if (cancel) {
+          break;
         }
-      }
+
+      } // END datasource loop
       LOGGER.info("Done updating datasource :)");
 
-      if (!cancel) {
-        LOGGER.info("get MediaInfo...");
-        // update MediaInfo
-        startProgressBar("getting Mediainfo...");
-        initThreadPool(1, "mediainfo");
-        for (Movie m : movieList.getMovies()) {
-          submitTask(new MediaFileInformationFetcherTask(m.getMediaFiles(), m));
-        }
-        waitForCompletionOrCancel();
-        LOGGER.info("Done getting MediaInfo)");
-      }
       if (cancel) {
         cancel(false);// swing cancel
       }
@@ -191,11 +208,11 @@ public class MovieUpdateDatasourceTask extends TmmThreadPool {
             Movie nfo = null;
             switch (Globals.settings.getMovieSettings().getMovieConnector()) {
               case XBMC:
-                nfo = MovieToXbmcNfoConnector.getData(mf.getPath() + File.separator + mf.getFilename());
+                nfo = MovieToXbmcNfoConnector.getData(mf.getFile());
                 break;
 
               case MP:
-                nfo = MovieToMpNfoConnector.getData(mf.getPath() + File.separator + mf.getFilename());
+                nfo = MovieToMpNfoConnector.getData(mf.getFile());
                 break;
             }
             if (nfo != null) {
@@ -233,7 +250,8 @@ public class MovieUpdateDatasourceTask extends TmmThreadPool {
 
         if (movie.getMovieSet() != null) {
           LOGGER.debug("movie is part of a movieset");
-          movie.getMovieSet().addMovie(movie);
+          // movie.getMovieSet().addMovie(movie);
+          movie.getMovieSet().insertMovie(movie);
           movieList.sortMoviesInMovieSet(movie.getMovieSet());
           movie.getMovieSet().saveToDb();
           movie.saveToDb();
@@ -340,7 +358,7 @@ public class MovieUpdateDatasourceTask extends TmmThreadPool {
       MessageManager.instance.pushMessage(new Message(MessageLevel.ERROR, movieDir.getPath(), "message.update.errormoviedir"));
     }
     catch (Exception e) {
-      LOGGER.error(e.getMessage());
+      LOGGER.error("error update Datasources", e);
       MessageManager.instance.pushMessage(new Message(MessageLevel.ERROR, movieDir.getPath(), "message.update.errormoviedir", new String[] { ":",
           e.getLocalizedMessage() }));
     }
@@ -367,8 +385,8 @@ public class MovieUpdateDatasourceTask extends TmmThreadPool {
         files.add(file);
       }
       else {
-        // ignore .folders
-        if (!file.getName().startsWith(".")) {
+        // ignore .folders and others
+        if (!skipFolders.contains(file.getName().toUpperCase()) && !file.getName().startsWith(".")) {
           dirs.add(file);
         }
       }
@@ -433,8 +451,8 @@ public class MovieUpdateDatasourceTask extends TmmThreadPool {
         mv.add(new MediaFile(file));
       }
       else {
-        // ignore .folders
-        if (!file.getName().startsWith(".")) {
+        // ignore .folders and others
+        if (!skipFolders.contains(file.getName().toUpperCase()) && !file.getName().startsWith(".")) {
           mv.addAll(getAllMediaFilesRecursive(file));
         }
       }
@@ -454,48 +472,6 @@ public class MovieUpdateDatasourceTask extends TmmThreadPool {
   @Override
   public void done() {
     stopProgressBar();
-  }
-
-  /**
-   * Start progress bar.
-   * 
-   * @param description
-   *          the description
-   */
-  private void startProgressBar(String description, int max, int progress) {
-    if (!StringUtils.isEmpty(description)) {
-      lblProgressAction.setText(description);
-    }
-    progressBar.setVisible(true);
-    progressBar.setIndeterminate(false);
-    progressBar.setMaximum(max);
-    progressBar.setValue(progress);
-    btnCancelTask.setVisible(true);
-  }
-
-  /**
-   * Start progress bar.
-   * 
-   * @param description
-   *          the description
-   */
-  private void startProgressBar(String description) {
-    if (!StringUtils.isEmpty(description)) {
-      lblProgressAction.setText(description);
-    }
-    progressBar.setVisible(true);
-    progressBar.setIndeterminate(true);
-    btnCancelTask.setVisible(true);
-  }
-
-  /**
-   * Stop progress bar.
-   */
-  private void stopProgressBar() {
-    lblProgressAction.setText("");
-    progressBar.setIndeterminate(false);
-    progressBar.setVisible(false);
-    btnCancelTask.setVisible(false);
   }
 
   /*

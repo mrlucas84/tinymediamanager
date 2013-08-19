@@ -51,6 +51,7 @@ public class MovieUpdateDatasourceAction extends AbstractAction {
    * 
    * @see java.awt.event.ActionListener#actionPerformed(java.awt.event.ActionEvent)
    */
+  @Override
   public void actionPerformed(ActionEvent e) {
     TmmSwingWorker task = new MovieUpdateDatasourceTask();
     if (!MainWindow.executeMainTask(task)) {

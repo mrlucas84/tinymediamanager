@@ -37,7 +37,6 @@ import org.tinymediamanager.core.MediaFileType;
 import org.tinymediamanager.core.Message;
 import org.tinymediamanager.core.Message.MessageLevel;
 import org.tinymediamanager.core.MessageManager;
-import org.tinymediamanager.core.movie.MovieSet;
 import org.tinymediamanager.ui.TmmUIHelper;
 import org.tinymediamanager.ui.UTF8Control;
 import org.tinymediamanager.ui.components.LinkLabel;
@@ -136,6 +135,10 @@ public class MovieDetailsPanel extends JPanel {
   /** The lbl spoken languages. */
   private JLabel                      lblSpokenLanguages;
   private JButton                     btnPlay;
+  private JLabel                      lblCountryT;
+  private JLabel                      lblCountry;
+  private JLabel                      lblReleaseDateT;
+  private JLabel                      lblReleaseDate;
 
   /**
    * Instantiates a new movie details panel.
@@ -197,6 +200,12 @@ public class MovieDetailsPanel extends JPanel {
     lblMinutes = new JLabel(BUNDLE.getString("metatag.minutes")); //$NON-NLS-1$
     add(lblMinutes, "6, 6");
 
+    lblReleaseDateT = new JLabel(BUNDLE.getString("metatag.releasedate")); //$NON-NLS-1$
+    add(lblReleaseDateT, "8, 6");
+
+    lblReleaseDate = new JLabel("");
+    add(lblReleaseDate, "10, 6");
+
     lblCertificationT = new JLabel(BUNDLE.getString("metatag.certification")); //$NON-NLS-1$
     add(lblCertificationT, "2, 8");
     lblCertificationT.setLabelFor(lblCertification);
@@ -215,7 +224,13 @@ public class MovieDetailsPanel extends JPanel {
     add(lblSpokenLanguagesT, "2, 12");
 
     lblSpokenLanguages = new JLabel("");
-    add(lblSpokenLanguages, "4, 12, 9, 1");
+    add(lblSpokenLanguages, "4, 12, 3, 1");
+
+    lblCountryT = new JLabel(BUNDLE.getString("metatag.country")); //$NON-NLS-1$
+    add(lblCountryT, "8, 12");
+
+    lblCountry = new JLabel("");
+    add(lblCountry, "10, 12, 3, 1");
 
     lblMoviesetT = new JLabel(BUNDLE.getString("metatag.movieset")); //$NON-NLS-1$
     add(lblMoviesetT, "2, 14");
@@ -300,9 +315,6 @@ public class MovieDetailsPanel extends JPanel {
     initDataBindings();
   }
 
-  /**
-   * Inits the data bindings.
-   */
   protected void initDataBindings() {
     BeanProperty<MovieSelectionModel, String> movieSelectionModelBeanProperty_6 = BeanProperty.create("selectedMovie.originalTitle");
     BeanProperty<JLabel, String> jLabelBeanProperty = BeanProperty.create("text");
@@ -351,15 +363,24 @@ public class MovieDetailsPanel extends JPanel {
         movieSelectionModelBeanProperty, lblMoviePath, linkLabelBeanProperty);
     autoBinding.bind();
     //
-    BeanProperty<MovieSelectionModel, MovieSet> movieSelectionModelBeanProperty_1 = BeanProperty.create("selectedMovie.movieSet");
-    AutoBinding<MovieSelectionModel, MovieSet, JLabel, String> autoBinding_1 = Bindings.createAutoBinding(UpdateStrategy.READ, movieSelectionModel,
+    BeanProperty<MovieSelectionModel, String> movieSelectionModelBeanProperty_1 = BeanProperty.create("selectedMovie.movieSetTitle");
+    AutoBinding<MovieSelectionModel, String, JLabel, String> autoBinding_1 = Bindings.createAutoBinding(UpdateStrategy.READ, movieSelectionModel,
         movieSelectionModelBeanProperty_1, lblMovieSet, jLabelBeanProperty);
-    autoBinding_1.setConverter(new MovieSetConverter());
     autoBinding_1.bind();
     //
     BeanProperty<MovieSelectionModel, String> movieSelectionModelBeanProperty_2 = BeanProperty.create("selectedMovie.spokenLanguages");
     AutoBinding<MovieSelectionModel, String, JLabel, String> autoBinding_2 = Bindings.createAutoBinding(UpdateStrategy.READ, movieSelectionModel,
         movieSelectionModelBeanProperty_2, lblSpokenLanguages, jLabelBeanProperty);
     autoBinding_2.bind();
+    //
+    BeanProperty<MovieSelectionModel, String> movieSelectionModelBeanProperty_3 = BeanProperty.create("selectedMovie.country");
+    AutoBinding<MovieSelectionModel, String, JLabel, String> autoBinding_3 = Bindings.createAutoBinding(UpdateStrategy.READ, movieSelectionModel,
+        movieSelectionModelBeanProperty_3, lblCountry, jLabelBeanProperty);
+    autoBinding_3.bind();
+    //
+    BeanProperty<MovieSelectionModel, String> movieSelectionModelBeanProperty_10 = BeanProperty.create("selectedMovie.releaseDateAsString");
+    AutoBinding<MovieSelectionModel, String, JLabel, String> autoBinding_6 = Bindings.createAutoBinding(UpdateStrategy.READ, movieSelectionModel,
+        movieSelectionModelBeanProperty_10, lblReleaseDate, jLabelBeanProperty);
+    autoBinding_6.bind();
   }
 }

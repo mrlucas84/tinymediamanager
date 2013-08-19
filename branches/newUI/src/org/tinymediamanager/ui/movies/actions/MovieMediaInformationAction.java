@@ -22,8 +22,12 @@ import java.util.ResourceBundle;
 
 import javax.swing.AbstractAction;
 import javax.swing.ImageIcon;
+import javax.swing.JOptionPane;
 
 import org.tinymediamanager.core.movie.Movie;
+import org.tinymediamanager.core.movie.tasks.MovieReloadMediaInformationTask;
+import org.tinymediamanager.ui.MainWindow;
+import org.tinymediamanager.ui.TmmSwingWorker;
 import org.tinymediamanager.ui.UTF8Control;
 import org.tinymediamanager.ui.movies.MovieUIModule;
 
@@ -53,17 +57,16 @@ public class MovieMediaInformationAction extends AbstractAction {
    * 
    * @see java.awt.event.ActionListener#actionPerformed(java.awt.event.ActionEvent)
    */
+  @Override
   public void actionPerformed(ActionEvent e) {
     List<Movie> selectedMovies = new ArrayList<Movie>(MovieUIModule.getInstance().getSelectionModel().getSelectedMovies());
 
     // get data of all files within all selected movies
-    // FIXME get in extra thread
     if (selectedMovies.size() > 0) {
-      for (Movie movie : selectedMovies) {
-        movie.gatherMediaFileInformation(true);
-        movie.saveToDb();
+      TmmSwingWorker task = new MovieReloadMediaInformationTask(selectedMovies);
+      if (!MainWindow.executeMainTask(task)) {
+        JOptionPane.showMessageDialog(null, BUNDLE.getString("onlyoneoperation")); //$NON-NLS-1$
       }
     }
   }
-
 }

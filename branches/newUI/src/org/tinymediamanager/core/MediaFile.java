@@ -169,7 +169,8 @@ public class MediaFile extends AbstractModelObject implements Comparable<MediaFi
     String name = getFilename().toLowerCase();
     String foldername = FilenameUtils.getBaseName(getPath()).toLowerCase();
 
-    if (name.contains("sample") || name.contains("trailer") || foldername.contains("sample")) {
+    if ((name.contains("sample") || name.contains("trailer") || foldername.contains("sample")
+        && Globals.settings.getVideoFileType().contains("." + ext))) {
       return MediaFileType.TRAILER;
     }
 
@@ -284,9 +285,9 @@ public class MediaFile extends AbstractModelObject implements Comparable<MediaFi
    *          the new file
    */
   public void setFile(File file) {
-    this.file = file;
     setFilename(file.getName());
     setPath(file.getParent());
+    this.file = file;
   }
 
   /**
@@ -843,6 +844,10 @@ public class MediaFile extends AbstractModelObject implements Comparable<MediaFi
     return durationInSecs;
   }
 
+  public int getDurationInMinutes() {
+    return durationInSecs / 60;
+  }
+
   /**
    * returns the duration / runtime formatted<br>
    * eg 1h 35m.
@@ -1243,10 +1248,6 @@ public class MediaFile extends AbstractModelObject implements Comparable<MediaFi
    */
   @Override
   public int compareTo(MediaFile mf2) {
-    if (getType().ordinal() != mf2.getType().ordinal()) {
-      return getType().ordinal() - mf2.getType().ordinal();
-    }
-
     return this.getFile().compareTo(mf2.getFile());
   }
 

@@ -39,6 +39,11 @@ public class FeedbackAction extends AbstractAction {
     putValue(SHORT_DESCRIPTION, BUNDLE.getString("Feedback")); //$NON-NLS-1$
   }
 
+  /*
+   * (non-Javadoc)
+   * 
+   * @see java.awt.event.ActionListener#actionPerformed(java.awt.event.ActionEvent)
+   */
   @Override
   public void actionPerformed(ActionEvent e) {
     JDialog dialog = new FeedbackDialog();

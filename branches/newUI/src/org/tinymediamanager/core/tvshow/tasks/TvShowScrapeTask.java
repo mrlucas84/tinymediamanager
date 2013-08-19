@@ -23,6 +23,7 @@ import java.util.concurrent.Executors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.tinymediamanager.Globals;
 import org.tinymediamanager.core.Message;
 import org.tinymediamanager.core.Message.MessageLevel;
 import org.tinymediamanager.core.MessageManager;
@@ -31,7 +32,7 @@ import org.tinymediamanager.core.tvshow.TvShowList;
 import org.tinymediamanager.core.tvshow.TvShowScraperMetadataConfig;
 import org.tinymediamanager.core.tvshow.TvShowSearchAndScrapeOptions;
 import org.tinymediamanager.scraper.IMediaArtworkProvider;
-import org.tinymediamanager.scraper.IMediaMetadataProvider;
+import org.tinymediamanager.scraper.ITvShowMetadataProvider;
 import org.tinymediamanager.scraper.MediaArtwork;
 import org.tinymediamanager.scraper.MediaArtwork.MediaArtworkType;
 import org.tinymediamanager.scraper.MediaMetadata;
@@ -46,20 +47,11 @@ import org.tinymediamanager.ui.TmmSwingWorker;
  * @author Manuel Laggner
  */
 public class TvShowScrapeTask extends TmmSwingWorker {
-
-  /** The Constant LOGGER. */
   private final static Logger          LOGGER = LoggerFactory.getLogger(TvShowScrapeTask.class);
 
-  /** The tv shows to scrape. */
   private List<TvShow>                 tvShowsToScrape;
-
-  /** The do search. */
   private boolean                      doSearch;
-
-  /** The options. */
   private TvShowSearchAndScrapeOptions options;
-
-  /** The tv show count. */
   private int                          tvShowCount;
 
   /**
@@ -153,30 +145,6 @@ public class TvShowScrapeTask extends TmmSwingWorker {
   }
 
   /**
-   * Start progress bar.
-   * 
-   * @param description
-   *          the description
-   * @param value
-   *          the value
-   */
-  private void startProgressBar(String description, int value) {
-    lblProgressAction.setText(description);
-    progressBar.setVisible(true);
-    progressBar.setValue(value);
-    btnCancelTask.setVisible(true);
-  }
-
-  /**
-   * Stop progress bar.
-   */
-  private void stopProgressBar() {
-    lblProgressAction.setText("");
-    progressBar.setVisible(false);
-    btnCancelTask.setVisible(false);
-  }
-
-  /**
    * The Class Worker.
    */
   private class Worker implements Runnable {
@@ -208,7 +176,7 @@ public class TvShowScrapeTask extends TmmSwingWorker {
         tvShowList = TvShowList.getInstance();
         // set up scrapers
         TvShowScraperMetadataConfig scraperMetadataConfig = options.getScraperMetadataConfig();
-        IMediaMetadataProvider mediaMetadataProvider = tvShowList.getMetadataProvider(options.getMetadataScraper());
+        ITvShowMetadataProvider mediaMetadataProvider = tvShowList.getMetadataProvider(options.getMetadataScraper());
         List<IMediaArtworkProvider> artworkProviders = tvShowList.getArtworkProviders(options.getArtworkScrapers());
         // List<IMediaTrailerProvider> trailerProviders = tvShowList.getTrailerProviders(options.getTrailerScrapers());
 
@@ -232,9 +200,21 @@ public class TvShowScrapeTask extends TmmSwingWorker {
                 MediaSearchResult result2 = results.get(1);
                 // if both results have 100% score - do not take any result
                 if (result1.getScore() == 1 && result2.getScore() == 1) {
+                  LOGGER.info("two 100% results, can't decide whitch to take - ignore result");
+                  MessageManager.instance.pushMessage(new Message(MessageLevel.ERROR, tvShow, "tvshow.scrape.nomatchfound"));
+                  continue;
+                }
+                // create a treshold of 0.75 - to minimize false positives
+                if (result1.getScore() < 0.75) {
+                  LOGGER.info("score is lower than 0.75 (" + result1.getScore() + ") - ignore result");
+                  MessageManager.instance.pushMessage(new Message(MessageLevel.ERROR, tvShow, "tvshow.scrape.nomatchfound"));
                   continue;
                 }
               }
+            }
+            else {
+              LOGGER.info("no result found for " + tvShow.getTitle());
+              MessageManager.instance.pushMessage(new Message(MessageLevel.ERROR, tvShow, "tvshow.scrape.nomatchfound"));
             }
           }
 
@@ -244,6 +224,8 @@ public class TvShowScrapeTask extends TmmSwingWorker {
               MediaScrapeOptions options = new MediaScrapeOptions();
               options.setType(MediaType.TV_SHOW);
               options.setResult(result1);
+              options.setLanguage(Globals.settings.getMovieSettings().getScraperLanguage());
+              options.setCountry(Globals.settings.getMovieSettings().getCertificationCountry());
 
               // we didn't do a search - pass imdbid and tmdbid from movie
               // object
@@ -260,8 +242,8 @@ public class TvShowScrapeTask extends TmmSwingWorker {
                   || scraperMetadataConfig.isAired() || scraperMetadataConfig.isPlot() || scraperMetadataConfig.isRating()
                   || scraperMetadataConfig.isRuntime() || scraperMetadataConfig.isStatus() || scraperMetadataConfig.isTitle()
                   || scraperMetadataConfig.isYear()) {
-                md = mediaMetadataProvider.getMetadata(options);
-                tvShow.setMetadata(md);
+                md = mediaMetadataProvider.getTvShowMetadata(options);
+                tvShow.setMetadata(md, scraperMetadataConfig);
               }
 
               // scrape episodes
@@ -271,7 +253,7 @@ public class TvShowScrapeTask extends TmmSwingWorker {
 
               // scrape artwork if wanted
               if (scraperMetadataConfig.isArtwork()) {
-                tvShow.setArtwork(getArtwork(tvShow, md, artworkProviders));
+                tvShow.setArtwork(getArtwork(tvShow, md, artworkProviders), scraperMetadataConfig);
               }
 
               // // scrape trailer if wanted
@@ -306,6 +288,8 @@ public class TvShowScrapeTask extends TmmSwingWorker {
       MediaScrapeOptions options = new MediaScrapeOptions();
       options.setArtworkType(MediaArtworkType.ALL);
       options.setMetadata(metadata);
+      options.setLanguage(Globals.settings.getMovieSettings().getScraperLanguage());
+      options.setCountry(Globals.settings.getMovieSettings().getCertificationCountry());
       for (Entry<String, Object> entry : tvShow.getIds().entrySet()) {
         options.setId(entry.getKey(), entry.getValue().toString());
       }

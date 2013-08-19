@@ -15,6 +15,8 @@
  */
 package org.tinymediamanager.ui.moviesets;
 
+import static org.tinymediamanager.core.Constants.*;
+
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.Font;
@@ -47,6 +49,7 @@ import ca.odell.glazedlists.GlazedLists;
 import ca.odell.glazedlists.ObservableElementList;
 import ca.odell.glazedlists.gui.AdvancedTableFormat;
 import ca.odell.glazedlists.swing.DefaultEventTableModel;
+import ca.odell.glazedlists.swing.GlazedListsSwing;
 
 import com.jgoodies.forms.factories.FormFactory;
 import com.jgoodies.forms.layout.ColumnSpec;
@@ -171,7 +174,7 @@ public class MovieSetInformationPanel extends JPanel {
     panelMovies.setLayout(new FormLayout(new ColumnSpec[] { ColumnSpec.decode("453px:grow"), }, new RowSpec[] { FormFactory.LINE_GAP_ROWSPEC,
         RowSpec.decode("203px:grow"), }));
 
-    movieTableModel = new DefaultEventTableModel<Movie>(movieEventList, new MovieInMovieSetTableFormat());
+    movieTableModel = new DefaultEventTableModel<Movie>(GlazedListsSwing.swingThreadProxyList(movieEventList), new MovieInMovieSetTableFormat());
     // tableAssignedMovies = new JTable(movieTableModel);
     tableAssignedMovies = new ZebraJTable(movieTableModel);
     // JScrollPane scrollPaneMovies = new JScrollPane();
@@ -204,6 +207,20 @@ public class MovieSetInformationPanel extends JPanel {
             || (source.getClass() == MovieSet.class && "movies".equals(property))) {
           movieEventList.clear();
           movieEventList.addAll(selectionModel.getSelectedMovieSet().getMovies());
+          lblMovieSetFanart.setImagePath(selectionModel.getSelectedMovieSet().getFanart());
+          lblMovieSetPoster.setImagePath(selectionModel.getSelectedMovieSet().getPoster());
+        }
+
+        // react on changes of the images
+        if ((source.getClass() == MovieSet.class && FANART.equals(property))) {
+          MovieSet movieSet = (MovieSet) source;
+          lblMovieSetFanart.clearImage();
+          lblMovieSetFanart.setImagePath(movieSet.getFanart());
+        }
+        if ((source.getClass() == MovieSet.class && POSTER.equals(property))) {
+          MovieSet movieSet = (MovieSet) source;
+          lblMovieSetPoster.clearImage();
+          lblMovieSetPoster.setImagePath(movieSet.getPoster());
         }
       }
     };
@@ -317,15 +334,15 @@ public class MovieSetInformationPanel extends JPanel {
         movieSetSelectionModelBeanProperty_4, tpOverview, jTextPaneBeanProperty);
     autoBinding_3.bind();
     //
-    BeanProperty<MovieSetSelectionModel, String> movieSetSelectionModelBeanProperty_1 = BeanProperty.create("selectedMovieSet.fanart");
-    BeanProperty<ImageLabel, String> imageLabelBeanProperty_1 = BeanProperty.create("imagePath");
-    AutoBinding<MovieSetSelectionModel, String, ImageLabel, String> autoBinding_2 = Bindings.createAutoBinding(UpdateStrategy.READ, selectionModel,
-        movieSetSelectionModelBeanProperty_1, lblMovieSetFanart, imageLabelBeanProperty_1);
-    autoBinding_2.bind();
-    //
-    BeanProperty<MovieSetSelectionModel, String> movieSetSelectionModelBeanProperty_2 = BeanProperty.create("selectedMovieSet.poster");
-    AutoBinding<MovieSetSelectionModel, String, ImageLabel, String> autoBinding_1 = Bindings.createAutoBinding(UpdateStrategy.READ, selectionModel,
-        movieSetSelectionModelBeanProperty_2, lblMovieSetPoster, imageLabelBeanProperty_1);
-    autoBinding_1.bind();
+    // BeanProperty<MovieSetSelectionModel, String> movieSetSelectionModelBeanProperty_1 = BeanProperty.create("selectedMovieSet.fanart");
+    // BeanProperty<ImageLabel, String> imageLabelBeanProperty_1 = BeanProperty.create("imagePath");
+    // AutoBinding<MovieSetSelectionModel, String, ImageLabel, String> autoBinding_2 = Bindings.createAutoBinding(UpdateStrategy.READ, selectionModel,
+    // movieSetSelectionModelBeanProperty_1, lblMovieSetFanart, imageLabelBeanProperty_1);
+    // autoBinding_2.bind();
+    // //
+    // BeanProperty<MovieSetSelectionModel, String> movieSetSelectionModelBeanProperty_2 = BeanProperty.create("selectedMovieSet.poster");
+    // AutoBinding<MovieSetSelectionModel, String, ImageLabel, String> autoBinding_1 = Bindings.createAutoBinding(UpdateStrategy.READ, selectionModel,
+    // movieSetSelectionModelBeanProperty_2, lblMovieSetPoster, imageLabelBeanProperty_1);
+    // autoBinding_1.bind();
   }
 }

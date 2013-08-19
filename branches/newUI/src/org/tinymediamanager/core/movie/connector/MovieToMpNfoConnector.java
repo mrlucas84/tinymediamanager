@@ -19,8 +19,10 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.io.StringReader;
 import java.io.StringWriter;
 import java.io.Writer;
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -45,6 +47,7 @@ import org.apache.commons.lang3.SystemUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.tinymediamanager.Globals;
+import org.tinymediamanager.core.MediaFile;
 import org.tinymediamanager.core.MediaFileType;
 import org.tinymediamanager.core.Message;
 import org.tinymediamanager.core.Message.MessageLevel;
@@ -66,86 +69,53 @@ import org.tinymediamanager.scraper.MediaGenres;
  */
 @XmlRootElement(name = "movie")
 @XmlSeeAlso({ Actor.class, MovieSets.class })
-@XmlType(propOrder = { "title", "originaltitle", "sets", "rating", "year", "votes", "outline", "plot", "tagline", "runtime", "thumb", "fanart",
-    "mpaa", "id", "filenameandpath", "genres", "studio", "credits", "director", "actors" })
+@XmlType(propOrder = { "title", "originaltitle", "sorttitle", "sets", "rating", "year", "votes", "outline", "plot", "tagline", "runtime", "thumb",
+    "fanart", "mpaa", "id", "genres", "studio", "country", "premiered", "credits", "director", "actors" })
 public class MovieToMpNfoConnector {
 
-  /** The Constant logger. */
-  private static final Logger LOGGER          = LoggerFactory.getLogger(MovieToMpNfoConnector.class);
+  private static final Logger LOGGER        = LoggerFactory.getLogger(MovieToMpNfoConnector.class);
+  private static JAXBContext  context       = initContext();
 
-  /** The title. */
-  private String              title           = "";
+  private String              id            = "";
+  private String              title         = "";
+  private String              originaltitle = "";
+  private String              sorttitle     = "";
+  private float               rating        = 0;
+  private int                 votes         = 0;
+  private String              year          = "";
+  private String              outline       = "";
+  private String              plot          = "";
+  private String              tagline       = "";
+  private String              runtime       = "";
+  private String              thumb         = "";
+  private String              director      = "";
+  private String              studio        = "";
+  private String              mpaa          = "";
+  private String              credits       = "";
+  private String              country       = "";
 
-  /** The originaltitle. */
-  private String              originaltitle   = "";
+  @XmlElement
+  private String              premiered     = "";
 
-  /** The rating. */
-  private float               rating          = 0;
-
-  /** The votes. */
-  private int                 votes           = 0;
-
-  /** The year. */
-  private String              year            = "";
-
-  /** The outline. */
-  private String              outline         = "";
-
-  /** The plot. */
-  private String              plot            = "";
-
-  /** The tagline. */
-  private String              tagline         = "";
-
-  /** The runtime. */
-  private String              runtime         = "";
-
-  /** The thumb. */
-  private String              thumb           = "";
-
-  /** The fanarts. */
   @XmlElementWrapper(name = "fanart")
   @XmlElement(name = "thumb")
   private List<String>        fanart;
 
-  /** The id. */
-  private String              id              = "";
-
-  /** The filenameandpath. */
-  private String              filenameandpath = "";
-
-  /** The director. */
-  private String              director        = "";
-
-  /** The sudio. */
-  private String              studio          = "";
-
-  /** The actors. */
   @XmlAnyElement(lax = true)
   private List<Object>        actors;
 
-  /** The genres. */
   @XmlElementWrapper(name = "genres")
   @XmlElement(name = "genre")
   private List<String>        genres;
 
-  /** The mpaa certification. */
-  private String              mpaa            = "";
-
-  /** the credits. */
-  private String              credits         = "";
-
-  /** The sets. */
   private List<MovieSets>     sets;
-
-  private static JAXBContext  context         = initContext();
 
   private static JAXBContext initContext() {
     try {
       return JAXBContext.newInstance(MovieToMpNfoConnector.class, Actor.class);
     }
     catch (JAXBException e) {
-      LOGGER.error(e.getMessage());
+      LOGGER.error("Error instantiating JaxB", e);
     }
     return null;
   }
@@ -166,21 +136,28 @@ public class MovieToMpNfoConnector {
    * 
    * @param movie
    *          the movie
-   * @return the string
    */
-  public static String setData(Movie movie) {
+  public static void setData(Movie movie) {
     if (context == null) {
       MessageManager.instance.pushMessage(new Message(MessageLevel.ERROR, movie, "message.nfo.writeerror", new String[] { ":", "Context is null" }));
-      return "";
+      return;
     }
 
     MovieToMpNfoConnector mp = new MovieToMpNfoConnector();
     // set data
     mp.setTitle(movie.getTitle());
     mp.setOriginaltitle(movie.getOriginalTitle());
+
+    mp.setSorttitle(movie.getSortTitle());
+    // if sort title is empty, insert the title sortable
+    if (StringUtils.isBlank(mp.getSorttitle())) {
+      mp.setSorttitle(movie.getTitleSortable());
+    }
+
     mp.setRating(movie.getRating());
     mp.setVotes(movie.getVotes());
     mp.setYear(movie.getYear());
+    mp.premiered = movie.getReleaseDateFormatted();
     mp.setPlot(movie.getPlot());
 
     // outline is only the first 200 characters of the plot
@@ -201,20 +178,21 @@ public class MovieToMpNfoConnector {
 
     mp.setTagline(movie.getTagline());
     mp.setRuntime(String.valueOf(movie.getRuntime()));
-    mp.setThumb(movie.getPoster());
-    mp.addFanart(movie.getFanart());
+    mp.setThumb(FilenameUtils.getName(movie.getPoster()));
+    mp.addFanart(FilenameUtils.getName(movie.getFanart()));
     mp.setId(movie.getImdbId());
     mp.setStudio(movie.getProductionCompany());
+    mp.setCountry(movie.getCountry());
 
     // certification
     if (movie.getCertification() != null) {
-      mp.setMpaa(Certification.generateCertificationStringWithAlternateNames(movie.getCertification()));
+      mp.setMpaa(movie.getCertification().name());
     }
 
-    // filename and path
-    if (movie.getMediaFiles(MediaFileType.VIDEO).size() > 0) {
-      mp.setFilenameandpath(movie.getPath() + File.separator + movie.getMediaFiles(MediaFileType.VIDEO).get(0).getFilename());
-    }
+    // // filename and path
+    // if (movie.getMediaFiles(MediaFileType.VIDEO).size() > 0) {
+    // mp.setFilenameandpath(movie.getPath() + File.separator + movie.getMediaFiles(MediaFileType.VIDEO).get(0).getFilename());
+    // }
 
     mp.setDirector(movie.getDirector());
     mp.setCredits(movie.getWriter());
@@ -235,6 +213,7 @@ public class MovieToMpNfoConnector {
 
     // and marshall it
     String nfoFilename = "";
+    List<MediaFile> newNfos = new ArrayList<MediaFile>(1);
     for (MovieNfoNaming name : Globals.settings.getMovieSettings().getMovieNfoFilenames()) {
 
       try {
@@ -253,7 +232,9 @@ public class MovieToMpNfoConnector {
         if (SystemUtils.IS_OS_WINDOWS) {
           sb = new StringBuilder(sb.toString().replaceAll("(?<!\r)\n", "\r\n"));
         }
-        FileUtils.write(new File(movie.getPath(), nfoFilename), sb, "UTF-8");
+        File f = new File(movie.getPath(), nfoFilename);
+        FileUtils.write(f, sb, "UTF-8");
+        newNfos.add(new MediaFile(f));
       }
       catch (Exception e) {
         LOGGER.error("setData", e);
@@ -262,9 +243,10 @@ public class MovieToMpNfoConnector {
       }
     }
 
-    // return only the name w/o path
-    return FilenameUtils.getName(nfoFilename);
-
+    if (newNfos.size() > 0) {
+      movie.removeAllMediaFiles(MediaFileType.NFO);
+      movie.addToMediaFiles(newNfos);
+    }
   }
 
   /**
@@ -274,7 +256,7 @@ public class MovieToMpNfoConnector {
    *          the nfo filename
    * @return the data
    */
-  public static Movie getData(String nfoFilename) {
+  public static Movie getData(File nfoFilename) {
     if (context == null) {
       MessageManager.instance.pushMessage(new Message(MessageLevel.ERROR, nfoFilename, "message.nfo.readerror"));
       return null;
@@ -283,20 +265,19 @@ public class MovieToMpNfoConnector {
     // try to parse XML
     Movie movie = null;
     try {
-      Unmarshaller um = context.createUnmarshaller();
-      if (um == null) {
-        MessageManager.instance.pushMessage(new Message(MessageLevel.ERROR, nfoFilename, "message.nfo.readerror"));
-        return null;
-      }
-
-      Reader in = new InputStreamReader(new FileInputStream(nfoFilename), "UTF-8");
-      MovieToMpNfoConnector mp = (MovieToMpNfoConnector) um.unmarshal(in);
+      MovieToMpNfoConnector mp = parseNFO(nfoFilename);
       movie = new Movie();
       movie.setTitle(mp.getTitle());
+      movie.setSortTitle(mp.getSorttitle());
       movie.setOriginalTitle(mp.getOriginaltitle());
       movie.setRating(mp.getRating());
       movie.setVotes(mp.getVotes());
       movie.setYear(mp.getYear());
+      try {
+        movie.setReleaseDate(mp.premiered);
+      }
+      catch (ParseException e) {
+      }
       movie.setPlot(mp.getPlot());
       movie.setTagline(mp.getTagline());
       try {
@@ -306,18 +287,12 @@ public class MovieToMpNfoConnector {
       catch (Exception e) {
         LOGGER.warn("could not parse runtime: " + mp.getRuntime());
       }
-      // if (mp.getThumb() != null) {
-      // movie.setPoster(mp.getThumb());
-      // }
-
-      // if (mp.getFanart() != null && mp.getFanart().size() > 0) {
-      // movie.setFanart(mp.getFanart().get(0));
-      // }
 
       movie.setImdbId(mp.getId());
       movie.setDirector(mp.getDirector());
       movie.setWriter(mp.getCredits());
       movie.setProductionCompany(mp.getStudio());
+      movie.setCountry(mp.getCountry());
       if (!StringUtils.isEmpty(mp.getMpaa())) {
         movie.setCertification(Certification.parseCertificationStringForMovieSetupCountry(mp.getMpaa()));
       }
@@ -327,17 +302,12 @@ public class MovieToMpNfoConnector {
         MovieSets sets = mp.getSets().get(0);
         // search for that movieset
         MovieList movieList = MovieList.getInstance();
-        MovieSet movieSet = movieList.findMovieSet(sets.getName());
-        // no one found - create it
-        if (movieSet == null) {
-          movieSet = new MovieSet(sets.getName());
-          movieSet.saveToDb();
-          movieList.addMovieSet(movieSet);
-        }
+        MovieSet movieSet = movieList.getMovieSet(sets.getName(), 0);
 
         // add movie to movieset
         if (movieSet != null) {
           movie.setMovieSet(movieSet);
+          movie.setSortTitle(sets.getName() + String.format("%02d", sets.getOrder()));
         }
       }
 
@@ -357,18 +327,15 @@ public class MovieToMpNfoConnector {
         }
       }
 
-      // set only the name w/o path
-      movie.setNfoFilename(FilenameUtils.getName(nfoFilename));
-
     }
     catch (UnmarshalException e) {
       LOGGER.error("getData " + e.getMessage());
-      MessageManager.instance.pushMessage(new Message(MessageLevel.ERROR, nfoFilename, "message.nfo.readerror"));
+      // MessageManager.instance.pushMessage(new Message(MessageLevel.ERROR, nfoFilename, "message.nfo.readerror"));
       return null;
     }
     catch (Exception e) {
       LOGGER.error("getData", e);
-      MessageManager.instance.pushMessage(new Message(MessageLevel.ERROR, nfoFilename, "message.nfo.readerror"));
+      // MessageManager.instance.pushMessage(new Message(MessageLevel.ERROR, nfoFilename, "message.nfo.readerror"));
       return null;
     }
 
@@ -378,6 +345,27 @@ public class MovieToMpNfoConnector {
     }
 
     return movie;
+  }
+
+  private static MovieToMpNfoConnector parseNFO(File nfoFile) throws Exception {
+    Unmarshaller um = context.createUnmarshaller();
+    if (um == null) {
+      MessageManager.instance.pushMessage(new Message(MessageLevel.ERROR, nfoFile, "message.nfo.readerror"));
+      throw new Exception("could not create unmarshaller");
+    }
+
+    try {
+      Reader in = new InputStreamReader(new FileInputStream(nfoFile), "UTF-8");
+      return (MovieToMpNfoConnector) um.unmarshal(in);
+    }
+    catch (UnmarshalException e) {
+      LOGGER.error("tried to unmarshal; now trying to clean xml stream");
+    }
+
+    // now trying to parse it via string
+    String completeNFO = FileUtils.readFileToString(nfoFile, "UTF-8").trim().replaceFirst("^([\\W]+)<", "<");
+    Reader in = new StringReader(completeNFO);
+    return (MovieToMpNfoConnector) um.unmarshal(in);
   }
 
   /**
@@ -470,6 +458,15 @@ public class MovieToMpNfoConnector {
    */
   public void setOriginaltitle(String originaltitle) {
     this.originaltitle = originaltitle;
+  }
+
+  @XmlElement(name = "sorttitle")
+  public String getSorttitle() {
+    return sorttitle;
+  }
+
+  public void setSorttitle(String sorttitle) {
+    this.sorttitle = sorttitle;
   }
 
   /**
@@ -612,41 +609,19 @@ public class MovieToMpNfoConnector {
     this.runtime = runtime;
   }
 
-  /**
-   * Gets the thumb.
-   * 
-   * @return the thumb
-   */
   @XmlElement(name = "thumb")
   public String getThumb() {
     return thumb;
   }
 
-  /**
-   * Sets the thumb.
-   * 
-   * @param thumb
-   *          the new thumb
-   */
   public void setThumb(String thumb) {
     this.thumb = thumb;
   }
 
-  /**
-   * Gets the fanart.
-   * 
-   * @return the fanart
-   */
   public List<String> getFanart() {
     return fanart;
   }
 
-  /**
-   * Adds the fanart.
-   * 
-   * @param fanart
-   *          the fanart
-   */
   public void addFanart(String fanart) {
     this.fanart.add(fanart);
   }
@@ -669,26 +644,6 @@ public class MovieToMpNfoConnector {
    */
   public void setId(String id) {
     this.id = id;
-  }
-
-  /**
-   * Gets the filenameandpath.
-   * 
-   * @return the filenameandpath
-   */
-  @XmlElement(name = "filenameandpath")
-  public String getFilenameandpath() {
-    return filenameandpath;
-  }
-
-  /**
-   * Sets the filenameandpath.
-   * 
-   * @param filenameandpath
-   *          the new filenameandpath
-   */
-  public void setFilenameandpath(String filenameandpath) {
-    this.filenameandpath = filenameandpath;
   }
 
   /**
@@ -729,6 +684,15 @@ public class MovieToMpNfoConnector {
    */
   public void setStudio(String studio) {
     this.studio = studio;
+  }
+
+  @XmlElement(name = "country")
+  public String getCountry() {
+    return country;
+  }
+
+  public void setCountry(String country) {
+    this.country = country;
   }
 
   /**

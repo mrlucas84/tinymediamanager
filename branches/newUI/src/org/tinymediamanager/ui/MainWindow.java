@@ -15,15 +15,18 @@
  */
 package org.tinymediamanager.ui;
 
+import java.awt.AWTEvent;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
 import java.awt.Cursor;
-import java.awt.Desktop;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Insets;
+import java.awt.Toolkit;
+import java.awt.event.AWTEventListener;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
@@ -35,6 +38,7 @@ import java.util.concurrent.TimeUnit;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JComponent;
+import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JMenu;
@@ -46,16 +50,23 @@ import javax.swing.JProgressBar;
 import javax.swing.JSplitPane;
 import javax.swing.JTabbedPane;
 import javax.swing.SwingWorker;
+import javax.swing.text.JTextComponent;
 
 import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.tinymediamanager.Globals;
+import org.tinymediamanager.core.Message;
 import org.tinymediamanager.core.Message.MessageLevel;
 import org.tinymediamanager.core.MessageManager;
+import org.tinymediamanager.ui.actions.ClearImageCacheAction;
+import org.tinymediamanager.ui.actions.ClearUrlCacheAction;
+import org.tinymediamanager.ui.actions.RebuildImageCacheAction;
 import org.tinymediamanager.ui.components.MainTabbedPane;
 import org.tinymediamanager.ui.components.NotificationMessage;
+import org.tinymediamanager.ui.components.TextFieldPopupMenu;
 import org.tinymediamanager.ui.components.ToolbarPanel;
+import org.tinymediamanager.ui.dialogs.LogDialog;
 import org.tinymediamanager.ui.dialogs.MessageSummaryDialog;
 import org.tinymediamanager.ui.movies.MoviePanel;
 import org.tinymediamanager.ui.movies.MovieUIModule;
@@ -132,15 +143,17 @@ public class MainWindow extends JFrame {
         catch (Exception e) {
           JOptionPane.showMessageDialog(null, BUNDLE.getString("tmm.cleardatabase.error")); //$NON-NLS-1$
           // open the tmm folder
+          File path = new File(".");
           try {
-            File path = new File(".");
             // check whether this location exists
             if (path.exists()) {
-              Desktop.getDesktop().open(path);
+              TmmUIHelper.openFile(path);
             }
           }
           catch (Exception ex) {
             LOGGER.warn(ex.getMessage());
+            MessageManager.instance.pushMessage(new Message(MessageLevel.ERROR, path, "message.erroropenfolder", new String[] { ":",
+                ex.getLocalizedMessage() }));
           }
         }
         System.exit(0);
@@ -150,22 +163,43 @@ public class MainWindow extends JFrame {
     JMenu cache = new JMenu(BUNDLE.getString("tmm.cache")); //$NON-NLS-1$
     debug.add(cache);
 
+    JMenuItem clearUrlCache = new JMenuItem(new ClearUrlCacheAction());
+    cache.add(clearUrlCache);
+    cache.addSeparator();
+    JMenuItem clearImageCache = new JMenuItem(new ClearImageCacheAction());
+    cache.add(clearImageCache);
+
+    JMenuItem rebuildImageCache = new JMenuItem(new RebuildImageCacheAction());
+    cache.add(rebuildImageCache);
+
     JMenuItem tmmFolder = new JMenuItem(BUNDLE.getString("tmm.gotoinstalldir")); //$NON-NLS-1$
     debug.add(tmmFolder);
     tmmFolder.addActionListener(new ActionListener() {
       @Override
       public void actionPerformed(ActionEvent arg0) {
+        File path = new File(System.getProperty("user.dir"));
         try {
-          // get the location from the label
-          File path = new File(System.getProperty("user.dir"));
           // check whether this location exists
           if (path.exists()) {
-            Desktop.getDesktop().open(path);
+            TmmUIHelper.openFile(path);
           }
         }
         catch (Exception ex) {
           LOGGER.error("open filemanager", ex);
+          MessageManager.instance.pushMessage(new Message(MessageLevel.ERROR, path, "message.erroropenfolder", new String[] { ":",
+              ex.getLocalizedMessage() }));
         }
+      }
+    });
+
+    JMenuItem tmmLogs = new JMenuItem(BUNDLE.getString("tmm.errorlogs")); //$NON-NLS-1$
+    debug.add(tmmLogs);
+    tmmLogs.addActionListener(new ActionListener() {
+      @Override
+      public void actionPerformed(ActionEvent arg0) {
+        JDialog logDialog = new LogDialog();
+        logDialog.setLocationRelativeTo(MainWindow.getActiveInstance());
+        logDialog.setVisible(true);
       }
     });
 
@@ -255,7 +289,7 @@ public class MainWindow extends JFrame {
     panelMessage = new JPanel();
     panelMessage.setOpaque(false);
     panelMessage.setLayout(new FlowLayout());
-    panelMessage.setPreferredSize(new Dimension(250, 0));
+    panelMessage.setPreferredSize(new Dimension(100, 0));
     getContentPane().add(panelMessage, BorderLayout.EAST);
     MessageManager.instance.addListener(new UIMessageListener());
   }
@@ -304,6 +338,20 @@ public class MainWindow extends JFrame {
         closeTmm();
       }
     });
+
+    // mouse event listener for context menu
+    Toolkit.getDefaultToolkit().addAWTEventListener(new AWTEventListener() {
+      @Override
+      public void eventDispatched(AWTEvent arg0) {
+        if (arg0 instanceof MouseEvent && MouseEvent.MOUSE_RELEASED == arg0.getID() && arg0.getSource() instanceof JTextComponent) {
+          MouseEvent me = (MouseEvent) arg0;
+          JTextComponent tc = (JTextComponent) arg0.getSource();
+          if (me.isPopupTrigger() && tc.getComponentPopupMenu() == null) {
+            TextFieldPopupMenu.buildCutCopyPaste().show(tc, me.getX(), me.getY());
+          }
+        }
+      }
+    }, AWTEvent.MOUSE_EVENT_MASK);
   }
 
   private void closeTmm() {
@@ -326,7 +374,7 @@ public class MainWindow extends JFrame {
         Globals.shutdownDatabase();
         // clear cache directory
         if (Globals.settings.isClearCacheShutdown()) {
-          File cache = new File("cache");
+          File cache = new File("cache" + File.separator + "url");
           if (cache.exists()) {
             FileUtils.deleteDirectory(cache);
           }

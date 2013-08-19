@@ -22,6 +22,7 @@ import java.awt.Color;
 import java.awt.EventQueue;
 import java.awt.Font;
 import java.awt.Graphics2D;
+import java.awt.GraphicsEnvironment;
 import java.awt.RenderingHints;
 import java.awt.SplashScreen;
 import java.awt.Toolkit;
@@ -33,6 +34,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.reflect.Field;
 import java.nio.charset.Charset;
+import java.util.Locale;
 import java.util.Properties;
 import java.util.logging.Level;
 
@@ -46,10 +48,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.tinymediamanager.core.Utils;
 import org.tinymediamanager.core.movie.MovieList;
+import org.tinymediamanager.core.movie.tasks.MovieUpdateDatasourceTask;
 import org.tinymediamanager.core.tvshow.TvShowList;
+import org.tinymediamanager.core.tvshow.tasks.TvShowUpdateDatasourceTask;
 import org.tinymediamanager.scraper.util.CachedUrl;
 import org.tinymediamanager.thirdparty.MediaInfo;
 import org.tinymediamanager.ui.MainWindow;
+import org.tinymediamanager.ui.TmmSwingWorker;
 import org.tinymediamanager.ui.TmmUIHelper;
 import org.tinymediamanager.ui.TmmUILogCollector;
 import org.tinymediamanager.ui.TmmWindowSaver;
@@ -68,7 +73,13 @@ import com.sun.jna.Platform;
 public class TinyMediaManager {
 
   /** The Constant LOGGER. */
-  private static final Logger LOGGER = LoggerFactory.getLogger(TinyMediaManager.class); ;
+  private static final Logger LOGGER       = LoggerFactory.getLogger(TinyMediaManager.class);
+
+  private static boolean      updateMovies = false;
+  private static boolean      updateTv     = false;
+  private static boolean      autoScrape   = false;
+  private static boolean      rename       = false;
+  private static boolean      closeGui     = false;
 
   /**
    * The main method.
@@ -77,6 +88,37 @@ public class TinyMediaManager {
    *          the arguments
    */
   public static void main(String[] args) {
+    // simple parse command line
+    if (args != null) {
+      for (String cmd : args) {
+        if (cmd.equalsIgnoreCase("-updateMovies")) {
+          updateMovies = true;
+        }
+        else if (cmd.equalsIgnoreCase("-updateTv")) {
+          updateTv = true;
+        }
+        else if (cmd.equalsIgnoreCase("-update")) {
+          updateMovies = true;
+          updateTv = true;
+        }
+        else if (cmd.equalsIgnoreCase("-autoScrape")) {
+          autoScrape = true;
+        }
+        else if (cmd.equalsIgnoreCase("-rename")) {
+          rename = true;
+        }
+        else if (cmd.equalsIgnoreCase("-noGui")) {
+          System.setProperty("java.awt.headless", "true");
+        }
+        else if (cmd.equalsIgnoreCase("-closeGui")) {
+          closeGui = true;
+        }
+      }
+    }
+
+    // set GUI default language
+    Locale.setDefault(new Locale(Globals.settings.getLanguage()));
+
     // initialize SWT if needed
     TmmUIHelper.init();
     if (TmmUIHelper.swt != null) {
@@ -94,17 +136,8 @@ public class TinyMediaManager {
       charset.setAccessible(true);
       charset.set(null, null);
     }
-    catch (NoSuchFieldException e1) {
-      LOGGER.warn("Error resetting to UTF-8");
-    }
-    catch (SecurityException e1) {
-      LOGGER.warn("Error resetting to UTF-8");
-    }
-    catch (IllegalArgumentException e) {
-      LOGGER.warn("Error resetting to UTF-8");
-    }
-    catch (IllegalAccessException e) {
-      LOGGER.warn("Error resetting to UTF-8");
+    catch (Exception e) {
+      LOGGER.warn("Error resetting to UTF-8", e);
     }
     debugCharacterEncoding();
     // END character encoding debug
@@ -114,11 +147,17 @@ public class TinyMediaManager {
       public void run() {
         try {
           Thread.setDefaultUncaughtExceptionHandler(new Log4jBackstop());
-          Thread.currentThread().setName("main");
-
+          if (!GraphicsEnvironment.isHeadless()) {
+            Thread.currentThread().setName("main");
+          }
+          else {
+            Thread.currentThread().setName("headless");
+          }
           Toolkit tk = Toolkit.getDefaultToolkit();
           tk.addAWTEventListener(TmmWindowSaver.getInstance(), AWTEvent.WINDOW_EVENT_MASK);
-          setLookAndFeel();
+          if (!GraphicsEnvironment.isHeadless()) {
+            setLookAndFeel();
+          }
           doStartupTasks();
 
           // after 5 secs of beeing idle, the threads are removed till 0; see Globals
@@ -132,13 +171,18 @@ public class TinyMediaManager {
 
           // upgrade check
           if (!Globals.settings.isCurrentVersion()) {
-            JOptionPane.showMessageDialog(null, "The configuration format changed in this update.\nPlease check your settings!");
+            if (!GraphicsEnvironment.isHeadless()) {
+              JOptionPane.showMessageDialog(null, "The configuration format changed in this update.\nPlease check your settings!");
+            }
             doUpgradeTasks(Globals.settings.getVersion()); // do the upgrade tasks for the old version
             Globals.settings.writeDefaultSettings(); // write current default
           }
 
           // init splash
-          SplashScreen splash = SplashScreen.getSplashScreen();
+          SplashScreen splash = null;
+          if (!GraphicsEnvironment.isHeadless()) {
+            splash = SplashScreen.getSplashScreen();
+          }
           Graphics2D g2 = null;
           if (splash != null) {
             g2 = splash.createGraphics();
@@ -255,27 +299,42 @@ public class TinyMediaManager {
             updateProgress(g2, "loading ui", 90);
             splash.update();
           }
-          MainWindow window = new MainWindow("tinyMediaManager / " + ReleaseInfo.getVersion() + " - " + ReleaseInfo.getBuild());
+          if (!GraphicsEnvironment.isHeadless()) {
+            MainWindow window = new MainWindow("tinyMediaManager / " + ReleaseInfo.getVersion() + " - " + ReleaseInfo.getBuild());
 
-          // finished ////////////////////////////////////////////////////
-          if (g2 != null) {
-            updateProgress(g2, "finished starting", 100);
-            splash.update();
+            // finished ////////////////////////////////////////////////////
+            if (g2 != null) {
+              updateProgress(g2, "finished starting", 100);
+              splash.update();
+            }
+
+            // write a random number to file, to identify this instance (for
+            // updater, tracking, whatsoever)
+            Utils.trackEvent("startup");
+
+            TmmWindowSaver.loadSettings(window);
+            window.setVisible(true);
+
+            startCommandLineTasks();
           }
+          else {
+            startCommandLineTasks();
 
-          // write a random number to file, to identify this instance (for
-          // updater, tracking, whatsoever)
-          Utils.trackEvent("startup");
-
-          TmmWindowSaver.loadSettings(window);
-          window.setVisible(true);
-
+            // TODO: better headless shutdown
+            Globals.shutdownDatabase();
+            LOGGER.info("bye bye");
+          }
         }
         catch (javax.persistence.PersistenceException e) {
-          JOptionPane.showMessageDialog(null, e.getMessage());
+          if (!GraphicsEnvironment.isHeadless()) {
+            JOptionPane.showMessageDialog(null, e.getMessage());
+          }
+          LOGGER.error("PersistenceException", e);
         }
         catch (Exception e) {
-          JOptionPane.showMessageDialog(null, e.getMessage());
+          if (!GraphicsEnvironment.isHeadless()) {
+            JOptionPane.showMessageDialog(null, e.getMessage());
+          }
           LOGGER.error("start of tmm", e);
         }
       }
@@ -433,5 +492,38 @@ public class TinyMediaManager {
     InputStreamReader reader = new InputStreamReader(is);
     LOGGER.debug("defaultCharacterEncoding by code: " + reader.getEncoding());
     LOGGER.debug("defaultCharacterEncoding by charSet: " + Charset.defaultCharset());
+  }
+
+  /**
+   * executes all the command line tasks, one after another
+   */
+  private static void startCommandLineTasks() {
+    try {
+      if (updateMovies) {
+        TmmSwingWorker task = new MovieUpdateDatasourceTask();
+        if (!GraphicsEnvironment.isHeadless()) {
+          MainWindow.executeMainTask(task);
+          // wait for completion?!?
+        }
+        else {
+          task.execute();
+          task.get(); // blocking
+        }
+      }
+      if (updateTv) {
+        TmmSwingWorker task = new TvShowUpdateDatasourceTask();
+        if (!GraphicsEnvironment.isHeadless()) {
+          MainWindow.executeMainTask(task);
+          // wait for completion?!?
+        }
+        else {
+          task.execute();
+          task.get(); // blocking
+        }
+      }
+    }
+    catch (Exception e) {
+      LOGGER.error("Error executing command line task!", e);
+    }
   }
 }

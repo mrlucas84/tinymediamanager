@@ -18,7 +18,6 @@ package org.tinymediamanager.core.movie.tasks;
 import java.util.List;
 import java.util.concurrent.Callable;
 
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.tinymediamanager.TmmThreadPool;
@@ -46,16 +45,9 @@ public class MovieRenameTask extends TmmThreadPool {
    * 
    * @param moviesToRename
    *          the movies to rename
-   * @param label
-   *          the label
-   * @param progressBar
-   *          the progress bar
-   * @param button
-   *          the button
    */
   public MovieRenameTask(List<Movie> moviesToRename) {
     this.moviesToRename = moviesToRename;
-    initThreadPool(1, "rename");
   }
 
   /*
@@ -66,6 +58,7 @@ public class MovieRenameTask extends TmmThreadPool {
   @Override
   protected Void doInBackground() throws Exception {
     try {
+      initThreadPool(1, "rename");
       startProgressBar("renaming movies...");
       // rename movies
       for (int i = 0; i < moviesToRename.size(); i++) {
@@ -114,48 +107,6 @@ public class MovieRenameTask extends TmmThreadPool {
   @Override
   public void done() {
     stopProgressBar();
-  }
-
-  /**
-   * Start progress bar.
-   * 
-   * @param description
-   *          the description
-   */
-  private void startProgressBar(String description, int max, int progress) {
-    if (!StringUtils.isEmpty(description)) {
-      lblProgressAction.setText(description);
-    }
-    progressBar.setVisible(true);
-    progressBar.setIndeterminate(false);
-    progressBar.setMaximum(max);
-    progressBar.setValue(progress);
-    btnCancelTask.setVisible(true);
-  }
-
-  /**
-   * Start progress bar.
-   * 
-   * @param description
-   *          the description
-   */
-  private void startProgressBar(String description) {
-    if (!StringUtils.isEmpty(description)) {
-      lblProgressAction.setText(description);
-    }
-    progressBar.setVisible(true);
-    progressBar.setIndeterminate(true);
-    btnCancelTask.setVisible(true);
-  }
-
-  /**
-   * Stop progress bar.
-   */
-  private void stopProgressBar() {
-    lblProgressAction.setText("");
-    progressBar.setIndeterminate(false);
-    progressBar.setVisible(false);
-    btnCancelTask.setVisible(false);
   }
 
   /*

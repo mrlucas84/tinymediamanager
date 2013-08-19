@@ -44,6 +44,7 @@ import org.tinymediamanager.scraper.MediaType;
 import org.tinymediamanager.scraper.fanarttv.FanartTvMetadataProvider;
 import org.tinymediamanager.scraper.hdtrailersnet.HDTrailersNet;
 import org.tinymediamanager.scraper.imdb.ImdbMetadataProvider;
+import org.tinymediamanager.scraper.moviemeternl.MoviemeterMetadataProvider;
 import org.tinymediamanager.scraper.ofdb.OfdbMetadataProvider;
 import org.tinymediamanager.scraper.tmdb.TmdbMetadataProvider;
 import org.tinymediamanager.scraper.zelluloid.ZelluloidMetadataProvider;
@@ -113,14 +114,15 @@ public class MovieList extends AbstractModelObject {
    *          the movie
    */
   public void addMovie(Movie movie) {
-    int oldValue = movieList.size();
     if (!movieList.contains(movie)) {
+      int oldValue = movieList.size();
       movieList.add(movie);
+
+      updateTags(movie);
+      movie.addPropertyChangeListener(tagListener);
+      firePropertyChange("movies", null, movieList);
+      firePropertyChange("movieCount", oldValue, movieList.size());
     }
-    updateTags(movie);
-    movie.addPropertyChangeListener(tagListener);
-    firePropertyChange("movies", null, movieList);
-    firePropertyChange("movieCount", oldValue, movieList.size());
   }
 
   /**
@@ -223,14 +225,24 @@ public class MovieList extends AbstractModelObject {
         for (Object obj : movies) {
           if (obj instanceof Movie) {
             Movie movie = (Movie) obj;
-            // movie.setObservables();
-            movie.initializeAfterLoading();
+            try {
+              // movie.setObservables();
+              movie.initializeAfterLoading();
 
-            // for performance reasons we add movies directly
-            // addMovie(movie);
-            movieList.add(movie);
-            updateTags(movie);
-            movie.addPropertyChangeListener(tagListener);
+              // for performance reasons we add movies directly
+              // addMovie(movie);
+              movieList.add(movie);
+              updateTags(movie);
+              movie.addPropertyChangeListener(tagListener);
+            }
+            catch (Exception e) {
+              LOGGER.error("error loading movie/dropping it: " + e.getMessage());
+              try {
+                removeMovie(movie);
+              }
+              catch (Exception e1) {
+              }
+            }
           }
           else {
             LOGGER.error("retrieved no movie: " + obj);
@@ -265,6 +277,8 @@ public class MovieList extends AbstractModelObject {
         LOGGER.debug("found no movieSets in database");
       }
 
+      // cross check movies and moviesets if linking is "stable"
+      checkAndCleanupMovieSets();
     }
     catch (Exception e) {
       LOGGER.error("loadMoviesFromDatabase", e);
@@ -295,8 +309,8 @@ public class MovieList extends AbstractModelObject {
    * 
    * @param searchTerm
    *          the search term
-   * @param ImdbId
-   *          the imdb id
+   * @param movie
+   *          the movie
    * @param metadataProvider
    *          the metadata provider
    * @return the list
@@ -313,6 +327,7 @@ public class MovieList extends AbstractModelObject {
       boolean idFound = false;
       // set what we have, so the provider could chose from all :)
       MediaSearchOptions options = new MediaSearchOptions(MediaType.MOVIE);
+      options.set(SearchParam.LANGUAGE, Globals.settings.getMovieSettings().getScraperLanguage().name());
       if (movie != null) {
         if (!movie.getImdbId().isEmpty()) {
           options.set(SearchParam.IMDBID, movie.getImdbId());
@@ -470,6 +485,16 @@ public class MovieList extends AbstractModelObject {
       case ZELLULOID:
         LOGGER.debug("get instance of ZelluloidMetadataProvider");
         metadataProvider = new ZelluloidMetadataProvider();
+        break;
+
+      case MOVIEMETER:
+        LOGGER.debug("get instance of MoviemeterMetadataProvider");
+        try {
+          metadataProvider = new MoviemeterMetadataProvider();
+        }
+        catch (Exception e) {
+          LOGGER.warn("failed to get instance of MoviemeterMetadataProvider", e);
+        }
         break;
 
       case IMDB:
@@ -791,14 +816,16 @@ public class MovieList extends AbstractModelObject {
     firePropertyChange("movieSetCount", oldValue, movieSetList.size());
   }
 
-  /**
-   * Find movie set.
-   * 
-   * @param title
-   *          the name
-   * @return the movie set
-   */
-  public MovieSet findMovieSet(String title) {
+  private MovieSet findMovieSet(String title, int tmdbId) {
+    // first search by tmdbId
+    if (tmdbId > 0) {
+      for (MovieSet movieSet : movieSetList) {
+        if (movieSet.getTmdbId() == tmdbId) {
+          return movieSet;
+        }
+      }
+    }
+
     // search for the movieset by name
     for (MovieSet movieSet : movieSetList) {
       if (movieSet.getTitle().equals(title)) {
@@ -809,6 +836,18 @@ public class MovieList extends AbstractModelObject {
     return null;
   }
 
+  public synchronized MovieSet getMovieSet(String title, int tmdbId) {
+    MovieSet movieSet = findMovieSet(title, tmdbId);
+
+    if (movieSet == null) {
+      movieSet = new MovieSet(title);
+      movieSet.saveToDb();
+      addMovieSet(movieSet);
+    }
+
+    return movieSet;
+  }
+
   /**
    * Sort movies in movie set.
    * 
@@ -816,7 +855,39 @@ public class MovieList extends AbstractModelObject {
    *          the movie set
    */
   public void sortMoviesInMovieSet(MovieSet movieSet) {
-    movieSet.sortMovies();
+    if (movieSet.getMovies().size() > 1) {
+      movieSet.sortMovies();
+    }
     firePropertyChange("sortedMovieSets", null, movieSetList);
+  }
+
+  /**
+   * invalidate the title sortable upon changes to the sortable prefixes
+   */
+  public void invalidateTitleSortable() {
+    for (Movie movie : new ArrayList<Movie>(movieList)) {
+      movie.clearTitleSortable();
+    }
+  }
+
+  /**
+   * cross check the linking between movies and moviesets and clean it
+   */
+  private void checkAndCleanupMovieSets() {
+    for (Movie movie : movieList) {
+      // first check if this movie is in the given movieset
+      if (movie.getMovieSet() != null && !movie.getMovieSet().getMovies().contains(movie)) {
+        // add it
+        movie.getMovieSet().addMovie(movie);
+        movie.getMovieSet().saveToDb();
+      }
+      // and check if this movie is in other moviesets
+      for (MovieSet movieSet : movieSetList) {
+        if (movieSet != movie.getMovieSet() && movieSet.getMovies().contains(movie)) {
+          movieSet.removeMovie(movie);
+          movieSet.saveToDb();
+        }
+      }
+    }
   }
 }
