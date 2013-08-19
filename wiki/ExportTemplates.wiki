@@ -1,3 +1,5 @@
+#summary Explanation how to write/modify movie export templates
+
 =Introduction=
 *tinyMediaManager* uses the *[http://jmte.googlecode.com/svn/trunk/doc/index.html Java Minimal Template Engine]* (JMTE) to construct the exported page.
 
