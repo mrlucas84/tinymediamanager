@@ -70,7 +70,7 @@ public class MediaFilesPanel extends JPanel {
     setLayout(new FormLayout(new ColumnSpec[] { ColumnSpec.decode("default:grow"), }, new RowSpec[] { RowSpec.decode("default:grow"), }));
 
     mediaFileTableModel = new DefaultEventTableModel<MediaFile>(GlazedListsSwing.swingThreadProxyList(mediaFileEventList), new MediaTableFormat());
-    tableFiles = new ZebraJTable(mediaFileTableModel);
+    tableFiles = new TmmTable(mediaFileTableModel);
     tableFiles.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
 
     tableFiles.addMouseListener(new MouseListener() {
@@ -111,7 +111,8 @@ public class MediaFilesPanel extends JPanel {
       }
     });
 
-    scrollPaneFiles = ZebraJTable.createStripedJScrollPane(tableFiles);
+    int[] cols = { 0 };
+    scrollPaneFiles = TmmTable.createJScrollPane(tableFiles, cols);
     add(scrollPaneFiles, "1, 1, fill, fill");
 
     scrollPaneFiles.setViewportView(tableFiles);
@@ -121,7 +122,6 @@ public class MediaFilesPanel extends JPanel {
     tableColumnAdjuster.setColumnDataIncluded(true);
     tableColumnAdjuster.setColumnHeaderIncluded(true);
     tableColumnAdjuster.setOnlyAdjustLarger(false);
-
   }
 
   /**

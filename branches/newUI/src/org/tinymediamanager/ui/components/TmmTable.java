@@ -171,6 +171,7 @@ public class TmmTable extends JTable {
      */
     private PropertyChangeListener createTableColumnWidthListener() {
       return new PropertyChangeListener() {
+        @Override
         public void propertyChange(PropertyChangeEvent evt) {
           repaint();
         }
@@ -284,11 +285,13 @@ public class TmmTable extends JTable {
       setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, TABLE_GRID_COLOR));
     }
 
+    @Override
     public void updateUI() {
       super.updateUI();
       setBorder(BorderFactory.createEmptyBorder());
     }
 
+    @Override
     public Component getTableCellRendererComponent(JTable table, Object value, boolean selected, boolean focused, int row, int column) {
       JTableHeader h = table != null ? table.getTableHeader() : null;
 

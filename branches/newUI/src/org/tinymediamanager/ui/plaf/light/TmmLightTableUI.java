@@ -19,6 +19,7 @@ import java.awt.Color;
 import java.awt.Component;
 import java.awt.Container;
 import java.awt.Graphics;
+import java.awt.Insets;
 import java.awt.Point;
 import java.util.ArrayList;
 import java.util.List;
@@ -27,6 +28,7 @@ import javax.swing.BorderFactory;
 import javax.swing.CellRendererPane;
 import javax.swing.JComponent;
 import javax.swing.JTable;
+import javax.swing.border.EmptyBorder;
 import javax.swing.plaf.ComponentUI;
 
 import com.jtattoo.plaf.BaseTableUI;
@@ -58,6 +60,9 @@ public class TmmLightTableUI extends BaseTableUI {
    */
   private CellRendererPane createCustomCellRendererPane() {
     return new CellRendererPane() {
+      private static final long serialVersionUID = 7146435127995900923L;
+
+      @SuppressWarnings({ "unchecked", "rawtypes" })
       @Override
       public void paintComponent(Graphics graphics, Component component, Container container, int x, int y, int w, int h, boolean shouldValidate) {
         // figure out what row we're rendering a cell for.
@@ -83,7 +88,18 @@ public class TmmLightTableUI extends BaseTableUI {
           JComponent jcomponent = (JComponent) component;
           jcomponent.setOpaque(isSelected);
           if (isSelected && !colsNotToDraw.contains(columnAtPoint)) {
-            jcomponent.setBorder(BorderFactory.createMatteBorder(0, 0, 0, 1, SELECTED_BORDER));
+            boolean draw = true;
+            // draw the new border only if there is no spacing in the existend border
+            if (jcomponent.getBorder() instanceof EmptyBorder) {
+              EmptyBorder border = (EmptyBorder) jcomponent.getBorder();
+              Insets borderInsets = border.getBorderInsets();
+              if (borderInsets.left > 1 || borderInsets.right > 1 || borderInsets.top > 1 || borderInsets.bottom > 1) {
+                draw = false;
+              }
+            }
+            if (draw) {
+              jcomponent.setBorder(BorderFactory.createMatteBorder(0, 0, 0, 1, SELECTED_BORDER));
+            }
           }
         }
 

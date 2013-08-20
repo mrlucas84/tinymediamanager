@@ -35,9 +35,10 @@ import org.jdesktop.beansbinding.BeanProperty;
 import org.jdesktop.beansbinding.Bindings;
 import org.tinymediamanager.core.movie.Movie;
 import org.tinymediamanager.core.movie.MovieActor;
+import org.tinymediamanager.ui.BorderCellRenderer;
 import org.tinymediamanager.ui.UTF8Control;
 import org.tinymediamanager.ui.components.ActorImageLabel;
-import org.tinymediamanager.ui.components.ZebraJTable;
+import org.tinymediamanager.ui.components.TmmTable;
 
 import ca.odell.glazedlists.BasicEventList;
 import ca.odell.glazedlists.EventList;
@@ -72,7 +73,6 @@ public class MovieCastPanel extends JPanel {
   private JLabel                             lblDirector;
   private JLabel                             lblWriterT;
   private JLabel                             lblWriter;
-  private JLabel                             lblActors;
   private ActorImageLabel                    lblActorThumb;
   private JTable                             tableCast;
 
@@ -86,7 +86,7 @@ public class MovieCastPanel extends JPanel {
         FormFactory.RELATED_GAP_COLSPEC, FormFactory.MIN_COLSPEC, FormFactory.RELATED_GAP_COLSPEC, ColumnSpec.decode("default:grow"),
         FormFactory.RELATED_GAP_COLSPEC, ColumnSpec.decode("125px"), FormFactory.RELATED_GAP_COLSPEC, }, new RowSpec[] {
         FormFactory.RELATED_GAP_ROWSPEC, FormFactory.DEFAULT_ROWSPEC, FormFactory.NARROW_LINE_GAP_ROWSPEC, FormFactory.DEFAULT_ROWSPEC,
-        FormFactory.NARROW_LINE_GAP_ROWSPEC, RowSpec.decode("80px"), RowSpec.decode("default:grow"), FormFactory.NARROW_LINE_GAP_ROWSPEC, }));
+        FormFactory.UNRELATED_GAP_ROWSPEC, RowSpec.decode("80px"), RowSpec.decode("default:grow"), FormFactory.NARROW_LINE_GAP_ROWSPEC, }));
 
     lblDirectorT = new JLabel(BUNDLE.getString("metatag.director")); //$NON-NLS-1$
     add(lblDirectorT, "2, 2");
@@ -102,28 +102,27 @@ public class MovieCastPanel extends JPanel {
     lblWriterT.setLabelFor(lblWriter);
     add(lblWriter, "4, 4, 3, 1");
 
-    lblActors = new JLabel(BUNDLE.getString("metatag.actors")); //$NON-NLS-1$
-    add(lblActors, "2, 6, default, top");
-
-    tableCast = new ZebraJTable(actorTableModel);
-    JScrollPane scrollPaneMovieCast = ZebraJTable.createStripedJScrollPane(tableCast);
-    lblActors.setLabelFor(scrollPaneMovieCast);
-    add(scrollPaneMovieCast, "4, 6, 3, 2");
+    tableCast = new TmmTable(actorTableModel);
+    tableCast.getColumnModel().getColumn(0).setCellRenderer(new BorderCellRenderer());
+    tableCast.getColumnModel().getColumn(1).setCellRenderer(new BorderCellRenderer());
+    int[] cols = {};
+    JScrollPane scrollPaneMovieCast = TmmTable.createJScrollPane(tableCast, cols);
+    add(scrollPaneMovieCast, "2, 6, 5, 2");
     scrollPaneMovieCast.setViewportView(tableCast);
 
     lblActorThumb = new ActorImageLabel();
-    add(lblActorThumb, "8, 2, 1, 6, fill, fill");
+    add(lblActorThumb, "8, 6, 1, 2, fill, fill");
 
     initDataBindings();
 
     // install the propertychangelistener
     PropertyChangeListener propertyChangeListener = new PropertyChangeListener() {
+      @Override
       public void propertyChange(PropertyChangeEvent propertyChangeEvent) {
         String property = propertyChangeEvent.getPropertyName();
         Object source = propertyChangeEvent.getSource();
         // react on selection of a movie and change of a movei
-        if ((source.getClass() == MovieSelectionModel.class && "selectedMovie".equals(property))
-            || (source.getClass() == Movie.class && ACTORS.equals(property))) {
+        if ((source instanceof MovieSelectionModel && "selectedMovie".equals(property)) || (source instanceof Movie && ACTORS.equals(property))) {
           actorEventList.clear();
           actorEventList.addAll(selectionModel.getSelectedMovie().getActors());
           if (actorEventList.size() > 0) {
@@ -153,6 +152,9 @@ public class MovieCastPanel extends JPanel {
     });
   }
 
+  /**
+   * inner class for representing the table
+   */
   private static class ActorTableFormat implements AdvancedTableFormat<MovieActor> {
     @Override
     public int getColumnCount() {

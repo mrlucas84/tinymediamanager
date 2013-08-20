@@ -20,7 +20,6 @@ import java.awt.Component;
 import java.awt.Font;
 
 import javax.swing.BorderFactory;
-import javax.swing.JComponent;
 import javax.swing.JTable;
 import javax.swing.border.Border;
 import javax.swing.table.DefaultTableCellRenderer;
@@ -33,9 +32,9 @@ import org.tinymediamanager.core.movie.Movie;
  * @author Manuel Laggner
  */
 public class BorderCellRenderer extends DefaultTableCellRenderer {
+  private static final long serialVersionUID = -6545791732880295743L;
 
-  /** The Constant serialVersionUID. */
-  private static final long serialVersionUID = 1L;
+  private Border            border           = BorderFactory.createEmptyBorder(0, 6, 0, 0);
 
   /*
    * (non-Javadoc)
@@ -44,21 +43,17 @@ public class BorderCellRenderer extends DefaultTableCellRenderer {
    */
   @Override
   public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
-    setForeground(table.getForeground());
     if (isSelected) {
       setBackground(table.getSelectionBackground());
       setForeground(table.getSelectionForeground());
     }
     else {
       setBackground(table.getBackground());
-
+      setForeground(table.getForeground());
     }
 
     // left margin
-    Component comp = super.getTableCellRendererComponent(table, "", isSelected, hasFocus, row, column);
-    Border defaultBorder = ((JComponent) comp).getBorder();
-    defaultBorder = BorderFactory.createEmptyBorder(0, 6, 0, 0);
-    this.setBorder(defaultBorder);
+    this.setBorder(border);
 
     if (value instanceof Movie) {
       Movie movie = (Movie) value;
