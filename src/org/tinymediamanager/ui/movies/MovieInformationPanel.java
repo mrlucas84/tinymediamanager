@@ -132,7 +132,7 @@ public class MovieInformationPanel extends JPanel {
     add(panelTopLeft, "3, 3, fill, fill");
     panelTopLeft.setLayout(new FormLayout(new ColumnSpec[] { ColumnSpec.decode("200px:grow"), }, new RowSpec[] { RowSpec.decode("300px"), }));
 
-    lblMoviePoster = new ImageLabel();
+    lblMoviePoster = new ImageLabel(false, false, true);
     panelTopLeft.add(lblMoviePoster, "1, 1, fill, fill");
     lblMoviePoster.setAlternativeText(BUNDLE.getString("image.notfound.poster")); //$NON-NLS-1$
 
@@ -240,7 +240,7 @@ public class MovieInformationPanel extends JPanel {
     panelBottomLeft.setLayout(new FormLayout(new ColumnSpec[] { ColumnSpec.decode("default:grow"), }, new RowSpec[] {
         FormFactory.RELATED_GAP_ROWSPEC, FormFactory.DEFAULT_ROWSPEC, FormFactory.RELATED_GAP_ROWSPEC, RowSpec.decode("150px"), }));
 
-    lblMovieBackground = new ImageLabel();
+    lblMovieBackground = new ImageLabel(false, false, true);
     panelBottomLeft.add(lblMovieBackground, "1, 4, fill, fill");
 
     panelBottomRight = new JPanel();

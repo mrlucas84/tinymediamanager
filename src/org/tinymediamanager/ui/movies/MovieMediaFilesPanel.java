@@ -65,13 +65,10 @@ public class MovieMediaFilesPanel extends JPanel {
   private final static Logger         LOGGER           = LoggerFactory.getLogger(MovieMediaFilesPanel.class);
 
   private MovieSelectionModel         movieSelectionModel;
-
-  private JLabel                      lblFilesT;
   private LinkLabel                   lblMoviePath;
   private JLabel                      lblDateAddedT;
   private JLabel                      lblDateAdded;
   private JLabel                      lblMoviePathT;
-  // private JButton btnPlay;
 
   /** The media file event list. */
   private EventList<MediaFile>        mediaFileEventList;
@@ -90,7 +87,7 @@ public class MovieMediaFilesPanel extends JPanel {
 
     setLayout(new FormLayout(new ColumnSpec[] { FormFactory.RELATED_GAP_COLSPEC, FormFactory.DEFAULT_COLSPEC, FormFactory.RELATED_GAP_COLSPEC,
         ColumnSpec.decode("default:grow"), FormFactory.RELATED_GAP_COLSPEC, }, new RowSpec[] { FormFactory.RELATED_GAP_ROWSPEC,
-        FormFactory.DEFAULT_ROWSPEC, FormFactory.NARROW_LINE_GAP_ROWSPEC, FormFactory.DEFAULT_ROWSPEC, FormFactory.NARROW_LINE_GAP_ROWSPEC,
+        FormFactory.DEFAULT_ROWSPEC, FormFactory.NARROW_LINE_GAP_ROWSPEC, FormFactory.DEFAULT_ROWSPEC, FormFactory.UNRELATED_GAP_ROWSPEC,
         RowSpec.decode("default:grow"), FormFactory.NARROW_LINE_GAP_ROWSPEC, }));
 
     lblDateAddedT = new JLabel(BUNDLE.getString("metatag.dateadded")); //$NON-NLS-1$
@@ -99,84 +96,12 @@ public class MovieMediaFilesPanel extends JPanel {
     lblDateAdded = new JLabel("");
     add(lblDateAdded, "4, 2");
 
-    // btnPlay = new JButton("Play");
-    // btnPlay.addActionListener(new ActionListener() {
-    // public void actionPerformed(ActionEvent arg0) {
-    // try {
-    // Desktop.getDesktop().open(movieSelectionModel.getSelectedMovie().getMediaFiles(MediaFileType.VIDEO).get(0).getFile());
-    // }
-    // catch (Exception e) {
-    //
-    // }
-    // }
-    // if (!StringUtils.isEmpty(lblMoviePath.getNormalText())) {
-    // // get the location from the label
-    // StringBuilder movieFile = new
-    // StringBuilder(lblMoviePath.getNormalText());
-    // movieFile.append(File.separator);
-    // movieFile.append(movieSelectionModel.getSelectedMovie().getMediaFiles().get(0).getFilename());
-    // File f = new File(movieFile.toString());
-    //
-    // try {
-    // if (f.exists()) {
-    //
-    // String vlcF = f.getAbsolutePath();
-    // // FIXME: german umlauts do not decode correctly; Bug in
-    // // libDvdNav? so workaround;
-    // if (vlcF.matches(".*[äöüÄÖÜ].*")) {
-    // LOGGER.debug("VLC: workaround: german umlauts found - use system player");
-    // Desktop.getDesktop().open(f);
-    // }
-    // else {
-    // try {
-    //
-    // if (!vlcF.startsWith("/")) {
-    // // add the missing 3rd / if not start with one (eg windows)
-    // vlcF = "/" + vlcF;
-    // }
-    // String mrl = new FileMrl().file(vlcF).value();
-    //
-    // final EmbeddedMediaPlayerComponent mediaPlayerComponent = new
-    // EmbeddedMediaPlayerComponent();
-    // JFrame frame = new JFrame("player");
-    // frame.setLocation(100, 100);
-    // frame.setSize(1050, 600);
-    // frame.setDefaultCloseOperation(JInternalFrame.DISPOSE_ON_CLOSE);
-    // frame.setVisible(true);
-    // frame.setContentPane(mediaPlayerComponent);
-    // // mrl = mrl.replace("file://", ""); // does not work either
-    //
-    // LOGGER.debug("VLC: playing " + mrl);
-    // Boolean ok = mediaPlayerComponent.getMediaPlayer().playMedia(mrl);
-    // if (!ok) {
-    // LOGGER.error("VLC: couldn't create player window!");
-    // }
-    // }
-    // catch (RuntimeException e) {
-    // LOGGER.warn("VLC: has not been initialized on startup - use system player");
-    // Desktop.getDesktop().open(f);
-    // }
-    // catch (NoClassDefFoundError e) {
-    // LOGGER.warn("VLC: has not been initialized on startup - use system player");
-    // Desktop.getDesktop().open(f);
-    // }
-    //
-    // } // end else
-    // } // end exists
-    // } // end try
-    // catch (IOException e) {
-    // LOGGER.error("Error opening file", e);
-    // }
-    // } // end isEmpty
-    // }
-    // });
-    // add(btnPlay, "10, 2");
-
     lblMoviePathT = new JLabel(BUNDLE.getString("metatag.path")); //$NON-NLS-1$
     add(lblMoviePathT, "2, 4");
 
     lblMoviePath = new LinkLabel("");
     lblMoviePath.addActionListener(new ActionListener() {
+      @Override
       public void actionPerformed(ActionEvent arg0) {
         if (!StringUtils.isEmpty(lblMoviePath.getNormalText())) {
           File path = new File(lblMoviePath.getNormalText());
@@ -199,16 +124,14 @@ public class MovieMediaFilesPanel extends JPanel {
     lblMoviePathT.setLabelFor(lblMoviePath);
     add(lblMoviePath, "4, 4");
 
-    lblFilesT = new JLabel(BUNDLE.getString("metatag.files")); //$NON-NLS-1$
-    add(lblFilesT, "2, 6, default, top");
-
     panelMediaFiles = new MediaFilesPanel(mediaFileEventList);
-    add(panelMediaFiles, "4, 6, 1, 1, fill, fill");
+    add(panelMediaFiles, "2, 6, 3, 1, fill, fill");
 
     initDataBindings();
 
     // install the propertychangelistener
     PropertyChangeListener propertyChangeListener = new PropertyChangeListener() {
+      @Override
       public void propertyChange(PropertyChangeEvent propertyChangeEvent) {
         String property = propertyChangeEvent.getPropertyName();
         Object source = propertyChangeEvent.getSource();

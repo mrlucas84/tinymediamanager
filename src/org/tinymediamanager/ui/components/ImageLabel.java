@@ -36,6 +36,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.tinymediamanager.core.ImageCache;
 import org.tinymediamanager.scraper.util.CachedUrl;
+import org.tinymediamanager.thirdparty.ShadowRenderer;
 import org.tinymediamanager.ui.UTF8Control;
 
 import com.bric.image.pixel.Scaling;
@@ -61,6 +62,7 @@ public class ImageLabel extends JLabel {
   protected String                           alternativeText  = null;
   protected boolean                          drawBorder;
   protected boolean                          drawFullWidth;
+  protected boolean                          drawShadow;
 
   protected SwingWorker<BufferedImage, Void> worker           = null;
 
@@ -97,6 +99,13 @@ public class ImageLabel extends JLabel {
     super("");
     this.drawBorder = drawBorder;
     this.drawFullWidth = drawFullWidth;
+  }
+
+  public ImageLabel(boolean drawBorder, boolean drawFullWidth, boolean drawShadow) {
+    super("");
+    this.drawBorder = drawBorder;
+    this.drawFullWidth = drawFullWidth;
+    this.drawShadow = drawShadow;
   }
 
   /**
@@ -203,7 +212,7 @@ public class ImageLabel extends JLabel {
       int offsetX = 0;
       int offsetY = 0;
 
-      if (drawBorder && !drawFullWidth) {
+      if (drawBorder && !drawFullWidth && !drawShadow) {
         Point size = calculateSize(this.getWidth() - 8, this.getHeight() - 8, originalWidth, originalHeight, true);
 
         // calculate offsets
@@ -223,6 +232,29 @@ public class ImageLabel extends JLabel {
         g.setColor(Color.WHITE);
         g.fillRect(offsetX + 1, offsetY + 1, size.x + 6, size.y + 6);
         g.drawImage(Scaling.scale(originalImage, newWidth, newHeight), offsetX + 4, offsetY + 4, newWidth, newHeight, this);
+      }
+      else if (drawShadow && !drawFullWidth) {
+        Point size = calculateSize(this.getWidth(), this.getHeight(), originalWidth, originalHeight, true);
+
+        // calculate offsets
+        if (position == Position.TOP_RIGHT || position == Position.BOTTOM_RIGHT) {
+          offsetX = this.getWidth() - size.x;
+        }
+
+        if (position == Position.BOTTOM_LEFT || position == Position.BOTTOM_RIGHT) {
+          offsetY = this.getHeight() - size.y;
+        }
+
+        newWidth = size.x;
+        newHeight = size.y;
+        ShadowRenderer shadow = new ShadowRenderer(8, 0.3f, Color.BLACK);
+        BufferedImage scaledImage = Scaling.scale(originalImage, this.getWidth() - 8, this.getHeight() - 8);
+        BufferedImage shadowImage = shadow.createShadow(scaledImage);
+
+        // draw shadow
+        g.drawImage(shadowImage, 8, 8, newWidth - 8, newHeight - 8, this);
+        // draw image
+        g.drawImage(scaledImage, 0, 0, newWidth - 8, newHeight - 8, this);
       }
       else {
         Point size = null;

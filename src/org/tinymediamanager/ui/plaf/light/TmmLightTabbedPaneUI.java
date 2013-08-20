@@ -38,7 +38,7 @@ import com.jtattoo.plaf.BaseTabbedPaneUI;
  */
 public class TmmLightTabbedPaneUI extends BaseTabbedPaneUI {
 
-  protected static int   BORDER_RADIUS  = 15;
+  protected static int   BORDER_RADIUS  = 19;
   protected static int   TAB_GAP        = 2;
 
   protected static Color BORDER_COLOR   = new Color(203, 203, 203);
@@ -55,7 +55,7 @@ public class TmmLightTabbedPaneUI extends BaseTabbedPaneUI {
   @Override
   public void installDefaults() {
     super.installDefaults();
-    tabInsets = new Insets(3, 10, 3, 10);
+    tabInsets = new Insets(2, 10, 2, 10);
   }
 
   // @Override
