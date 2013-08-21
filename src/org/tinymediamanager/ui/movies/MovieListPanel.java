@@ -150,15 +150,6 @@ public class MovieListPanel extends JPanel {
       movieTable.getColumnModel().getColumn(5).setHeaderValue(new ImageIcon(imageURL));
     }
 
-    movieTable.setSelectionModel(selectionModel.getSelectionModel());
-    // selecting first movie at startup
-    if (movieList.getMovies() != null && movieList.getMovies().size() > 0) {
-      ListSelectionModel selectionModel = movieTable.getSelectionModel();
-      if (selectionModel.isSelectionEmpty()) {
-        selectionModel.setSelectionInterval(0, 0);
-      }
-    }
-
     int[] cols = { 0 };
     JScrollPane scrollPane = TmmTable.createJScrollPane(movieTable, cols);
     add(scrollPane, "1, 2, 1, 1, fill, fill");
@@ -190,5 +181,16 @@ public class MovieListPanel extends JPanel {
 
     JLabel lblMovieCountTotal = new JLabel("");
     panelMovieCount.add(lblMovieCountTotal);
+  }
+
+  void setInitialSelection() {
+    movieTable.setSelectionModel(selectionModel.getSelectionModel());
+    // selecting first movie at startup
+    if (MovieList.getInstance().getMovies() != null && MovieList.getInstance().getMovies().size() > 0) {
+      ListSelectionModel selectionModel = movieTable.getSelectionModel();
+      if (selectionModel.isSelectionEmpty()) {
+        selectionModel.setSelectionInterval(0, 0);
+      }
+    }
   }
 }

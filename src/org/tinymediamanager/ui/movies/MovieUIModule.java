@@ -49,9 +49,12 @@ public class MovieUIModule implements ITmmUIModule {
   private JPopupMenu                  editPopupMenu;
 
   private MovieUIModule() {
+
     listPanel = new MovieListPanel();
     selectionModel = listPanel.selectionModel;
     detailPanel = new MovieInformationPanel(selectionModel);
+
+    listPanel.setInitialSelection();
 
     createActions();
     createPopupMenu();

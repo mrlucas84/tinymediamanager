@@ -32,7 +32,7 @@ import org.tinymediamanager.ui.MainWindow;
  * The star rater panel.
  * 
  * @author noblemaster
- * @since August 30, 2010
+ * @author Manuel Laggner
  */
 public class StarRater extends JPanel {
 
@@ -41,11 +41,11 @@ public class StarRater extends JPanel {
 
   /** The Constant STAR_BACKGROUND_IMAGE. */
   private static final Image STAR_BACKGROUND_IMAGE = com.bric.image.ImageLoader.createImage(MainWindow.class
-                                                       .getResource("/org/tinymediamanager/ui/images/24.png"));
+                                                       .getResource("/org/tinymediamanager/ui/images/rating_star_grey.png"));
 
   /** The Constant STAR_FOREGROUND_IMAGE. */
   private static final Image STAR_FOREGROUND_IMAGE = com.bric.image.ImageLoader.createImage(MainWindow.class
-                                                       .getResource("/org/tinymediamanager/ui/images/mark24.png"));
+                                                       .getResource("/org/tinymediamanager/ui/images/rating_star_yellow.png"));
 
   public static interface StarListener {
 
@@ -65,7 +65,7 @@ public class StarRater extends JPanel {
   private int                stars;
 
   /**
-   * The factor which the ratin will divided (i.e. rating 0 - 10 displayed with 5 stars)
+   * The factor which the rating will divided (i.e. rating 0 - 10 displayed with 5 stars)
    */
   private int                factor;
 

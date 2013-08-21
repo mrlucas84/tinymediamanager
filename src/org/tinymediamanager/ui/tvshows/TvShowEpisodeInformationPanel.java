@@ -47,7 +47,6 @@ import org.tinymediamanager.ui.converter.CertificationImageConverter;
 import org.tinymediamanager.ui.converter.MediaInfoAudioCodecConverter;
 import org.tinymediamanager.ui.converter.MediaInfoVideoCodecConverter;
 import org.tinymediamanager.ui.converter.MediaInfoVideoFormatConverter;
-import org.tinymediamanager.ui.converter.WatchedIconConverter;
 
 import com.jgoodies.forms.factories.FormFactory;
 import com.jgoodies.forms.layout.ColumnSpec;
@@ -373,12 +372,5 @@ public class TvShowEpisodeInformationPanel extends JPanel {
         tvShowEpisodeSelectionModel, tvShowEpisodeSelectionModelBeanProperty_9, lblCertificationImage, jLabelBeanProperty_1);
     autoBinding_10.setConverter(new CertificationImageConverter());
     autoBinding_10.bind();
-    //
-    BeanProperty<TvShowEpisodeSelectionModel, Boolean> tvShowEpisodeSelectionModelBeanProperty_10 = BeanProperty
-        .create("selectedTvShowEpisode.watched");
-    AutoBinding<TvShowEpisodeSelectionModel, Boolean, JLabel, Icon> autoBinding_11 = Bindings.createAutoBinding(UpdateStrategy.READ,
-        tvShowEpisodeSelectionModel, tvShowEpisodeSelectionModelBeanProperty_10, lblWatched, jLabelBeanProperty_1);
-    autoBinding_11.setConverter(new WatchedIconConverter());
-    autoBinding_11.bind();
   }
 }

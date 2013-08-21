@@ -38,8 +38,8 @@ import com.jtattoo.plaf.BaseTabbedPaneUI;
  */
 public class TmmLightTabbedPaneUI extends BaseTabbedPaneUI {
 
-  protected static int   BORDER_RADIUS  = 19;
-  protected static int   TAB_GAP        = 2;
+  protected static int   BORDER_RADIUS  = 20;
+  protected static int   TAB_GAP        = 1;
 
   protected static Color BORDER_COLOR   = new Color(203, 203, 203);
   protected static Color SELECTED_COLOR = new Color(141, 165, 179);
@@ -112,8 +112,8 @@ public class TmmLightTabbedPaneUI extends BaseTabbedPaneUI {
     g.drawLine(x1 + TAB_GAP + BORDER_RADIUS / 2, y1, x2 - TAB_GAP - BORDER_RADIUS / 2, y1);
     g.drawArc(x1 + TAB_GAP, y1, BORDER_RADIUS, BORDER_RADIUS, 90, 90);
     g.drawArc(x2 - BORDER_RADIUS - TAB_GAP, y1, BORDER_RADIUS, BORDER_RADIUS, 0, 90);
-    g.drawLine(x1 + TAB_GAP, y1 + GAP + 1, x1 + TAB_GAP, y2 - 1);
-    g.drawLine(x2 - TAB_GAP, y1 + GAP + 1, x2 - TAB_GAP, y2 - 1);
+    g.drawLine(x1 + TAB_GAP, y1 + BORDER_RADIUS / 2, x1 + TAB_GAP, y2 - 1);
+    g.drawLine(x2 - TAB_GAP, y1 + BORDER_RADIUS / 2, x2 - TAB_GAP, y2 - 1);
 
     g2D.setRenderingHint(RenderingHints.KEY_ANTIALIASING, savedRederingHint);
   }
