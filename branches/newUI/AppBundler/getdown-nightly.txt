@@ -54,6 +54,7 @@ code = lib/xmlrpc-client.jar
 
 # strings added to classpath
 plugin = lib/swt.jar
+plugin = [linux] /usr/share/java/*
 plugin = locale/*
 
 # files to be deleted
