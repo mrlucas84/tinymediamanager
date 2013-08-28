@@ -447,7 +447,8 @@ public class TinyMediaManager {
           File desktop = new File("tinyMediaManager.desktop");
           if (!desktop.exists()) {
             // create .desktop
-            String path = this.getClass().getClassLoader().getResource(".").getPath();
+            // String path = this.getClass().getClassLoader().getResource(".").getPath();
+            String path = this.getClass().getProtectionDomain().getCodeSource().getLocation().getPath();
             StringBuilder sb = new StringBuilder("[Desktop Entry]\n");
             sb.append("Type=Application\n");
             sb.append("Name=tinyMediaManager\n");
