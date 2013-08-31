@@ -69,9 +69,12 @@ resource = splashscreen.png
 resource = objectdb.conf
 
 # translations
+resource = locale/messages_cs.properties
 resource = locale/messages_de.properties
 resource = locale/messages_fr.properties
 resource = locale/messages_nl.properties
+resource = locale/messages_pt.properties
+resource = locale/messages_sk.properties
 #resource = locale/messages_.properties
 
 # mediainfo native libs
@@ -112,6 +115,6 @@ jvmarg = -Xss512k
 jvmarg = -splash:splashscreen.png
 jvmarg = [mac os x] -Dapple.awt.graphics.UseQuartz=true
 jvmarg = [linux] -Djna.nosys=true
-#jvmarg = [linux] -Djava.ext.dirs=/usr/share/java:lib
+jvmarg = [linux] -Djava.ext.dirs=/usr/share/java
 #jvmarg = [windows] -Djava.ext.dirs=lib
 #jvmarg = [mac os x] -Djava.ext.dirs=lib
