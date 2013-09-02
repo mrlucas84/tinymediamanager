@@ -44,7 +44,7 @@ import org.tinymediamanager.scraper.MediaTrailer;
 import org.tinymediamanager.ui.TableColumnAdjuster;
 import org.tinymediamanager.ui.TmmUIHelper;
 import org.tinymediamanager.ui.UTF8Control;
-import org.tinymediamanager.ui.components.ZebraJTable;
+import org.tinymediamanager.ui.components.TmmTable;
 
 import ca.odell.glazedlists.BasicEventList;
 import ca.odell.glazedlists.EventList;
@@ -104,11 +104,12 @@ public class MovieTrailerPanel extends JPanel {
     trailerEventList = GlazedLists.threadSafeList(new ObservableElementList<MediaTrailer>(new BasicEventList<MediaTrailer>(), GlazedLists
         .beanConnector(MediaTrailer.class)));
     trailerTableModel = new DefaultEventTableModel<MediaTrailer>(GlazedListsSwing.swingThreadProxyList(trailerEventList), new TrailerTableFormat());
-    table = new ZebraJTable(trailerTableModel);
+    table = new TmmTable(trailerTableModel);
     table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
     table.setSelectionModel(new NullSelectionModel());
 
-    JScrollPane scrollPane = ZebraJTable.createStripedJScrollPane(table);
+    int[] cols = {};
+    JScrollPane scrollPane = TmmTable.createJScrollPane(table, cols);
     add(scrollPane, "2, 2, fill, fill");
     scrollPane.setViewportView(table);
 

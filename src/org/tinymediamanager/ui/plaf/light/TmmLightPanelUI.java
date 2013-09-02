@@ -41,7 +41,7 @@ public class TmmLightPanelUI extends BasePanelUI {
 
   private static TmmLightPanelUI panelUI             = null;
 
-  private static Color           TOOLBAR_PANEL_COLOR = new Color(44, 44, 44);
+  private static Color           TOOLBAR_PANEL_COLOR = new Color(52, 52, 52);
 
   public static ComponentUI createUI(JComponent c) {
     if (panelUI == null) {

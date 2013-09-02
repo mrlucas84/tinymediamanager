@@ -15,7 +15,6 @@
  */
 package org.tinymediamanager.ui;
 
-import java.awt.Color;
 import java.awt.Component;
 import java.awt.Container;
 import java.awt.Graphics;
@@ -29,10 +28,13 @@ import java.awt.geom.RoundRectangle2D;
 import javax.swing.border.AbstractBorder;
 
 /**
- * @author Manuel Laggner
+ * The class RoundedCornerBorder to draw a rounded border
  * 
+ * @author Manuel Laggner
  */
 public class RoundedCornerBorder extends AbstractBorder {
+  private static final long serialVersionUID = 7232608853491155785L;
+
   @Override
   public void paintBorder(Component c, Graphics g, int x, int y, int width, int height) {
     Graphics2D g2 = (Graphics2D) g.create();
@@ -46,8 +48,7 @@ public class RoundedCornerBorder extends AbstractBorder {
       corner.subtract(new Area(round));
       g2.fill(corner);
     }
-    g2.setColor(Color.GRAY);
-    g2.draw(round);
+
     g2.dispose();
   }
 

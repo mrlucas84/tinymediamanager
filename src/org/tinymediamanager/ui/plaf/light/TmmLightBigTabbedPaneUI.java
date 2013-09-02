@@ -25,12 +25,12 @@ import java.awt.Rectangle;
 import java.awt.RenderingHints;
 import java.awt.Toolkit;
 
-import javax.swing.Icon;
 import javax.swing.JComponent;
 import javax.swing.plaf.ComponentUI;
 
 import com.jtattoo.plaf.AbstractLookAndFeel;
 import com.jtattoo.plaf.BaseTabbedPaneUI;
+import com.jtattoo.plaf.JTattooUtilities;
 import com.jtattoo.plaf.luna.LunaTabbedPaneUI;
 
 /**
@@ -40,8 +40,8 @@ import com.jtattoo.plaf.luna.LunaTabbedPaneUI;
  */
 public class TmmLightBigTabbedPaneUI extends BaseTabbedPaneUI {
 
-  protected static int BORDER_RADIUS = 15;
-  protected static int TAB_GAP       = 2;
+  protected static int BORDER_RADIUS = 0;
+  protected static int TAB_GAP       = 0;
 
   public static ComponentUI createUI(JComponent c) {
     Object prop = c.getClientProperty("class");
@@ -54,14 +54,17 @@ public class TmmLightBigTabbedPaneUI extends BaseTabbedPaneUI {
   @Override
   public void installDefaults() {
     super.installDefaults();
-    tabInsets = new Insets(0, 20, 0, 20);
+    tabInsets = new Insets(5, 20, 5, 20);
+    tabAreaInsets = new Insets(0, 0, 15, 0);
+    roundedTabs = false;
   }
 
   @Override
   protected Font getTabFont(boolean isSelected) {
-    return super.getTabFont(isSelected).deriveFont(16f);
+    return tabPane.getFont().deriveFont(14f);
   }
 
+  @SuppressWarnings("deprecation")
   @Override
   protected FontMetrics getFontMetrics() {
     Font font = getTabFont(false);
@@ -75,32 +78,20 @@ public class TmmLightBigTabbedPaneUI extends BaseTabbedPaneUI {
     g2D.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
     if (isSelected) {
-      g.setColor(AbstractLookAndFeel.getBackgroundColor());
+      g.setColor(new Color(141, 165, 179));
     }
     else {
-      g.setColor(new Color(163, 163, 163));
+      g.setColor(new Color(41, 41, 41));
     }
 
-    if (tabPlacement == TOP) {
-      g.fillRoundRect(x + TAB_GAP, y, w - 2 * TAB_GAP, h, BORDER_RADIUS, BORDER_RADIUS);
-      g.fillRect(x + TAB_GAP, y + BORDER_RADIUS, w - 2 * TAB_GAP, h - BORDER_RADIUS / 2);
-      // g.fillRect(x + 1, y + 1, w - 1, h + 2);
-    }
-    else if (tabPlacement == LEFT) {
-      g.fillRect(x + 1, y + 1, w + 2, h - 1);
-    }
-    else if (tabPlacement == BOTTOM) {
-      g.fillRect(x + 1, y - 2, w - 1, h + 2);
-    }
-    else {
-      g.fillRect(x - 2, y + 1, w + 2, h - 1);
-    }
+    g.fillRect(x, y, w, h);
 
+    if (isSelected) {
+      int[] xPoints = { x + (w / 2 + 10), x + (w / 2 - 10), x + (w / 2) };
+      int[] yPoints = { y + h, y + h, y + h + 10 };
+      g.fillPolygon(xPoints, yPoints, xPoints.length);
+    }
     g2D.setRenderingHints(savedRenderingHints);
-  }
-
-  @Override
-  protected void paintRoundedTopTabBorder(int tabIndex, Graphics g, int x1, int y1, int x2, int y2, boolean isSelected) {
   }
 
   @Override
@@ -113,11 +104,59 @@ public class TmmLightBigTabbedPaneUI extends BaseTabbedPaneUI {
   }
 
   @Override
-  protected void layoutLabel(int tabPlacement, FontMetrics metrics, int tabIndex, String title, Icon icon, Rectangle tabRect, Rectangle iconRect,
-      Rectangle textRect, boolean isSelected) {
-    super.layoutLabel(tabPlacement, metrics, tabIndex, title, icon, tabRect, iconRect, textRect, isSelected);
+  protected void paintTopTabBorder(int tabIndex, Graphics g, int x1, int y1, int x2, int y2, boolean isSelected) {
+    if (!isSelected) {
+      g.setColor(new Color(23, 23, 23));
+      g.drawLine(x2 - 1, y1, x2 - 1, y2 - 1);
+    }
+    g.setColor(new Color(56, 56, 56));
+    g.drawLine(x2, y1, x2, y2 - 1);
+  }
 
-    textRect.y += (metrics.getDescent() / 2);
+  @Override
+  protected void paintText(Graphics g, int tabPlacement, Font font, FontMetrics metrics, int tabIndex, String title, Rectangle textRect,
+      boolean isSelected) {
+    Graphics2D g2D = (Graphics2D) g;
+    Object savedRenderingHint = null;
+    if (AbstractLookAndFeel.getTheme().isTextAntiAliasingOn()) {
+      savedRenderingHint = g2D.getRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING);
+      g2D.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, AbstractLookAndFeel.getTheme().getTextAntiAliasingHint());
+    }
+
+    // plain text
+    g.setFont(font);
+    int mnemIndex = -1;
+    if (JTattooUtilities.getJavaVersion() >= 1.4) {
+      mnemIndex = tabPane.getDisplayedMnemonicIndexAt(tabIndex);
+    }
+
+    if (tabPane.isEnabled() && tabPane.isEnabledAt(tabIndex)) {
+      if (isSelected) {
+        g.setColor(new Color(240, 240, 240));
+      }
+      else {
+        g.setColor(new Color(110, 110, 110));
+      }
+      JTattooUtilities.drawStringUnderlineCharAt(tabPane, g, title, mnemIndex, textRect.x, textRect.y + metrics.getAscent());
+    }
+    else { // tab disabled
+      g.setColor(tabPane.getBackgroundAt(tabIndex).brighter());
+      JTattooUtilities.drawStringUnderlineCharAt(tabPane, g, title, mnemIndex, textRect.x, textRect.y + metrics.getAscent());
+      g.setColor(tabPane.getBackgroundAt(tabIndex).darker());
+      JTattooUtilities.drawStringUnderlineCharAt(tabPane, g, title, mnemIndex, textRect.x - 1, textRect.y + metrics.getAscent() - 1);
+    }
+
+    if (AbstractLookAndFeel.getTheme().isTextAntiAliasingOn()) {
+      g2D.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, savedRenderingHint);
+    }
+
+  }
+
+  @Override
+  protected void paintTabArea(Graphics g, int tabPlacement, int selectedIndex) {
+    g.setColor(new Color(41, 41, 41));
+    g.fillRect(tabPane.getX(), tabPane.getY(), tabPane.getWidth(), maxTabHeight);
+    super.paintTabArea(g, tabPlacement, selectedIndex);
   }
 
 }
