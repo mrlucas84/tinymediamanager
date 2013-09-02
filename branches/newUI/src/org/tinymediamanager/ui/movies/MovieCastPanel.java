@@ -93,14 +93,14 @@ public class MovieCastPanel extends JPanel {
 
     lblDirector = new JLabel("");
     lblDirectorT.setLabelFor(lblDirector);
-    add(lblDirector, "4, 2, 3, 1");
+    add(lblDirector, "4, 2, 5, 1");
 
     lblWriterT = new JLabel(BUNDLE.getString("metatag.writer")); //$NON-NLS-1$
     add(lblWriterT, "2, 4");
 
     lblWriter = new JLabel("");
     lblWriterT.setLabelFor(lblWriter);
-    add(lblWriter, "4, 4, 3, 1");
+    add(lblWriter, "4, 4, 5, 1");
 
     tableCast = new TmmTable(actorTableModel);
     tableCast.getColumnModel().getColumn(0).setCellRenderer(new BorderCellRenderer());

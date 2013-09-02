@@ -32,6 +32,7 @@ import org.tinymediamanager.core.movie.MovieList;
 import org.tinymediamanager.ui.BorderCellRenderer;
 import org.tinymediamanager.ui.IconHeaderRenderer;
 import org.tinymediamanager.ui.MainWindow;
+import org.tinymediamanager.ui.components.JSearchTextField;
 import org.tinymediamanager.ui.components.TmmTable;
 
 import ca.odell.glazedlists.FilterList;
@@ -63,10 +64,9 @@ public class MovieListPanel extends JPanel {
 
   public MovieListPanel() {
     putClientProperty("class", "roundedPanel");
-
-    setLayout(new FormLayout(new ColumnSpec[] { ColumnSpec.decode("400px:grow") }, new RowSpec[] { RowSpec.decode("15dlu"),
-        RowSpec.decode("fill:max(400px;default):grow"), FormFactory.RELATED_GAP_ROWSPEC, FormFactory.DEFAULT_ROWSPEC, FormFactory.DEFAULT_ROWSPEC,
-        RowSpec.decode("15dlu"), }));
+    setLayout(new FormLayout(new ColumnSpec[] { ColumnSpec.decode("10dlu"), ColumnSpec.decode("350px:grow"), ColumnSpec.decode("10dlu"), },
+        new RowSpec[] { RowSpec.decode("15dlu"), FormFactory.RELATED_GAP_ROWSPEC, RowSpec.decode("fill:max(400px;default):grow"),
+            FormFactory.RELATED_GAP_ROWSPEC, FormFactory.DEFAULT_ROWSPEC, FormFactory.DEFAULT_ROWSPEC, RowSpec.decode("15dlu"), }));
 
     buildTable();
     buildSearchPanel();
@@ -80,7 +80,8 @@ public class MovieListPanel extends JPanel {
     sortedMovies.setMode(SortedList.AVOID_MOVING_ELEMENTS);
 
     // FIXME
-    searchField = new JTextField();
+    searchField = new JSearchTextField();
+    add(searchField, "2, 1, fill, fill");
 
     MatcherEditor<Movie> textMatcherEditor = new TextComponentMatcherEditor<Movie>(searchField, new MovieFilterator());
     MovieMatcherEditor movieMatcherEditor = new MovieMatcherEditor();
@@ -152,17 +153,17 @@ public class MovieListPanel extends JPanel {
 
     int[] cols = { 0 };
     JScrollPane scrollPane = TmmTable.createJScrollPane(movieTable, cols);
-    add(scrollPane, "1, 2, 1, 1, fill, fill");
+    add(scrollPane, "1, 3, 3, 1, fill, fill");
   }
 
   private void buildSearchPanel() {
     JPanel panelExtendedSearch = new MovieExtendedSearchPanel(selectionModel);
-    add(panelExtendedSearch, "1, 4, fill, fill");
+    add(panelExtendedSearch, "2, 5, fill, fill");
   }
 
   private void buildStatusPanel() {
     JPanel panelStatus = new JPanel();
-    add(panelStatus, "1, 5");
+    add(panelStatus, "2, 6");
     panelStatus.setLayout(new FormLayout(new ColumnSpec[] { FormFactory.RELATED_GAP_COLSPEC, ColumnSpec.decode("1px"),
         ColumnSpec.decode("146px:grow"), FormFactory.RELATED_GAP_COLSPEC, ColumnSpec.decode("default:grow"), }, new RowSpec[] { RowSpec
         .decode("fill:default:grow"), }));

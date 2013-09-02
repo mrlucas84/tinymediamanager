@@ -18,9 +18,7 @@ package org.tinymediamanager.ui;
 import java.awt.AWTEvent;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
-import java.awt.Cursor;
 import java.awt.Dimension;
-import java.awt.FlowLayout;
 import java.awt.Insets;
 import java.awt.Toolkit;
 import java.awt.event.AWTEventListener;
@@ -38,12 +36,8 @@ import java.util.concurrent.TimeUnit;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JComponent;
-import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
-import javax.swing.JMenu;
-import javax.swing.JMenuBar;
-import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
@@ -56,17 +50,12 @@ import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.tinymediamanager.Globals;
-import org.tinymediamanager.core.Message;
 import org.tinymediamanager.core.Message.MessageLevel;
 import org.tinymediamanager.core.MessageManager;
-import org.tinymediamanager.ui.actions.ClearImageCacheAction;
-import org.tinymediamanager.ui.actions.ClearUrlCacheAction;
-import org.tinymediamanager.ui.actions.RebuildImageCacheAction;
 import org.tinymediamanager.ui.components.MainTabbedPane;
 import org.tinymediamanager.ui.components.NotificationMessage;
 import org.tinymediamanager.ui.components.TextFieldPopupMenu;
 import org.tinymediamanager.ui.components.ToolbarPanel;
-import org.tinymediamanager.ui.dialogs.LogDialog;
 import org.tinymediamanager.ui.dialogs.MessageSummaryDialog;
 import org.tinymediamanager.ui.movies.MoviePanel;
 import org.tinymediamanager.ui.movies.MovieUIModule;
@@ -98,7 +87,6 @@ public class MainWindow extends JFrame {
   private JTabbedPane                 tabbedPane;
   private JPanel                      detailPanel;
   private ToolbarPanel                toolbarPanel;
-  private JPanel                      panelMessage;
 
   private TmmSwingWorker              activeTask;
   private StatusbarThread             statusTask       = new StatusbarThread();
@@ -117,93 +105,7 @@ public class MainWindow extends JFrame {
 
     instance = this;
 
-    JMenuBar menuBar = new JMenuBar();
-    setJMenuBar(menuBar);
-
     initialize();
-
-    // debug menu
-    JMenu debug = new JMenu(BUNDLE.getString("tmm.debug")); //$NON-NLS-1$
-    JMenuItem clearDatabase = new JMenuItem(BUNDLE.getString("tmm.cleardatabase")); //$NON-NLS-1$
-    debug.add(clearDatabase);
-    clearDatabase.addActionListener(new ActionListener() {
-      @Override
-      public void actionPerformed(ActionEvent arg0) {
-        setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
-        // delete the database
-        try {
-          Globals.shutdownDatabase();
-          File db = new File("tmm.odb");
-          if (db.exists()) {
-            db.delete();
-          }
-          setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
-          JOptionPane.showMessageDialog(null, BUNDLE.getString("tmm.cleardatabase.info")); //$NON-NLS-1$
-        }
-        catch (Exception e) {
-          JOptionPane.showMessageDialog(null, BUNDLE.getString("tmm.cleardatabase.error")); //$NON-NLS-1$
-          // open the tmm folder
-          File path = new File(".");
-          try {
-            // check whether this location exists
-            if (path.exists()) {
-              TmmUIHelper.openFile(path);
-            }
-          }
-          catch (Exception ex) {
-            LOGGER.warn(ex.getMessage());
-            MessageManager.instance.pushMessage(new Message(MessageLevel.ERROR, path, "message.erroropenfolder", new String[] { ":",
-                ex.getLocalizedMessage() }));
-          }
-        }
-        System.exit(0);
-      }
-    });
-
-    JMenu cache = new JMenu(BUNDLE.getString("tmm.cache")); //$NON-NLS-1$
-    debug.add(cache);
-
-    JMenuItem clearUrlCache = new JMenuItem(new ClearUrlCacheAction());
-    cache.add(clearUrlCache);
-    cache.addSeparator();
-    JMenuItem clearImageCache = new JMenuItem(new ClearImageCacheAction());
-    cache.add(clearImageCache);
-
-    JMenuItem rebuildImageCache = new JMenuItem(new RebuildImageCacheAction());
-    cache.add(rebuildImageCache);
-
-    JMenuItem tmmFolder = new JMenuItem(BUNDLE.getString("tmm.gotoinstalldir")); //$NON-NLS-1$
-    debug.add(tmmFolder);
-    tmmFolder.addActionListener(new ActionListener() {
-      @Override
-      public void actionPerformed(ActionEvent arg0) {
-        File path = new File(System.getProperty("user.dir"));
-        try {
-          // check whether this location exists
-          if (path.exists()) {
-            TmmUIHelper.openFile(path);
-          }
-        }
-        catch (Exception ex) {
-          LOGGER.error("open filemanager", ex);
-          MessageManager.instance.pushMessage(new Message(MessageLevel.ERROR, path, "message.erroropenfolder", new String[] { ":",
-              ex.getLocalizedMessage() }));
-        }
-      }
-    });
-
-    JMenuItem tmmLogs = new JMenuItem(BUNDLE.getString("tmm.errorlogs")); //$NON-NLS-1$
-    debug.add(tmmLogs);
-    tmmLogs.addActionListener(new ActionListener() {
-      @Override
-      public void actionPerformed(ActionEvent arg0) {
-        JDialog logDialog = new LogDialog();
-        logDialog.setLocationRelativeTo(MainWindow.getActiveInstance());
-        logDialog.setVisible(true);
-      }
-    });
-
-    menuBar.add(debug);
 
     // Globals.executor.execute(new MyStatusbarThread());
     // use a Future to be able to cancel it
@@ -216,7 +118,7 @@ public class MainWindow extends JFrame {
   private void initialize() {
     // set the logo
     setIconImage(Globals.logo);
-    setBounds(5, 5, 1100, 727);
+    setBounds(5, 5, 1200, 700);
     // do nothing, we have our own windowClosing() listener
     // setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
     setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
@@ -228,51 +130,33 @@ public class MainWindow extends JFrame {
     rootPanel.putClientProperty("class", "rootPanel");
     getContentPane().add(rootPanel);
 
-    rootPanel.setLayout(new FormLayout(
-        new ColumnSpec[] { ColumnSpec.decode("15dlu"), ColumnSpec.decode("default:grow"), ColumnSpec.decode("15dlu"), }, new RowSpec[] {
-            RowSpec.decode("10dlu"), RowSpec.decode("fill:max(500px;default):grow"), RowSpec.decode("10dlu"), FormFactory.DEFAULT_ROWSPEC, }));
+    rootPanel.setLayout(new FormLayout(new ColumnSpec[] { ColumnSpec.decode("10dlu"), ColumnSpec.decode("max(50dlu;default):grow"),
+        ColumnSpec.decode("10dlu"), }, new RowSpec[] { RowSpec.decode("fill:500px:grow"), RowSpec.decode("10dlu"), }));
 
     JSplitPane splitPane = new JSplitPane();
     splitPane.setContinuousLayout(true);
     splitPane.setOpaque(false);
     splitPane.putClientProperty("flatMode", true);
-    rootPanel.add(splitPane, "2, 2, fill, fill");
+    rootPanel.add(splitPane, "2, 1, fill, fill");
 
     JPanel leftPanel = new JPanel();
-    leftPanel.setOpaque(false);
-    leftPanel.setLayout(new FormLayout(new ColumnSpec[] { ColumnSpec.decode("default:grow"), FormFactory.RELATED_GAP_COLSPEC, },
-        new RowSpec[] { RowSpec.decode("fill:default:grow"), }));
+    leftPanel.putClientProperty("class", "roundedPanel");
+    leftPanel.setLayout(new FormLayout(new ColumnSpec[] { ColumnSpec.decode("default:grow"), }, new RowSpec[] { RowSpec.decode("fill:default:grow"),
+        FormFactory.RELATED_GAP_ROWSPEC, }));
     tabbedPane = new MainTabbedPane();
     leftPanel.add(tabbedPane, "1, 1, fill, fill");
     splitPane.setLeftComponent(leftPanel);
 
     JPanel rightPanel = new JPanel();
-    rightPanel.setOpaque(false);
-    rightPanel.setLayout(new FormLayout(new ColumnSpec[] { FormFactory.RELATED_GAP_COLSPEC, ColumnSpec.decode("default:grow"), }, new RowSpec[] {
-        RowSpec.decode("10dlu"), FormFactory.RELATED_GAP_ROWSPEC, RowSpec.decode("fill:default:grow"), }));
+    rightPanel.putClientProperty("class", "roundedPanel");
+    rightPanel.setLayout(new FormLayout(new ColumnSpec[] { ColumnSpec.decode("750px:grow(3)"), }, new RowSpec[] {
+        RowSpec.decode("fill:default:grow"), FormFactory.RELATED_GAP_ROWSPEC, }));
     detailPanel = new JPanel();
     detailPanel.setLayout(new CardLayout(0, 0));
-    rightPanel.add(detailPanel, "2, 3, fill, fill");
+    rightPanel.add(detailPanel, "1, 1, fill, fill");
     splitPane.setRightComponent(rightPanel);
 
-    // JTabbedPane tabbedPane = VerticalTextIcon.createTabbedPane(JTabbedPane.LEFT);
-    // UIManager.put("TabbedPane.contentOpaque", false);
-    // tabbedPane.setTabPlacement(JTabbedPane.LEFT);
-    // rootPanel.add(tabbedPane, "1, 2, fill, fill");
-    //
     buildStatusbar();
-    //
-    // panelMovies = new MoviePanel();
-    //    VerticalTextIcon.addTab(tabbedPane, BUNDLE.getString("tmm.movies"), panelMovies); //$NON-NLS-1$
-    //
-    // JPanel panelMovieSets = new MovieSetPanel();
-    //    VerticalTextIcon.addTab(tabbedPane, BUNDLE.getString("tmm.moviesets"), panelMovieSets); //$NON-NLS-1$
-    //
-    // JPanel panelTvShows = new TvShowPanel();
-    //    VerticalTextIcon.addTab(tabbedPane, BUNDLE.getString("tmm.tvshows"), panelTvShows); //$NON-NLS-1$
-    //
-    // JPanel panelSettings = new SettingsPanel();
-    //    VerticalTextIcon.addTab(tabbedPane, BUNDLE.getString("tmm.settings"), panelSettings); //$NON-NLS-1$
 
     // shutdown listener - to clean database connections safely
     createShutdownListener();
@@ -283,20 +167,18 @@ public class MainWindow extends JFrame {
     toolbarPanel.setUIModule(MovieUIModule.getInstance());
 
     // FIXME
-    tabbedPane.addTab("TV SHOWS", new JPanel());
+    tabbedPane.addTab("Moviesets", new JPanel());
+
+    // FIXME
+    tabbedPane.addTab("TV shows", new JPanel());
 
     // message panel
-    panelMessage = new JPanel();
-    panelMessage.setOpaque(false);
-    panelMessage.setLayout(new FlowLayout());
-    panelMessage.setPreferredSize(new Dimension(100, 0));
-    getContentPane().add(panelMessage, BorderLayout.EAST);
     MessageManager.instance.addListener(new UIMessageListener());
   }
 
   private void buildStatusbar() {
     panelStatusBar = new JPanel();
-    rootPanel.add(panelStatusBar, "2, 4");
+    // rootPanel.add(panelStatusBar, "2, 3");
     panelStatusBar.setLayout(new FormLayout(
         new ColumnSpec[] { FormFactory.RELATED_GAP_COLSPEC, ColumnSpec.decode("default:grow"), FormFactory.DEFAULT_COLSPEC,
             FormFactory.LABEL_COMPONENT_GAP_COLSPEC, FormFactory.DEFAULT_COLSPEC, FormFactory.LABEL_COMPONENT_GAP_COLSPEC,
@@ -304,13 +186,13 @@ public class MainWindow extends JFrame {
             FormFactory.LABEL_COMPONENT_GAP_COLSPEC, }, new RowSpec[] { RowSpec.decode("20px"), }));
 
     lblProgressAction = new JLabel("");
-    panelStatusBar.add(lblProgressAction, "3, 1, default, default");
+    // panelStatusBar.add(lblProgressAction, "3, 1, default, default");
 
     progressBar = new JProgressBar();
-    panelStatusBar.add(progressBar, "5, 1");
+    // panelStatusBar.add(progressBar, "5, 1");
 
     btnCancelTask = new JButton("");
-    panelStatusBar.add(btnCancelTask, "7, 1");
+    // panelStatusBar.add(btnCancelTask, "7, 1");
     btnCancelTask.setVisible(false);
     btnCancelTask.setContentAreaFilled(false);
     btnCancelTask.setBorderPainted(false);
@@ -328,7 +210,7 @@ public class MainWindow extends JFrame {
     progressBar.setVisible(false);
 
     lblLoadingImg = new JLabel("");
-    panelStatusBar.add(lblLoadingImg, "9, 1");
+    // panelStatusBar.add(lblLoadingImg, "9, 1");
   }
 
   private void createShutdownListener() {
@@ -399,7 +281,9 @@ public class MainWindow extends JFrame {
 
   private void addModule(ITmmUIModule module) {
     tabbedPane.addTab(module.getTabTitle(), module.getTabPanel());
-    detailPanel.add(module.getDetailPanel(), module.getModuleId());
+    JTabbedPane tabbedPane = new MainTabbedPane();
+    tabbedPane.addTab("Details", module.getDetailPanel());
+    detailPanel.add(tabbedPane, module.getModuleId());
   }
 
   /**
@@ -515,7 +399,7 @@ public class MainWindow extends JFrame {
 
   public void addMessage(MessageLevel level, String title, String message) {
     JPanel msg = new NotificationMessage(level, title, message);
-    panelMessage.add(msg);
+    // panelMessage.add(msg);
 
     if (messagesList != null) {
       messagesList.add(message + ": " + title);
@@ -523,7 +407,7 @@ public class MainWindow extends JFrame {
   }
 
   public void removeMessage(JComponent comp) {
-    panelMessage.remove(comp);
-    panelMessage.revalidate();
+    // panelMessage.remove(comp);
+    // panelMessage.revalidate();
   }
 }

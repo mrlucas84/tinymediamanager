@@ -26,6 +26,7 @@ import java.util.ResourceBundle;
 
 import javax.swing.UIManager;
 
+import org.tinymediamanager.ui.RoundedCornerBorder;
 import org.tinymediamanager.ui.UTF8Control;
 
 /**
@@ -34,14 +35,9 @@ import org.tinymediamanager.ui.UTF8Control;
  * @author Georgios Migdos <cyberpython@gmail.com>
  */
 public class JSearchTextField extends JIconTextField implements FocusListener {
-
-  /** The Constant BUNDLE. */
+  private static final long           serialVersionUID = 5684796522381134018L;
   private static final ResourceBundle BUNDLE           = ResourceBundle.getBundle("messages", new UTF8Control()); //$NON-NLS-1$
 
-  /** The Constant serialVersionUID. */
-  private static final long           serialVersionUID = 1L;
-
-  /** The text when not focused. */
   private String                      textWhenNotFocused;
 
   /**
@@ -51,6 +47,7 @@ public class JSearchTextField extends JIconTextField implements FocusListener {
     super();
     this.textWhenNotFocused = BUNDLE.getString("tmm.searchfield"); //$NON-NLS-1$
     this.addFocusListener(this);
+    setBorder(new RoundedCornerBorder());
   }
 
   /**

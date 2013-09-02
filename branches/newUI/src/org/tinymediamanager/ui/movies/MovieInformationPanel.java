@@ -134,13 +134,13 @@ public class MovieInformationPanel extends JPanel {
 
     putClientProperty("class", "roundedPanel");
     setLayout(new FormLayout(new ColumnSpec[] { FormFactory.DEFAULT_COLSPEC, FormFactory.RELATED_GAP_COLSPEC, ColumnSpec.decode("200px:grow"),
-        ColumnSpec.decode("default:grow"), FormFactory.RELATED_GAP_COLSPEC, FormFactory.DEFAULT_COLSPEC, }, new RowSpec[] {
-        FormFactory.DEFAULT_ROWSPEC, FormFactory.RELATED_GAP_ROWSPEC, RowSpec.decode("300px"), FormFactory.DEFAULT_ROWSPEC,
-        FormFactory.RELATED_GAP_ROWSPEC, RowSpec.decode("fill:default:grow"), FormFactory.RELATED_GAP_ROWSPEC, FormFactory.DEFAULT_ROWSPEC, }));
+        ColumnSpec.decode("500px:grow(3)"), FormFactory.RELATED_GAP_COLSPEC, FormFactory.DEFAULT_COLSPEC, }, new RowSpec[] {
+        FormFactory.DEFAULT_ROWSPEC, FormFactory.RELATED_GAP_ROWSPEC, RowSpec.decode("300px:grow(2)"), FormFactory.DEFAULT_ROWSPEC,
+        FormFactory.RELATED_GAP_ROWSPEC, RowSpec.decode("fill:300px:grow"), FormFactory.RELATED_GAP_ROWSPEC, FormFactory.DEFAULT_ROWSPEC, }));
 
     panelTopLeft = new JLayeredPane();
     add(panelTopLeft, "3, 3, fill, fill");
-    panelTopLeft.setLayout(new FormLayout(new ColumnSpec[] { ColumnSpec.decode("200px:grow"), }, new RowSpec[] { RowSpec.decode("300px"), }));
+    panelTopLeft.setLayout(new FormLayout(new ColumnSpec[] { ColumnSpec.decode("200px:grow"), }, new RowSpec[] { RowSpec.decode("300px:grow"), }));
 
     lblMoviePoster = new ImageLabel(false, false, true);
     panelTopLeft.add(lblMoviePoster, "1, 1, fill, fill");
@@ -155,13 +155,14 @@ public class MovieInformationPanel extends JPanel {
 
     panelTopRight = new JPanel();
     add(panelTopRight, "4, 3, fill, fill");
-    panelTopRight.setLayout(new FormLayout(new ColumnSpec[] { FormFactory.UNRELATED_GAP_COLSPEC, ColumnSpec.decode("max(50px;default)"),
-        FormFactory.RELATED_GAP_COLSPEC, ColumnSpec.decode("max(100px;min):grow"), FormFactory.RELATED_GAP_COLSPEC, }, new RowSpec[] {
+    panelTopRight.setLayout(new FormLayout(new ColumnSpec[] { FormFactory.UNRELATED_GAP_COLSPEC, FormFactory.MIN_COLSPEC,
+        FormFactory.RELATED_GAP_COLSPEC, ColumnSpec.decode("default:grow"), FormFactory.RELATED_GAP_COLSPEC, }, new RowSpec[] {
         RowSpec.decode("fill:default"), FormFactory.NARROW_LINE_GAP_ROWSPEC, FormFactory.DEFAULT_ROWSPEC, FormFactory.NARROW_LINE_GAP_ROWSPEC,
         FormFactory.DEFAULT_ROWSPEC, FormFactory.NARROW_LINE_GAP_ROWSPEC, FormFactory.DEFAULT_ROWSPEC, FormFactory.NARROW_LINE_GAP_ROWSPEC,
         FormFactory.DEFAULT_ROWSPEC, FormFactory.NARROW_LINE_GAP_ROWSPEC, FormFactory.DEFAULT_ROWSPEC, FormFactory.NARROW_LINE_GAP_ROWSPEC,
-        FormFactory.DEFAULT_ROWSPEC, FormFactory.NARROW_LINE_GAP_ROWSPEC, FormFactory.DEFAULT_ROWSPEC, FormFactory.RELATED_GAP_ROWSPEC,
-        FormFactory.DEFAULT_ROWSPEC, FormFactory.NARROW_LINE_GAP_ROWSPEC, RowSpec.decode("default:grow"), }));
+        FormFactory.DEFAULT_ROWSPEC, FormFactory.NARROW_LINE_GAP_ROWSPEC, FormFactory.DEFAULT_ROWSPEC, FormFactory.NARROW_LINE_GAP_ROWSPEC,
+        FormFactory.DEFAULT_ROWSPEC, FormFactory.RELATED_GAP_ROWSPEC, FormFactory.DEFAULT_ROWSPEC, FormFactory.NARROW_LINE_GAP_ROWSPEC,
+        RowSpec.decode("default:grow"), }));
     lblMovieName = new JLabel("");
     panelTopRight.add(lblMovieName, "2, 1, 3, 1, fill, fill");
     lblMovieName.setFont(new Font("Dialog", Font.BOLD, 16));
@@ -241,16 +242,16 @@ public class MovieInformationPanel extends JPanel {
     panelTopRight.add(lblTaglineT, "2, 15");
 
     lblTagline = new JLabel();
-    panelTopRight.add(lblTagline, "4, 15, left, fill");
+    panelTopRight.add(lblTagline, "2, 17, 3, 1");
 
     lblPlotT = new JLabel(BUNDLE.getString("metatag.plot")); //$NON-NLS-1$
     lblPlotT.setFont(bold);
-    panelTopRight.add(lblPlotT, "2, 17");
+    panelTopRight.add(lblPlotT, "2, 19");
 
     scrollPane = new JScrollPane();
     scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
     scrollPane.setBorder(null);
-    panelTopRight.add(scrollPane, "2, 19, 3, 1, fill, fill");
+    panelTopRight.add(scrollPane, "2, 21, 3, 1, fill, fill");
 
     taPlot = new JTextArea();
     scrollPane.setViewportView(taPlot);
@@ -263,7 +264,7 @@ public class MovieInformationPanel extends JPanel {
     panelBottomLeft = new JPanel();
     add(panelBottomLeft, "3, 6, fill, fill");
     panelBottomLeft.setLayout(new FormLayout(new ColumnSpec[] { ColumnSpec.decode("default:grow"), }, new RowSpec[] {
-        FormFactory.RELATED_GAP_ROWSPEC, FormFactory.DEFAULT_ROWSPEC, FormFactory.RELATED_GAP_ROWSPEC, RowSpec.decode("150px"), }));
+        FormFactory.RELATED_GAP_ROWSPEC, FormFactory.DEFAULT_ROWSPEC, FormFactory.RELATED_GAP_ROWSPEC, RowSpec.decode("250px:grow"), }));
 
     lblMovieBackground = new ImageLabel(false, false, true);
     panelBottomLeft.add(lblMovieBackground, "1, 4, fill, fill");
@@ -283,10 +284,10 @@ public class MovieInformationPanel extends JPanel {
     tabbedPaneMovieDetails.addTab(BUNDLE.getString("metatag.cast"), null, panelMovieCast, null); //$NON-NLS-1$
 
     panelMediaInformation = new MovieMediaInformationPanel(movieSelectionModel);
-    tabbedPaneMovieDetails.addTab(BUNDLE.getString("metatag.mediainformation"), null, panelMediaInformation, null); //$NON-NLS-1$
+    tabbedPaneMovieDetails.addTab(BUNDLE.getString("metatag.media"), null, panelMediaInformation, null); //$NON-NLS-1$
 
     panelMediaFiles = new MovieMediaFilesPanel(movieSelectionModel);
-    tabbedPaneMovieDetails.addTab(BUNDLE.getString("metatag.mediafiles"), null, panelMediaFiles, null); //$NON-NLS-1$
+    tabbedPaneMovieDetails.addTab(BUNDLE.getString("metatag.files"), null, panelMediaFiles, null); //$NON-NLS-1$
     final ImagePanel panelArtwork = new ImagePanel(mediaFiles);
     tabbedPaneMovieDetails.addTab(BUNDLE.getString("metatag.artwork"), null, panelArtwork, null); //$NON-NLS-1$
 
