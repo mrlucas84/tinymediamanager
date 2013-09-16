@@ -62,6 +62,8 @@ delete = lib/commons-logging.jar
 delete = lib/log4j.jar
 
 #resource = [windows] tinyMediaManager.exe #not yet - need more testing
+resource = [windows] tinyMediaManagerCMD.exe
+resource = [!windows] tinyMediaManagerCMD.sh
 resource = [!windows] tinyMediaManager.sh
 resource = getdown-new.jar
 resource = version
@@ -75,6 +77,7 @@ resource = locale/messages_fr.properties
 resource = locale/messages_nl.properties
 resource = locale/messages_pt.properties
 resource = locale/messages_sk.properties
+resource = locale/messages_vi.properties
 #resource = locale/messages_.properties
 
 # mediainfo native libs
@@ -102,19 +105,21 @@ uresource = templates/ListExampleXml.jar
 uresource = templates/jQueryliscious.jar
 uresource = templates/SimpleConfluence.jar
 
-# The main entry point for the application
+# The main entry point for the application (prefix needed for GD params)
 class = org.tinymediamanager.TinyMediaManager
+tmm.class = org.tinymediamanager.TinyMediaManager
 
 # allow offline use
 allow_offline = true
 
 # jvm args
+# NOTE: please consider to write fundamental changes to the commandline start scripts too 
 jvmarg = -Xms64m 
 jvmarg = -Xmx512m
 jvmarg = -Xss512k
 jvmarg = -splash:splashscreen.png
 jvmarg = [mac os x] -Dapple.awt.graphics.UseQuartz=true
 jvmarg = [linux] -Djna.nosys=true
-jvmarg = [linux] -Djava.ext.dirs=/usr/share/java
+#jvmarg = [linux] -Djava.ext.dirs=/usr/share/java
 #jvmarg = [windows] -Djava.ext.dirs=lib
 #jvmarg = [mac os x] -Djava.ext.dirs=lib
