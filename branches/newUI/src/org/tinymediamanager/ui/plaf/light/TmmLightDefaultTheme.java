@@ -18,9 +18,6 @@ public class TmmLightDefaultTheme extends TmmTheme {
     loadProperties();
     // Setup the color arrays
     setUpColorArrs();
-
-    textAntiAliasingMode = TEXT_ANTIALIAS_HRGB;
-    textAntiAliasing = true;
   }
 
   public String getPropertyFileName() {
@@ -79,6 +76,9 @@ public class TmmLightDefaultTheme extends TmmTheme {
 
     tabAreaBackgroundColor = backgroundColor;
     desktopColor = backgroundColor;
+
+    textAntiAliasingMode = TEXT_ANTIALIAS_DEFAULT;
+    textAntiAliasing = true;
   }
 
   public void setUpColorArrs() {

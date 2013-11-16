@@ -1,3 +1,18 @@
+/*
+ * Copyright 2012 - 2013 Manuel Laggner
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.tinymediamanager.ui.plaf.light;
 
 import java.util.ArrayList;
@@ -13,7 +28,6 @@ import com.jtattoo.plaf.AbstractLookAndFeel;
 import com.jtattoo.plaf.AbstractTheme;
 import com.jtattoo.plaf.BaseCheckBoxMenuItemUI;
 import com.jtattoo.plaf.BaseCheckBoxUI;
-import com.jtattoo.plaf.BaseComboBoxUI;
 import com.jtattoo.plaf.BaseDesktopPaneUI;
 import com.jtattoo.plaf.BaseEditorPaneUI;
 import com.jtattoo.plaf.BaseFileChooserUI;
@@ -40,8 +54,6 @@ import com.jtattoo.plaf.BaseToggleButtonUI;
 import com.jtattoo.plaf.BaseToolTipUI;
 import com.jtattoo.plaf.BaseTreeUI;
 import com.jtattoo.plaf.JTattooUtilities;
-import com.jtattoo.plaf.luna.LunaBorderFactory;
-import com.jtattoo.plaf.luna.LunaIconFactory;
 
 public class TmmLightLookAndFeel extends AbstractLookAndFeel {
 
@@ -132,34 +144,42 @@ public class TmmLightLookAndFeel extends AbstractLookAndFeel {
     setTheme(themesProps);
   }
 
+  @Override
   public String getName() {
     return "tmmLight";
   }
 
+  @Override
   public String getID() {
     return "tmmLight";
   }
 
+  @Override
   public String getDescription() {
     return "The tinyMediaManager light Look and Feel";
   }
 
+  @Override
   public boolean isNativeLookAndFeel() {
     return false;
   }
 
+  @Override
   public boolean isSupportedLookAndFeel() {
     return true;
   }
 
+  @Override
   public AbstractBorderFactory getBorderFactory() {
-    return LunaBorderFactory.getInstance();
+    return TmmLightBorderFactory.getInstance();
   }
 
+  @Override
   public AbstractIconFactory getIconFactory() {
-    return LunaIconFactory.getInstance();
+    return TmmLightIconFactory.getInstance();
   }
 
+  @Override
   protected void createDefaultTheme() {
     if (myTheme == null) {
       myTheme = new TmmLightDefaultTheme();
@@ -167,12 +187,15 @@ public class TmmLightLookAndFeel extends AbstractLookAndFeel {
     setTheme(myTheme);
   }
 
+  @Override
   protected void initComponentDefaults(UIDefaults table) {
     super.initComponentDefaults(table);
     table.put("ScrollBar.incrementButtonGap", new Integer(-1));
     table.put("ScrollBar.decrementButtonGap", new Integer(-1));
+    table.put("CheckBox.icon", getIconFactory().getCheckBoxIcon());
   }
 
+  @Override
   protected void initClassDefaults(UIDefaults table) {
     super.initClassDefaults(table);
     // @formatter:off
@@ -181,7 +204,6 @@ public class TmmLightLookAndFeel extends AbstractLookAndFeel {
         "LabelUI", BaseLabelUI.class.getName(), 
         "ToggleButtonUI", BaseToggleButtonUI.class.getName(), 
         "SeparatorUI", BaseSeparatorUI.class.getName(),
-        "TextFieldUI", BaseTextFieldUI.class.getName(), 
         "TextAreaUI", BaseTextAreaUI.class.getName(), 
         "EditorPaneUI", BaseEditorPaneUI.class.getName(), 
         "PasswordFieldUI", BasePasswordFieldUI.class.getName(), 
@@ -202,11 +224,10 @@ public class TmmLightLookAndFeel extends AbstractLookAndFeel {
         "RadioButtonMenuItemUI", BaseRadioButtonMenuItemUI.class.getName(), 
         "PopupMenuSeparatorUI", BaseSeparatorUI.class.getName(), 
         "DesktopPaneUI", BaseDesktopPaneUI.class.getName(),
-         
-        "ComboBoxUI", BaseComboBoxUI.class.getName(),  
         "ToolBarUI", BaseMenuBarUI.class.getName(), 
         "InternalFrameUI", BaseInternalFrameUI.class.getName(), 
         "RootPaneUI", BaseRootPaneUI.class.getName(), 
+        "TextFieldUI", BaseTextFieldUI.class.getName(),
         
         // TmmLookAndFeel classes
         "PanelUI", TmmLightPanelUI.class.getName(), 
@@ -214,6 +235,7 @@ public class TmmLightLookAndFeel extends AbstractLookAndFeel {
         "TabbedPaneUI", TmmLightTabbedPaneUI.class.getName(),
         "TableUI", TmmLightTableUI.class.getName(),
         "ButtonUI", TmmButtonUI.class.getName(),
+        "ComboBoxUI", TmmLightComboBoxUI.class.getName(),
     };
     table.putDefaults(uiDefaults);
     // @formatter:on
