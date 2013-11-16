@@ -105,16 +105,19 @@ public class MovieTrailerPanel extends JPanel {
         .beanConnector(MediaTrailer.class)));
     trailerTableModel = new DefaultEventTableModel<MediaTrailer>(GlazedListsSwing.swingThreadProxyList(trailerEventList), new TrailerTableFormat());
     table = new TmmTable(trailerTableModel);
+    table.setFont(table.getFont().deriveFont(11f));
+    ;
     table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
     table.setSelectionModel(new NullSelectionModel());
 
     int[] cols = {};
     JScrollPane scrollPane = TmmTable.createJScrollPane(table, cols);
+    scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
     add(scrollPane, "2, 2, fill, fill");
     scrollPane.setViewportView(table);
 
     // make the url clickable
-    URLRenderer renderer = new URLRenderer(table);
+    URLRenderer renderer = new URLRenderer();
     table.getColumnModel().getColumn(4).setCellRenderer(renderer);
     table.addMouseListener(renderer);
     table.addMouseMotionListener(renderer);
@@ -267,18 +270,7 @@ public class MovieTrailerPanel extends JPanel {
    * @author Manuel Laggner
    */
   private static class URLRenderer extends DefaultTableCellRenderer implements MouseListener, MouseMotionListener {
-
-    /** The Constant serialVersionUID. */
-    private static final long serialVersionUID = 1L;
-
-    /**
-     * Instantiates a new uRL renderer.
-     * 
-     * @param table
-     *          the table
-     */
-    public URLRenderer(JTable table) {
-    }
+    private static final long serialVersionUID = -494891550722842564L;
 
     /*
      * (non-Javadoc)
@@ -289,6 +281,7 @@ public class MovieTrailerPanel extends JPanel {
     @Override
     public Component getTableCellRendererComponent(JTable table, final Object value, boolean arg2, boolean arg3, int arg4, int arg5) {
       final JLabel lab = new JLabel("<html><font color=\"#0000CF\"><u>" + value + "</u></font></html>");
+      lab.setFont(table.getFont());
       return lab;
     }
 

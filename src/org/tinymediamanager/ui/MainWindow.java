@@ -18,8 +18,13 @@ package org.tinymediamanager.ui;
 import java.awt.AWTEvent;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
+import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.GradientPaint;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
 import java.awt.Insets;
+import java.awt.RenderingHints;
 import java.awt.Toolkit;
 import java.awt.event.AWTEventListener;
 import java.awt.event.ActionEvent;
@@ -27,6 +32,7 @@ import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.awt.geom.Rectangle2D;
 import java.io.File;
 import java.util.List;
 import java.util.ResourceBundle;
@@ -38,6 +44,7 @@ import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JLayeredPane;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
@@ -87,6 +94,7 @@ public class MainWindow extends JFrame {
   private JTabbedPane                 tabbedPane;
   private JPanel                      detailPanel;
   private ToolbarPanel                toolbarPanel;
+  private JLayeredPane                layeredPane;
 
   private TmmSwingWorker              activeTask;
   private StatusbarThread             statusTask       = new StatusbarThread();
@@ -126,9 +134,15 @@ public class MainWindow extends JFrame {
     toolbarPanel = new ToolbarPanel();
     getContentPane().add(toolbarPanel, BorderLayout.NORTH);
 
+    layeredPane = new JLayeredPane();
+    layeredPane.setLayout(new FormLayout(new ColumnSpec[] { ColumnSpec.decode("70dlu:grow") }, new RowSpec[] { RowSpec.decode("5dlu"),
+        RowSpec.decode("fill:500px:grow") }));
+    getContentPane().add(layeredPane);
+
     rootPanel = new JPanel();
     rootPanel.putClientProperty("class", "rootPanel");
-    getContentPane().add(rootPanel);
+    layeredPane.setLayer(rootPanel, 1);
+    layeredPane.add(rootPanel, "1, 1, 1, 2, fill, fill");
 
     rootPanel.setLayout(new FormLayout(new ColumnSpec[] { ColumnSpec.decode("10dlu"), ColumnSpec.decode("max(50dlu;default):grow"),
         ColumnSpec.decode("10dlu"), }, new RowSpec[] { RowSpec.decode("fill:500px:grow"), RowSpec.decode("10dlu"), }));
@@ -155,6 +169,22 @@ public class MainWindow extends JFrame {
     detailPanel.setLayout(new CardLayout(0, 0));
     rightPanel.add(detailPanel, "1, 1, fill, fill");
     splitPane.setRightComponent(rightPanel);
+
+    JPanel shadowPanel = new JPanel() {
+      private static final long serialVersionUID = 1L;
+
+      @Override
+      public void paintComponent(Graphics g) {
+        Graphics2D g2 = (Graphics2D) g;
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        GradientPaint gp = new GradientPaint(0, 0, new Color(32, 32, 32, 80), 0, 4, new Color(0, 0, 0, 0));
+        g2.setPaint(gp);
+        g2.fill(new Rectangle2D.Double(getX(), getY(), getX() + getWidth(), getY() + getHeight()));
+      }
+    };
+    shadowPanel.setLayout(new FormLayout(new ColumnSpec[] { ColumnSpec.decode("default:grow") }, new RowSpec[] { RowSpec.decode("5dlu") }));
+    layeredPane.setLayer(shadowPanel, 2);
+    layeredPane.add(shadowPanel, "1, 1, fill, fill");
 
     buildStatusbar();
 

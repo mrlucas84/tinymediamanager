@@ -23,7 +23,6 @@ import java.awt.RenderingHints;
 import javax.swing.JComponent;
 import javax.swing.plaf.ComponentUI;
 
-import com.jtattoo.plaf.AbstractLookAndFeel;
 import com.jtattoo.plaf.BasePanelUI;
 
 /**
@@ -65,7 +64,8 @@ public class TmmLightPanelUI extends BasePanelUI {
       }
       else if (panelClass != null && panelClass instanceof String && ROOT_PANEL.equals(panelClass.toString())) {
         // draw the root panel
-        c.setBackground(AbstractLookAndFeel.getTheme().getBackgroundColorDark());
+        // c.setBackground(AbstractLookAndFeel.getTheme().getBackgroundColorDark());
+        c.setBackground(new Color(213, 213, 213));
         super.update(g, c);
       }
       else {

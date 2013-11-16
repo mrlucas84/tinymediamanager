@@ -79,7 +79,6 @@ public class MovieListPanel extends JPanel {
     SortedList<Movie> sortedMovies = new SortedList<Movie>(GlazedListsSwing.swingThreadProxyList(movieList.getMovies()), new MovieComparator());
     sortedMovies.setMode(SortedList.AVOID_MOVING_ELEMENTS);
 
-    // FIXME
     searchField = new JSearchTextField();
     add(searchField, "2, 1, fill, fill");
 
@@ -92,6 +91,7 @@ public class MovieListPanel extends JPanel {
 
     // build the table
     movieTable = new TmmTable(movieTableModel);
+    // movieTable.setFont(movieTable.getFont().deriveFont(11f));
 
     movieTableModel.addTableModelListener(new TableModelListener() {
       @Override

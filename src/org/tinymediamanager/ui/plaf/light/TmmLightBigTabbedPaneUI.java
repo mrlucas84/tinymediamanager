@@ -61,7 +61,7 @@ public class TmmLightBigTabbedPaneUI extends BaseTabbedPaneUI {
 
   @Override
   protected Font getTabFont(boolean isSelected) {
-    return tabPane.getFont().deriveFont(14f);
+    return tabPane.getFont().deriveFont(14f).deriveFont(Font.BOLD);
   }
 
   @SuppressWarnings("deprecation")
@@ -82,6 +82,7 @@ public class TmmLightBigTabbedPaneUI extends BaseTabbedPaneUI {
     }
     else {
       g.setColor(new Color(41, 41, 41));
+      // g.setColor(new Color(255, 255, 255));
     }
 
     g.fillRect(x, y, w, h);
@@ -107,6 +108,7 @@ public class TmmLightBigTabbedPaneUI extends BaseTabbedPaneUI {
   protected void paintTopTabBorder(int tabIndex, Graphics g, int x1, int y1, int x2, int y2, boolean isSelected) {
     if (!isSelected) {
       g.setColor(new Color(23, 23, 23));
+      // g.setColor(new Color(225, 225, 225));
       g.drawLine(x2 - 1, y1, x2 - 1, y2 - 1);
     }
     g.setColor(new Color(56, 56, 56));
@@ -136,6 +138,7 @@ public class TmmLightBigTabbedPaneUI extends BaseTabbedPaneUI {
       }
       else {
         g.setColor(new Color(110, 110, 110));
+        // g.setColor(AbstractLookAndFeel.getTheme().getForegroundColor());
       }
       JTattooUtilities.drawStringUnderlineCharAt(tabPane, g, title, mnemIndex, textRect.x, textRect.y + metrics.getAscent());
     }
@@ -155,6 +158,7 @@ public class TmmLightBigTabbedPaneUI extends BaseTabbedPaneUI {
   @Override
   protected void paintTabArea(Graphics g, int tabPlacement, int selectedIndex) {
     g.setColor(new Color(41, 41, 41));
+    // g.setColor(new Color(245, 245, 245));
     g.fillRect(tabPane.getX(), tabPane.getY(), tabPane.getWidth(), maxTabHeight);
     super.paintTabArea(g, tabPlacement, selectedIndex);
   }

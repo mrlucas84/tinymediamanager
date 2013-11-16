@@ -206,6 +206,7 @@ public class ToolbarPanel extends JPanel {
     add(lblEdit, "8, 2, center, default");
 
     lblExport = new JLabel("Export");
+    lblExport.setFont(lblExport.getFont().deriveFont(11f));
     lblExport.setForeground(arrowColor);
     add(lblExport, "12, 2, center, default");
 

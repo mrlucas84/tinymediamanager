@@ -54,6 +54,7 @@ public class BorderCellRenderer extends DefaultTableCellRenderer {
 
     // left margin
     this.setBorder(border);
+    setFont(table.getFont());
 
     if (value instanceof Movie) {
       Movie movie = (Movie) value;

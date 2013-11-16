@@ -80,7 +80,6 @@ public class TmmLightTabbedPaneUI extends BaseTabbedPaneUI {
     }
     else {
       g.setColor(AbstractLookAndFeel.getBackgroundColor());
-
     }
 
     if (tabPlacement == TOP) {
