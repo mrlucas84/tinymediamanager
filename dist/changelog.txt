@@ -24,4 +24,3 @@ fix: crash when searching for a movie set is fixed with themoviedbapi 3.9
 fix: NFO parsing of xbmc-youtube plugin urls
 fix: externalized some more string (better translations)
 fix: several fixes to the TV show renamer
-translations: added spain (thx to roliverosc), italian (thx to peppe_sr), korean (thx to piodio), norwegian (thx to roandr); completed fr (thx to nerve)
