@@ -17,6 +17,7 @@ package org.tinymediamanager.scraper;
 
 import java.lang.reflect.Field;
 import java.util.HashMap;
+import java.util.Map.Entry;
 
 import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
@@ -43,6 +44,12 @@ public class MediaScrapeOptions {
 
   public void setResult(MediaSearchResult result) {
     this.result = result;
+  }
+
+  public void setIds(HashMap<String, Object> ids) {
+    for (Entry<String, Object> entry : ids.entrySet()) {
+      setId((String) entry.getKey(), entry.getValue().toString());
+    }
   }
 
   public String getId(String key) {

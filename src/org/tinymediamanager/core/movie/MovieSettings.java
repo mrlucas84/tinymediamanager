@@ -645,4 +645,12 @@ public class MovieSettings extends AbstractModelObject {
     this.subtitleColumnVisible = newValue;
     firePropertyChange(SUBTITLE_COLUMN_VISIBLE, oldValue, newValue);
   }
+
+  public void writeDefaultSettings() {
+    addMovieNfoFilename(MovieNfoNaming.MOVIE_NFO);
+    addMoviePosterFilename(MoviePosterNaming.POSTER_JPG);
+    addMoviePosterFilename(MoviePosterNaming.POSTER_PNG);
+    addMovieFanartFilename(MovieFanartNaming.FANART_JPG);
+    addMovieFanartFilename(MovieFanartNaming.FANART_PNG);
+  }
 }

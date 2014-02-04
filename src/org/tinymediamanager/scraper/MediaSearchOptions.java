@@ -19,40 +19,16 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * The Class SearchQuery.
+ * The Class SearchOptions.
  * 
  * @author Manuel Laggner
  */
 public class MediaSearchOptions {
-
-  /**
-   * The Enum SearchOption.
-   * 
-   * @author Manuel Laggner
-   */
   public enum SearchParam {
-    /** The query. */
-    QUERY,
-    /** The title. */
-    TITLE,
-    /** The year. */
-    YEAR,
-    /** The imdbId. */
-    IMDBID,
-    /** The tmdbId. */
-    TMDBID,
-    /** The season. */
-    SEASON,
-    /** The episode. */
-    EPISODE,
-    /** The language. */
-    LANGUAGE
+    QUERY, TITLE, YEAR, IMDBID, TMDBID, SEASON, EPISODE, LANGUAGE, PLATFORM, GAMEID
   };
 
-  /** The searchoptions. */
   private Map<SearchParam, String> options = new HashMap<SearchParam, String>();
-
-  /** The type. */
   private MediaType                type;
 
   /**

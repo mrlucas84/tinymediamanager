@@ -49,9 +49,8 @@ import org.slf4j.LoggerFactory;
 import org.tinymediamanager.ReleaseInfo;
 import org.tinymediamanager.core.ImageCache.CacheType;
 import org.tinymediamanager.core.Message.MessageLevel;
-import org.tinymediamanager.core.movie.MovieFanartNaming;
-import org.tinymediamanager.core.movie.MovieNfoNaming;
-import org.tinymediamanager.core.movie.MoviePosterNaming;
+import org.tinymediamanager.core.game.GameScraperMetadataConfig;
+import org.tinymediamanager.core.game.GameSettings;
 import org.tinymediamanager.core.movie.MovieScraperMetadataConfig;
 import org.tinymediamanager.core.movie.MovieSettings;
 import org.tinymediamanager.core.tvshow.TvShowScraperMetadataConfig;
@@ -125,8 +124,10 @@ public class Settings extends AbstractModelObject {
   private boolean                     clearCacheShutdown          = false;
   private MovieSettings               movieSettings               = null;
   private TvShowSettings              tvShowSettings              = null;
+  private GameSettings                gameSettings                = null;
   private MovieScraperMetadataConfig  movieScraperMetadataConfig  = null;
   private TvShowScraperMetadataConfig tvShowScraperMetadataConfig = null;
+  private GameScraperMetadataConfig   gameScraperMetadataConfig   = null;
   private WindowConfig                windowConfig                = null;
   // language 2 char - saved to config
   private String                      language;
@@ -150,10 +151,14 @@ public class Settings extends AbstractModelObject {
     movieSettings.addPropertyChangeListener(propertyChangeListener);
     tvShowSettings = new TvShowSettings();
     tvShowSettings.addPropertyChangeListener(propertyChangeListener);
+    gameSettings = new GameSettings();
+    gameSettings.addPropertyChangeListener(propertyChangeListener);
     movieScraperMetadataConfig = new MovieScraperMetadataConfig();
     movieScraperMetadataConfig.addPropertyChangeListener(propertyChangeListener);
     tvShowScraperMetadataConfig = new TvShowScraperMetadataConfig();
     tvShowScraperMetadataConfig.addPropertyChangeListener(propertyChangeListener);
+    gameScraperMetadataConfig = new GameScraperMetadataConfig();
+    gameScraperMetadataConfig.addPropertyChangeListener(propertyChangeListener);
     windowConfig = new WindowConfig();
     windowConfig.addPropertyChangeListener(propertyChangeListener);
   }
@@ -540,11 +545,8 @@ public class Settings extends AbstractModelObject {
     addTitlePrefix("Eine");
     Collections.sort(titlePrefix);
 
-    movieSettings.addMovieNfoFilename(MovieNfoNaming.MOVIE_NFO);
-    movieSettings.addMoviePosterFilename(MoviePosterNaming.POSTER_JPG);
-    movieSettings.addMoviePosterFilename(MoviePosterNaming.POSTER_PNG);
-    movieSettings.addMovieFanartFilename(MovieFanartNaming.FANART_JPG);
-    movieSettings.addMovieFanartFilename(MovieFanartNaming.FANART_PNG);
+    movieSettings.writeDefaultSettings();
+    gameSettings.writeDefaultSettings();
 
     saveSettings();
   }
@@ -761,6 +763,26 @@ public class Settings extends AbstractModelObject {
   }
 
   /**
+   * Sets the game settings.
+   * 
+   * @param gameSettings
+   *          the new game settings
+   */
+  public void setGameSettings(GameSettings gameSettings) {
+    this.gameSettings = gameSettings;
+    this.gameSettings.addPropertyChangeListener(propertyChangeListener);
+  }
+
+  /**
+   * Gets the game settings.
+   * 
+   * @return the game settings
+   */
+  public GameSettings getGameSettings() {
+    return this.gameSettings;
+  }
+
+  /**
    * Gets the movie scraper metadata config.
    * 
    * @return the movie scraper metadata config
@@ -798,6 +820,26 @@ public class Settings extends AbstractModelObject {
   public void setTvShowScraperMetadataConfig(TvShowScraperMetadataConfig scraperMetadataConfig) {
     this.tvShowScraperMetadataConfig = scraperMetadataConfig;
     this.tvShowScraperMetadataConfig.addPropertyChangeListener(propertyChangeListener);
+  }
+
+  /**
+   * Gets the game scraper metadata config.
+   * 
+   * @return the game scraper metadata config
+   */
+  public GameScraperMetadataConfig getGameScraperMetadataConfig() {
+    return gameScraperMetadataConfig;
+  }
+
+  /**
+   * Sets the game scraper metadata config.
+   * 
+   * @param scraperMetadataConfig
+   *          the new game scraper metadata config
+   */
+  public void setGameScraperMetadataConfig(GameScraperMetadataConfig scraperMetadataConfig) {
+    this.gameScraperMetadataConfig = scraperMetadataConfig;
+    this.gameScraperMetadataConfig.addPropertyChangeListener(propertyChangeListener);
   }
 
   /**

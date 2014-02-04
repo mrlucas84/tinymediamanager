@@ -28,6 +28,7 @@ public enum MediaFileType {
   // @formatter:off
   VIDEO, 
   VIDEO_EXTRA, // bonus/extra videos
+  GAME,
   TRAILER, 
   SAMPLE, // sample != trailer
   AUDIO, 
@@ -40,6 +41,6 @@ public enum MediaFileType {
   EXTRAFANART, 
   THUMB, 
   GRAPHIC, 
-  UNKNOWN;
+  UNKNOWN
   // @formatter:on
 }

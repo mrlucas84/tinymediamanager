@@ -75,6 +75,7 @@ public class Globals {
       com.objectdb.Enhancer.enhance("org.tinymediamanager.core.*");
       com.objectdb.Enhancer.enhance("org.tinymediamanager.core.movie.*");
       com.objectdb.Enhancer.enhance("org.tinymediamanager.core.tvshow.*");
+      com.objectdb.Enhancer.enhance("org.tinymediamanager.core.game.*");
     }
     entityManagerFactory = Persistence.createEntityManagerFactory(Constants.DB);
     try {

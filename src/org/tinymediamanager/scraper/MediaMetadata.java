@@ -52,6 +52,8 @@ public class MediaMetadata {
   public static String            COUNTRY            = "country";
   public static String            POSTER_URL         = "posterUrl";
   public static String            STATUS             = "status";
+  public static String            PUBLISHER          = "publisher";
+  public static String            PLATFORM           = "platform";
 
   public static Date              INITIAL_DATE       = new Date(0);
 
@@ -60,6 +62,7 @@ public class MediaMetadata {
   private List<MediaGenres>       genres             = new ArrayList<MediaGenres>();
   private List<Certification>     certifications     = new ArrayList<Certification>();
   private List<MediaTrailer>      trailers           = new ArrayList<MediaTrailer>();
+  private List<GameMediaGenres>   gameGenres         = new ArrayList<GameMediaGenres>();
 
   /**
    * new infrastructure
@@ -417,6 +420,16 @@ public class MediaMetadata {
    */
   public HashMap<String, Object> getIds() {
     return ids;
+  }
+
+  public void addGameGenre(GameMediaGenres genre) {
+    if (genre != null && !gameGenres.contains(genre)) {
+      gameGenres.add(genre);
+    }
+  }
+
+  public List<GameMediaGenres> getGameGenres() {
+    return gameGenres;
   }
 
   /**
