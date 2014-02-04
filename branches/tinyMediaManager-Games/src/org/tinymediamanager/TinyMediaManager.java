@@ -57,6 +57,7 @@ import org.slf4j.LoggerFactory;
 import org.tinymediamanager.core.Constants;
 import org.tinymediamanager.core.MediaFile;
 import org.tinymediamanager.core.Utils;
+import org.tinymediamanager.core.game.GameList;
 import org.tinymediamanager.core.movie.Movie;
 import org.tinymediamanager.core.movie.MovieList;
 import org.tinymediamanager.core.movie.MovieSearchAndScrapeOptions;
@@ -375,12 +376,20 @@ public class TinyMediaManager {
           movieList.loadMoviesFromDatabase();
 
           if (g2 != null) {
-            updateProgress(g2, "loading TV shows", 50);
+            updateProgress(g2, "loading TV shows", 45);
             splash.update();
           }
 
           TvShowList tvShowList = TvShowList.getInstance();
           tvShowList.loadTvShowsFromDatabase();
+
+          if (g2 != null) {
+            updateProgress(g2, "loading games", 50);
+            splash.update();
+          }
+
+          GameList gameList = GameList.getInstance();
+          gameList.loadGamesFromDatabase();
 
           // VLC /////////////////////////////////////////////////////////
           // // try to initialize VLC native libs

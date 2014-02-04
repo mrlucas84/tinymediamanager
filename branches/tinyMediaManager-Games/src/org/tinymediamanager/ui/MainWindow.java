@@ -85,6 +85,8 @@ import org.tinymediamanager.ui.components.TextFieldPopupMenu;
 import org.tinymediamanager.ui.components.VerticalTextIcon;
 import org.tinymediamanager.ui.dialogs.LogDialog;
 import org.tinymediamanager.ui.dialogs.MessageSummaryDialog;
+import org.tinymediamanager.ui.games.GamePanel;
+import org.tinymediamanager.ui.gamesets.GameSetPanel;
 import org.tinymediamanager.ui.movies.MoviePanel;
 import org.tinymediamanager.ui.moviesets.MovieSetPanel;
 import org.tinymediamanager.ui.settings.SettingsPanel;
@@ -135,6 +137,10 @@ public class MainWindow extends JFrame {
   /** The panel movies. */
   private JPanel                      panelMovies;
   private JPanel                      panelMovieSets;
+
+  /** The panel games. */
+  private JPanel                      panelGames;
+  private JPanel                      panelGameSets;
 
   /** The panel status bar. */
   private JPanel                      panelStatusBar;
@@ -461,6 +467,12 @@ public class MainWindow extends JFrame {
     JPanel panelTvShows = new TvShowPanel();
     VerticalTextIcon.addTab(tabbedPane, BUNDLE.getString("tmm.tvshows"), panelTvShows); //$NON-NLS-1$
 
+    panelGames = new GamePanel();
+    VerticalTextIcon.addTab(tabbedPane, BUNDLE.getString("tmm.games"), panelGames); //$NON-NLS-1$
+
+    panelGameSets = new GameSetPanel();
+    VerticalTextIcon.addTab(tabbedPane, BUNDLE.getString("tmm.gamesets"), panelGameSets); //$NON-NLS-1$
+
     JPanel panelSettings = new SettingsPanel();
     VerticalTextIcon.addTab(tabbedPane, BUNDLE.getString("tmm.settings"), panelSettings); //$NON-NLS-1$
 
@@ -664,6 +676,14 @@ public class MainWindow extends JFrame {
 
   public MovieSetPanel getMovieSetPanel() {
     return (MovieSetPanel) panelMovieSets;
+  }
+
+  public GamePanel getGamePanel() {
+    return (GamePanel) panelGames;
+  }
+
+  public GameSetPanel getGameSetPanel() {
+    return (GameSetPanel) panelGameSets;
   }
 
   /**

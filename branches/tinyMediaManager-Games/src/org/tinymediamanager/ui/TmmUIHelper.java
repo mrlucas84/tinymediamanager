@@ -308,6 +308,29 @@ public class TmmUIHelper {
   }
 
   /**
+   * Open the file with a specific exec
+   * 
+   * @param exe
+   * @param file
+   * @throws Exception
+   */
+  public static void executeFile(String exe, File file) throws Exception {
+    if (SystemUtils.IS_OS_WINDOWS) {
+      String[] command = { "cmd.exe", "/C", exe, file.getAbsolutePath().replace("\\", "\\\\") };
+      Runtime.getRuntime().exec(command);
+    }
+    else if (Desktop.isDesktopSupported()) {
+      Desktop.getDesktop().open(file);
+    }
+    else if (SystemUtils.IS_OS_LINUX) {
+      Runtime.getRuntime().exec(new String[] { "xdg-open", file.getAbsolutePath() });
+    }
+    else {
+      throw new NotSupportedException();
+    }
+  }
+
+  /**
    * Browse to the given url using the systems default browser
    * 
    * @param url

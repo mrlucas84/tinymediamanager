@@ -16,8 +16,10 @@
 package org.tinymediamanager.core;
 
 import java.io.File;
+import java.io.IOException;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -26,6 +28,8 @@ import java.util.Scanner;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
 import javax.persistence.Embeddable;
 import javax.persistence.EnumType;
@@ -231,6 +235,43 @@ public class MediaFile extends AbstractModelObject implements Comparable<MediaFi
       }
 
       return MediaFileType.VIDEO;
+    }
+
+    // detect game types
+    if (Globals.settings.getGameSettings().getGameFileType().contains("." + ext)) {
+      return MediaFileType.GAME;
+    }
+
+    // look also in zip files (if we need rar support: http://code.google.com/p/raroscope/)
+    if ("zip".equals(ext)) {
+      boolean found = false;
+      ZipFile zip = null;
+      try {
+        zip = new ZipFile(getFile());
+        for (Enumeration<? extends ZipEntry> e = zip.entries(); e.hasMoreElements();) {
+          ZipEntry entry = e.nextElement();
+          String entryExtension = FilenameUtils.getExtension(entry.getName());
+          if (Globals.settings.getGameSettings().getGameFileType().contains("." + entryExtension)) {
+            found = true;
+            break;
+          }
+        }
+      }
+      catch (Exception e) {
+        LOGGER.warn("could not read zip file: " + getFilename() + " " + e.getMessage());
+      }
+      finally {
+        if (zip != null) {
+          try {
+            zip.close();
+          }
+          catch (IOException e) {
+          }
+        }
+      }
+      if (found) {
+        return MediaFileType.GAME;
+      }
     }
 
     return MediaFileType.UNKNOWN;

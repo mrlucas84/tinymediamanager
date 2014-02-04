@@ -28,6 +28,10 @@ import org.tinymediamanager.Globals;
  */
 public enum Certification {
 
+
+
+
+
   // @formatter:off
   US_G     (CountryCode.US, "G", new String[] { "G", "Rated G" }),
   US_PG    (CountryCode.US, "PG", new String[] { "PG", "Rated PG" }),
@@ -221,8 +225,7 @@ public enum Certification {
   TH_Banned(CountryCode.TH, "Banned", new String[] { "Banned" }),
 
   /** initial value. */
-  NOT_RATED(CountryCode.US, "not rated", new String[] { "not rated" });
-  // @formatter:on
+  NOT_RATED(CountryCode.US, "not rated", new String[] { "not rated" });  // @formatter:on
 
   /** The country. */
   private CountryCode country;
@@ -374,12 +377,27 @@ public enum Certification {
    *          certification string like "USA:R / UK:15 / Sweden:15"
    * @return the localized certification if found, else *ANY* language cert found
    */
+  public static Certification parseCertificationStringForMovieSetupCountry(String name) {
+    return parseCertificationString(name, Globals.settings.getMovieSettings().getCertificationCountry());
+  }
+
+  /**
+   * Parses a given certification string for the localized country setup in setting.
+   * 
+   * @param name
+   *          certification string like "USA:R / UK:15 / Sweden:15"
+   * @return the localized certification if found, else *ANY* language cert found
+   */
+  public static Certification parseCertificationStringForGameSetupCountry(String name) {
+    return parseCertificationString(name, Globals.settings.getGameSettings().getCertificationCountry());
+  }
+
   // <certification>USA:R / UK:15 / Sweden:15 / Spain:18 / South Korea:15 /
   // Singapore:NC-16 / Portugal:M/16 / Philippines:R-18 / Norway:15 / New
   // Zealand:M / Netherlands:16 / Malaysia:U / Malaysia:18PL / Ireland:18 /
   // Iceland:16 / Hungary:18 / Germany:16 / Finland:K-15 / Canada:18A /
   // Canada:18+ / Brazil:16 / Australia:M / Argentina:16</certification>
-  public static Certification parseCertificationStringForMovieSetupCountry(String name) {
+  public static Certification parseCertificationString(String name, CountryCode country) {
     Certification cert = NOT_RATED;
     name = name.trim();
     if (name.contains("/")) {
@@ -390,13 +408,13 @@ public enum Certification {
         c = c.trim();
         if (c.contains(":")) {
           String[] cs = c.split(":");
-          cert = getCertification(Globals.settings.getMovieSettings().getCertificationCountry(), cs[1]);
+          cert = getCertification(country, cs[1]);
           if (cert != NOT_RATED) {
             return cert;
           }
         }
         else {
-          cert = getCertification(Globals.settings.getMovieSettings().getCertificationCountry(), c);
+          cert = getCertification(country, c);
           if (cert != NOT_RATED) {
             return cert;
           }
@@ -425,11 +443,11 @@ public enum Certification {
       // no slash, so only one country
       if (name.contains(":")) {
         String[] cs = name.split(":");
-        cert = getCertification(Globals.settings.getMovieSettings().getCertificationCountry(), cs[1]);
+        cert = getCertification(country, cs[1]);
       }
       else {
         // no country? try to find only by name
-        cert = getCertification(Globals.settings.getMovieSettings().getCertificationCountry(), name);
+        cert = getCertification(country, name);
       }
     }
     // still not found localized cert? parse the name to find *ANY* certificate

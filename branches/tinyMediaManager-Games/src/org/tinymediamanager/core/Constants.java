@@ -49,6 +49,7 @@ public final class Constants {
   public final static String HAS_IMAGES             = "hasImages";
   public final static String HAS_NFO_FILE           = "hasNfoFile";
   public final static String IMDBID                 = "imdbId";
+  public final static String IS_FAVORITE            = "isFavorite";
   public final static String MEDIA_FILES            = "mediaFiles";
   public final static String MEDIA_INFORMATION      = "mediaInformation";
   public final static String MOVIESET               = "movieset";
@@ -57,11 +58,13 @@ public final class Constants {
   public final static String NFO_FILENAME           = "nfoFilename";
   public final static String ORIGINAL_TITLE         = "originalTitle";
   public final static String PATH                   = "path";
+  public final static String PLATFORM               = "platform";
   public final static String PLOT                   = "plot";
   public final static String POSTER                 = "poster";
   public final static String POSTER_URL             = "posterUrl";
   public final static String PRODUCERS              = "producers";
   public final static String PRODUCTION_COMPANY     = "productionCompany";
+  public final static String PUBLISHER              = "publisher";
   public final static String RATING                 = "rating";
   public final static String RELEASE_DATE           = "releaseDate";
   public final static String RELEASE_DATE_AS_STRING = "releaseDateAsString";
@@ -70,6 +73,7 @@ public final class Constants {
   public final static String ROLE                   = "role";
   public final static String RUNTIME                = "runtime";
   public final static String SCRAPED                = "scraped";
+  public final static String SCRAPER_IDS            = "scraperIds";
   public final static String SEASON                 = "season";
   public final static String SEASON_POSTER          = "seasonPoster";
   public final static String SORT_TITLE             = "sortTitle";

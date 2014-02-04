@@ -90,7 +90,7 @@ public class MetadataUtil {
         continue;
       String s = query.get(f);
       if (!StringUtils.isEmpty(s)) {
-        sr.getExtra().put(f.name(), s);
+        sr.getExtraArgs().put(f.name(), s);
       }
     }
   }

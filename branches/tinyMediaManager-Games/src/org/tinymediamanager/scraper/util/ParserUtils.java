@@ -15,9 +15,12 @@
  */
 package org.tinymediamanager.scraper.util;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.tinymediamanager.Globals;
@@ -58,6 +61,21 @@ public class ParserUtils {
   }
 
   /**
+   * Tries to get game name from filename<br>
+   * 1. splits string using common delimiters ".- ()"<br>
+   * 2. searches for first occurrence of common stopwords<br>
+   * 3. if last token is 4 digits, assume year and remove<br>
+   * 4. everything before the first stopword must be the game name :p
+   * 
+   * @param filename
+   *          the filename to get the title from
+   * @return the (hopefully) correct parsed game name
+   */
+  public static String detectCleanGamename(String filename) {
+    return detectCleanGamenameAndYear(filename)[0];
+  }
+
+  /**
    * Tries to get movie name and year from filename<br>
    * 1. splits string using common delimiters ".- ()"<br>
    * 2. searches for first occurrence of common stopwords<br>
@@ -69,12 +87,45 @@ public class ParserUtils {
    * @return title/year string (year can be empty)
    */
   public static String[] detectCleanMovienameAndYear(String filename) {
-    String[] ret = { "", "" };
     // use trace to not remove logging completely (function called way to often on multi movie dir parsing)
     LOGGER.trace("Parse filename for movie title: \"" + filename + "\"");
+    String[] result = detectCleanNameAndYear(filename, Globals.settings.getMovieSettings().getBadWords());
+    if (StringUtils.isBlank(result[0]) && StringUtils.isBlank(result[1])) {
+      LOGGER.warn("Filename empty?!");
+    }
+    else {
+      LOGGER.trace("Movie title should be: \"" + result[0] + "\", from " + result[1]);
+    }
+    return result;
+  }
+
+  /**
+   * Tries to get game name and year from filename<br>
+   * 1. splits string using common delimiters ".- ()"<br>
+   * 2. searches for first occurrence of common stopwords<br>
+   * 3. if last token is 4 digits, assume year and set [1]<br>
+   * 4. everything before the first stopword must be the game name :p
+   * 
+   * @param filename
+   *          the filename to get the title from
+   * @return title/year string (year can be empty)
+   */
+  public static String[] detectCleanGamenameAndYear(String filename) {
+    LOGGER.trace("Parse filename for game title: \"" + filename + "\"");
+    String[] result = detectCleanNameAndYear(filename, new ArrayList<String>(0));
+    if (StringUtils.isBlank(result[0]) && StringUtils.isBlank(result[1])) {
+      LOGGER.warn("Filename empty?!");
+    }
+    else {
+      LOGGER.trace("Game title should be: \"" + result[0] + "\", from " + result[1]);
+    }
+    return result;
+  }
+
+  private static String[] detectCleanNameAndYear(String filename, List<String> badWords) {
+    String[] ret = { "", "" };
 
     if (filename == null || filename.isEmpty()) {
-      LOGGER.warn("Filename empty?!");
       return ret;
     }
 
@@ -118,7 +169,7 @@ public class ParserUtils {
     for (int i = 0; i < firstFoundStopwordPosition; i++) {
       if (!s[i].isEmpty()) {
         // check for bad words
-        if (!Globals.settings.getMovieSettings().getBadWords().contains(s[i])) {
+        if (!badWords.contains(s[i])) {
           name = name + s[i] + " ";
         }
       }
@@ -126,7 +177,6 @@ public class ParserUtils {
 
     ret[0] = name.trim();
     ret[1] = year.trim();
-    LOGGER.trace("Movie title should be: \"" + ret[0] + "\", from " + ret[1]);
     return ret;
   }
 
