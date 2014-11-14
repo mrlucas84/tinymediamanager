@@ -1,3 +1,23 @@
+Version 2.6.4 
+=======================
++ changed Fanart.tv to v3 API (with clientKey)
++ added more artwork scraping dialogs
++ new Excel export template (xml)
++ added $L language renaming option
++ added/improved 3D handling
++ certification bulk edit
++ add season to image chooser title
++ remember last opened directory in the directory/file chooser
+x fixed BD NFO
+x fixed Excel export template
+x fixed/improved some tooltips
+x improved artwork sorting, better language detection
+x fixed MacOS startup; Java detection, executable, ...
+x fixed SSxEE TvShow parser
+x fixed movie exporter filename generation
+x ingore folders/files starting with .@
+x many code cleanups 
+
 Version 2.6.3
 =======================
 + added edit button for tv show season
