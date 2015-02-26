@@ -45,7 +45,10 @@ code = lib/jdom.jar
 code = lib/jgoodies-common.jar
 code = lib/jmte-unbundled.jar
 code = lib/jna.jar
+code = lib/joda-time.jar
+code = lib/json-20131018.jar
 code = lib/jsoup.jar
+code = lib/jtidy.jar
 code = lib/log4j-over-slf4j.jar
 code = lib/logback-classic.jar
 code = lib/logback-core.jar
@@ -82,6 +85,7 @@ resource = [!windows] tinyMediaManager.sh
 resource = [!windows] tinyMediaManagerUpdater.sh
 resource = [mac os x] tinyMediaManagerOSX.sh
 resource = [mac os x] JavaApplicationStub.new               #rename to new, for self-update
+resource = [mac os x] Info.plist
 resource = getdown-new.jar
 resource = version
 resource = splashscreen.png
@@ -91,8 +95,8 @@ resource = [!windows] env.txt                               #still distribute an
 
 # translations
 resource = locale/messages_cs.properties
-resource = locale/messages_da.properties
 resource = locale/messages_de.properties
+resource = locale/messages_el.properties
 resource = locale/messages_es.properties
 resource = locale/messages_fr.properties
 resource = locale/messages_hu.properties
@@ -100,14 +104,11 @@ resource = locale/messages_it.properties
 resource = locale/messages_ko.properties
 resource = locale/messages_nl.properties
 resource = locale/messages_no.properties
-resource = locale/messages_pl.properties
 resource = locale/messages_pt.properties
-resource = locale/messages_ro.properties
 resource = locale/messages_ru.properties
 resource = locale/messages_sk.properties
 resource = locale/messages_sv.properties
 resource = locale/messages_tr.properties
-resource = locale/messages_vi.properties
 resource = locale/messages_zh.properties
 
 

@@ -49,7 +49,10 @@
         <jar href="lib/jgoodies-common.jar" />
         <jar href="lib/jmte-unbundled.jar" />
         <jar href="lib/jna.jar" />
+        <jar href="lib/joda-time.jar" />
+        <jar href="lib/json-20131018.jar" />
         <jar href="lib/jsoup.jar" />
+        <jar href="lib/jtidy.jar" />
         <jar href="lib/log4j-over-slf4j.jar" />
         <jar href="lib/logback-classic.jar" />
         <jar href="lib/logback-core.jar" />
